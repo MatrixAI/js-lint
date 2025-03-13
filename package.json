@@ -1,8 +1,8 @@
 {
-  "name": "@matrixai/logger",
-  "version": "4.0.3",
+  "name": "@matrixai/matrix-eslint",
+  "version": "0.0.1",
   "author": "Roger Qiu",
-  "description": "Python-like JavaScript Logger",
+  "description": "Org wide custom eslint rules",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
