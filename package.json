@@ -9,6 +9,7 @@
     "url": "https://github.com/MatrixAI/js-logger.git"
   },
   "type": "module",
+  "main": "index.js",
   "exports": {
     "./package.json": "./package.json",
     ".": {
