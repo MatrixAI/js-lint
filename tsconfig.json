@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
-    "tsBuildInfoFile": "./dist/tsbuildinfo",
+    "outDir": "./lib",
+    "tsBuildInfoFile": "./lib/tsbuildinfo",
     "incremental": true,
     "sourceMap": true,
     "declaration": true,
@@ -13,14 +13,17 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleResolution": "NodeNext",
-    "module": "ESNext",
+    "module": "NodeNext",
     "target": "ES2022",
     "baseUrl": "./src",
     "paths": {
       "#*": ["*"]
     },
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": false,
+    "declarationMap": true,
+    "emitDeclarationOnly": false
+    
   },
   "include": [
     "./src/**/*",

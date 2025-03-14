@@ -1,6 +1,7 @@
-export { default } from './Logger.js';
-export { default as Handler } from './Handler.js';
-export * as formatting from './formatting.js';
-export * from './handlers/index.js';
-export * from './utils.js';
-export * from './types.js';
+import { noAliasedImportsRule } from './rules/no-aliased-imports.js';
+
+export default {
+  rules: {
+    'no-aliased-imports': noAliasedImportsRule,
+  },
+};
