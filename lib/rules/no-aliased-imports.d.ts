@@ -1,4 +1,4 @@
-export declare const noAliasedImportsInSrcRule: {
+export declare const noAliasedImportsRule: {
     meta: {
         type: string;
         fixable: string;
