@@ -9,22 +9,14 @@
     "url": "https://github.com/MatrixAI/js-logger.git"
   },
   "type": "module",
-  "main": "index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./*.js": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
-    },
-    "./*": "./dist/*"
+    "import": "./lib/index.js",
+    "require": "./lib/index.cjs",
+    "types": "./lib/index.d.ts"
   },
-  "imports": {
-    "#*": "./dist/*"
-  },
+  "./package.json": "./package.json",
   "scripts": {
     "prepare": "tsc -p ./tsconfig.build.json",
     "build": "shx rm -rf ./dist && tsc -p ./tsconfig.build.json",
