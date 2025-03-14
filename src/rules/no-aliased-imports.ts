@@ -53,9 +53,13 @@ export const noAliasedImportsRule = {
   ],
   create(context) {
     const options = context.options[0] || {};
-    const { aliases, includeFolders, autoFix } = options;
+    const { 
+      aliases , 
+      includeFolders, 
+      autoFix 
+    } = options;
     return {
-      importDeclaration(node) {
+      ImportDeclaration(node) {
         const importPath = node.source.value;
 
         // The absolute path of the current file being linted

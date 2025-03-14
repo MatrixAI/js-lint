@@ -52,7 +52,7 @@ export declare const noAliasedImportsRule: {
         autoFix: boolean;
     }[];
     create(context: any): {
-        importDeclaration(node: any): void;
+        ImportDeclaration(node: any): void;
     };
 };
 //# sourceMappingURL=no-aliased-imports.d.ts.map

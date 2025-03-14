@@ -1,5 +1,5 @@
 {
-  "name": "@matrixai/matrix-eslint",
+  "name": "@matrixai/js-eslint",
   "version": "0.0.1",
   "author": "Roger Qiu",
   "description": "Org wide custom eslint rules",
@@ -29,6 +29,8 @@
     "docs": "shx rm -rf ./docs && typedoc --gitRevision master --tsconfig ./tsconfig.build.json --out ./docs src",
     "bench": "tsc -p ./tsconfig.build.json && shx rm -rf ./benches/results && tsx ./benches/index.ts"
   },
+
+
   "devDependencies": {
     "@swc/core": "1.3.82",
     "@types/node": "^20.5.7",
@@ -44,5 +46,11 @@
     "tsx": "^3.12.7",
     "typedoc": "^0.24.8",
     "typescript": "^5.1.6"
+  },
+
+  "peerDependencies": {
+    "eslint": ">=9.0.0"
   }
+
+  
 }
