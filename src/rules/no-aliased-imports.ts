@@ -1,6 +1,11 @@
 import path from 'node:path';
+import type { RuleModule } from '@typescript-eslint/utils/ts-eslint';
 
-export const noAliasedImportsRule = {
+export const noAliasedImportsRule : RuleModule<'noAlias' | 'noAliasNoAutofix', [{ 
+    aliases: { prefix: string; target: string; }[]; 
+    includeFolders: string[]; 
+    autoFix: boolean; 
+  }]> = {
   meta: {
     type: 'suggestion',
     fixable: 'code',
@@ -129,3 +134,5 @@ export const noAliasedImportsRule = {
     };
   },
 };
+
+export default noAliasedImportsRule;
