@@ -53,15 +53,15 @@ export const noAliasedImportsRule : RuleModule<'noAlias' | 'noAliasNoAutofix', [
     {
       aliases: [{ prefix: '#', target: 'src' }],
       includeFolders: ['src'],
-      autoFix: true,
+      autoFix: false,
     },
   ],
   create(context) {
     const options = context.options[0] || {};
     const { 
-      aliases , 
-      includeFolders, 
-      autoFix 
+      aliases = [{ prefix: '#', target: 'src' }], 
+      includeFolders = ['src'], 
+      autoFix = false
     } = options;
     return {
       ImportDeclaration(node) {

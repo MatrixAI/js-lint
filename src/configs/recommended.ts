@@ -1,11 +1,14 @@
 // src/configs/recommended.ts
+
 export default {
-    plugins: ['@matrixai'],
-    rules: {
-      '@matrixai/no-aliased-imports': ['error', {
-        aliases: [{ prefix: '#', target: 'src' }],
-        includeFolders: ['src'],
-        autoFix: true
-      }]
-    }
-  };
+  rules: {
+    "@matrixai/no-aliased-imports": [
+      "error",
+      {
+        aliases: [{ prefix: "#", target: "src" }],
+        includeFolders: ["src"],
+        autoFix: false,
+      },
+    ],
+  },
+};
