@@ -1,7 +1,14 @@
 declare const _default: {
-    extends: string[];
+    plugins: string[];
     rules: {
-        '@matrixai/js-eslint/no-aliased-imports': string;
+        '@matrixai/no-aliased-imports': (string | {
+            aliases: {
+                prefix: string;
+                target: string;
+            }[];
+            includeFolders: string[];
+            autoFix: boolean;
+        })[];
     };
 };
 export default _default;

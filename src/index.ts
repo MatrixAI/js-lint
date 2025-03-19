@@ -1,18 +1,12 @@
-import { noAliasedImportsRule } from './rules/no-aliased-imports.js';
+// src/index.ts
+import noAliasedImportsRule from './rules/no-aliased-imports.js';
+import recommended from './configs/recommended.js';
 
-export const rules = {
-  'no-aliased-imports': noAliasedImportsRule
-};
-
-export const configs = {
-  recommended: {
-    plugins: ['custom'],
-    rules: {
-      'custom/no-aliased-imports': ['error', {
-        aliases: [{ prefix: '#', target: 'src' }],
-        includeFolders: ['src'],
-        autoFix: false
-      }]
-    }
+export default {
+  rules: {
+    'no-aliased-imports': noAliasedImportsRule
+  },
+  configs: {
+    recommended
   }
 };
