@@ -1,12 +1,10 @@
-// src/configs/recommended.ts
-
-export default {
+export const recommended = {
   rules: {
-    "@matrixai/no-aliased-imports": [
-      "error",
+    '@matrixai/no-aliased-imports': [
+      'error',
       {
-        aliases: [{ prefix: "#", target: "src" }],
-        includeFolders: ["src"],
+        aliases: [{ prefix: '#', target: 'src' }],
+        includeFolders: ['src'],
         autoFix: false,
       },
     ],
