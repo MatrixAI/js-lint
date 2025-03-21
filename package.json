@@ -1,5 +1,5 @@
 {
-  "name": "@matrixai/js-eslint",
+  "name": "@matrixai/eslint-plugin",
   "version": "0.0.1",
   "author": "Roger Qiu",
   "description": "Org wide custom eslint rules",
@@ -10,16 +10,13 @@
   },
   "type": "module",
   "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
   "exports": {
-    "import": "./lib/index.js",
-    "require": "./lib/index.cjs",
-    "types": "./lib/index.d.ts"
+    "import": "./lib/index.js"
   },
   "./package.json": "./package.json",
   "scripts": {
     "prepare": "tsc -p ./tsconfig.build.json",
-    "build": "shx rm -rf ./dist && tsc -p ./tsconfig.build.json",
+    "build": "shx rm -rf ./lib && tsc -p ./tsconfig.build.json",
     "postversion": "npm install --package-lock-only --ignore-scripts --silent",
     "tsx": "tsx",
     "test": "node ./scripts/test.mjs",
@@ -29,13 +26,12 @@
     "docs": "shx rm -rf ./docs && typedoc --gitRevision master --tsconfig ./tsconfig.build.json --out ./docs src",
     "bench": "tsc -p ./tsconfig.build.json && shx rm -rf ./benches/results && tsx ./benches/index.ts"
   },
-
-
   "devDependencies": {
     "@swc/core": "1.3.82",
     "@types/node": "^20.5.7",
     "@typescript-eslint/eslint-plugin": "^5.61.0",
     "@typescript-eslint/parser": "^5.61.0",
+    "@typescript-eslint/utils": "^8.26.1",
     "common-tags": "^1.8.2",
     "eslint": "^8.44.0",
     "eslint-config-prettier": "^8.8.0",
@@ -47,10 +43,7 @@
     "typedoc": "^0.24.8",
     "typescript": "^5.1.6"
   },
-
   "peerDependencies": {
     "eslint": ">=9.0.0"
   }
-
-  
 }
