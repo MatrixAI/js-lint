@@ -69,11 +69,12 @@ export const noAliasedImportsRule: RuleModule<
       autoFix = false,
     } = options;
     return {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       ImportDeclaration(node) {
         const importPath = node.source.value;
 
         // The absolute path of the current file being linted
-        const filename = context.getFilename();
+        const filename = context.filename;
 
         // 1) Check if the file is in one of the "includeFolders"
         const isInIncludedFolder = includeFolders.some((folder) => {
