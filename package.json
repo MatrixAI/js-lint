@@ -9,17 +9,14 @@
     "url": "https://github.com/MatrixAI/js-eslint.git"
   },
   "type": "module",
-  "main": "./lib/esm/src/index.js",
+  "main": "./lib/index.js",
   "exports": {
-    "import": "./lib/esm/src/index.js",
-    "require": "./lib/cjs/src/index.cjs"
+    "import": "./lib/index.js"
   },
   "./package.json": "./package.json",
   "scripts": {
     "prepare": "tsc -p ./tsconfig.build.json",
-    "build:esm": "tsc -p tsconfig.build.esm.json",
-    "build:cjs": "tsc -p tsconfig.build.cjs.json",
-    "build": "shx rm -rf ./lib && npm run build:esm && npm run build:cjs",
+    "build": "shx rm -rf ./lib && tsc -p ./tsconfig.build.json",
     "postversion": "npm install --package-lock-only --ignore-scripts --silent",
     "tsx": "tsx",
     "test": "node ./scripts/test.mjs",
