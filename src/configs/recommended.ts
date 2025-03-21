@@ -1,4 +1,5 @@
 export const recommended = {
+    plugins:{},
   rules: {
     '@matrixai/no-aliased-imports': [
       'error',

@@ -11,7 +11,9 @@
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
-    "import": "./lib/index.js"
+    ".": {
+      "import": "./lib/index.js"
+    }
   },
   "./package.json": "./package.json",
   "scripts": {
