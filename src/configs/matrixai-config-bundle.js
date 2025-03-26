@@ -1,14 +1,12 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { FlatCompat } from '@eslint/eslintrc';
 import { fixupConfigRules, fixupPluginRules } from '@eslint/compat';
-import _import from 'eslint-plugin-import';
-import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
 import js from '@eslint/js';
-import { FlatCompat } from '@eslint/eslintrc';
+import globals from 'globals';
+import _import from 'eslint-plugin-import';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import _matrixLint from '../index.js';
-
-console.log("running config");
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url);
