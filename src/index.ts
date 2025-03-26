@@ -1,7 +1,7 @@
 import noAliasedImportsRule from './rules/no-aliased-imports.js';
 import { recommended } from './configs/recommended.js';
 
-export const matrixaiPlugin = {
+const matrixaiPlugin = {
   meta: {
     name: 'eslint-plugin-matrixai',
     version: '0.0.1',

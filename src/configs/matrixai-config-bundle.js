@@ -8,6 +8,8 @@ import js from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
 import _matrixLint from '../index.js';
 
+console.log("running config");
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -161,6 +163,7 @@ export default [
           leadingUnderscore: 'allow',
           trailingUnderscore: 'allowSingleOrDouble',
         },
+        { selector: 'import', format: ['camelCase', 'PascalCase'] },
         {
           selector: 'function',
           format: ['camelCase', 'PascalCase'],
