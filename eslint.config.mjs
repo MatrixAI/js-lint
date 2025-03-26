@@ -16,7 +16,6 @@ const compat = new FlatCompat({
 });
 
 export default [
-
   ...fixupConfigRules(
     compat.extends(
       'eslint:recommended',
@@ -24,11 +23,9 @@ export default [
       'plugin:prettier/recommended',
     ),
   ),
-
   {
     plugins: {
       import: fixupPluginRules(_import),
-
     },
 
     languageOptions: {
@@ -48,7 +45,7 @@ export default [
       },
     },
 
-    "rules": {
+    rules: {
         "linebreak-style": ["error", "unix"],
         "no-empty": 1,
         "no-useless-catch": 1,
