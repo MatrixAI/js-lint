@@ -69,7 +69,6 @@ export const noAliasedImportsRule: RuleModule<
       autoFix = false,
     } = options;
     return {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       ImportDeclaration(node) {
         const importPath = node.source.value;
 
