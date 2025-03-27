@@ -1,11 +1,11 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import _import from 'eslint-plugin-import';
-import { fixupPluginRules } from '@eslint/compat';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import globals from 'globals';
-import tsParser from '@typescript-eslint/parser';
+import _import from 'eslint-plugin-import';
 import js from '@eslint/js';
+import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
+import { fixupPluginRules } from '@eslint/compat';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url);
