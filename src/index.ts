@@ -1,4 +1,3 @@
-import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import noAliasedImportsRule from './rules/no-aliased-imports.js';
 import { recommended } from './configs/recommended.js';
 
