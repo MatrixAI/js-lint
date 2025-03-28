@@ -1,7 +1,6 @@
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import noAliasedImportsRule from './rules/no-aliased-imports.js';
 import { recommended } from './configs/recommended.js';
-import { recommendedTypeaware } from './configs/recommendedTypeaware.js';
 
 const matrixaiPlugin = {
   meta: {
@@ -13,7 +12,6 @@ const matrixaiPlugin = {
   },
   configs: {
     recommended: recommended,
-    recommendedTypeaware: recommendedTypeaware,
   },
 };
 
@@ -21,10 +19,6 @@ const matrixaiPlugin = {
 // when the user applies the recommended config.
 Object.assign(recommended.plugins, {
   '@matrixai': matrixaiPlugin,
-});
-
-Object.assign(recommendedTypeaware.plugins, {
-  '@typescript-eslint': typescriptEslint,
 });
 
 export default matrixaiPlugin;

@@ -38,6 +38,8 @@ export default [
       ecmaVersion: 5,
       sourceType: 'module',
       // The parserOptions.project intentionally omitted to avoid breaking consumer repos,
+      // consumer repos must explicitly define their project settings here in order to make use of
+      // the recommended config.
     },
     rules: {
       'linebreak-style': ['error', 'unix'],
