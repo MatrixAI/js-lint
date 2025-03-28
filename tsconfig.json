@@ -13,17 +13,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleResolution": "NodeNext",
-    "module": "NodeNext",
+    "module": "ESNext",
     "target": "ES2022",
     "baseUrl": "./src",
     "paths": {
       "#*": ["*"]
     },
     "skipLibCheck": true,
-    "noEmit": false,
-    "declarationMap": true,
-    "emitDeclarationOnly": false
-    
+    "noEmit": true
   },
   "include": [
     "./src/**/*",

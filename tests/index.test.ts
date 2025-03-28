@@ -1,5 +1,3 @@
-
 describe('index', () => {
-  test('some arbitrary test', () => {
-  });
+  test('some arbitrary test', () => {});
 });
