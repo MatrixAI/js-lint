@@ -1,15 +1,15 @@
 import process from 'node:process';
-import matrixaiConfigBundle from '../configs/matrixai-config-bundle.js';
 import { FlatESLint } from '@typescript-eslint/utils/ts-eslint';
-
-// Dynamically import the shared config
-const sharedConfig = matrixaiConfigBundle;
+import matrixaiConfigBundle from '../configs/matrixai-config-bundle.js';
+import { ESLint } from 'eslint';
 
 export async function runESLint({ fix }) {
   const eslint = new FlatESLint({
-    overrideConfig: matrixaiConfigBundle,
+    overrideConfigFile: "../configs/matrixai-config-bundle.ts",
     fix,
   });
+
+  console.log("config:" + eslint.findConfigFile());
 
   const results = await eslint.lintFiles([
     'src/**/*.{js,ts,jsx,tsx}',
@@ -20,6 +20,8 @@ export async function runESLint({ fix }) {
     'server/**/*.{js,ts,jsx,tsx}',
   ]);
 
+
+
   if (fix) {
     await FlatESLint.outputFixes(results);
   }
@@ -28,9 +30,8 @@ export async function runESLint({ fix }) {
   const resultText = formatter.format(results);
   console.log(resultText);
 
-  const hasErrors = results.some(r => r.errorCount > 0);
+  const hasErrors = results.some((r) => r.errorCount > 0);
   if (hasErrors) {
     process.exit(1);
   }
 }
-

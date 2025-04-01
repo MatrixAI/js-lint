@@ -5,12 +5,12 @@ import url from 'node:url';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import { runESLint } from '../runners/runESlint.js';
-
+console.log("running custom linter");  
 
 function commandExists(cmd: string): boolean {
-    const whichCmd = process.platform === 'win32' ? 'where' : 'which';
-    const result = childProcess.spawnSync(whichCmd, [cmd], { stdio: 'ignore' });
-    return result.status === 0;
+  const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+  const result = childProcess.spawnSync(whichCmd, [cmd], { stdio: 'ignore' });
+  return result.status === 0;
 }
 
 const projectPath = path.dirname(
@@ -42,7 +42,7 @@ async function main(argv = process.argv) {
     eslintArgs.push('--fix');
   }
   console.error('Running eslint:');
-  await runESLint({fix});
+  await runESLint({ fix });
   console.error(['eslint', ...eslintArgs].join(' '));
   childProcess.execFileSync('eslint', eslintArgs, {
     stdio: ['inherit', 'inherit', 'inherit'],
@@ -77,9 +77,11 @@ async function main(argv = process.argv) {
       cwd: projectPath,
     });
   } else {
-    console.warn('Skipping shellcheck: find or shellcheck not found in environment.');
+    console.warn(
+      'Skipping shellcheck: find or shellcheck not found in environment.',
+    );
   }
-  
+
   // Linting markdown
   const prettierArgs = [
     !fix ? '--check' : '--write',
@@ -102,7 +104,9 @@ export default main;
 
 if (import.meta.url.startsWith('file:')) {
   const modulePath = url.fileURLToPath(import.meta.url);
-  if (process.argv[1] === modulePath) {
-    void main();
-  }
+  void main();
+//   if (process.argv[1] === modulePath) {
+//     console.log("try run main");
+//     void main();
+//   }
 }
