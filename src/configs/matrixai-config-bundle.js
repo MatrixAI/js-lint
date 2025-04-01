@@ -35,7 +35,7 @@ export default [
         ...globals.jest,
       },
       parser: tsParser,
-      ecmaVersion: 5,
+      ecmaVersion: 'latest',
       sourceType: 'module',
       // The parserOptions.project intentionally omitted to avoid breaking consumer repos,
       // consumer repos must explicitly define their project settings here in order to make use of
