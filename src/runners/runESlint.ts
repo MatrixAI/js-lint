@@ -17,7 +17,7 @@ export async function runESLint({ fix, patterns }) {
     overrideConfigFile: configPath,
     fix,
     errorOnUnmatchedPattern: false,
-    
+    warnIgnored: false,
   });
 
   console.log ("config bundle: " + matrixaiConfigBundle.toString());

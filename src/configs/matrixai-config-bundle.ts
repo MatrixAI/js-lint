@@ -7,8 +7,7 @@ import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
 import { EcmaVersion, } from '@typescript-eslint/utils/ts-eslint';
-import fs from 'fs';
-import ts from 'typescript';
+import matrixaiPlugin  from '@matrixai/lint';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url);
@@ -21,6 +20,7 @@ const compat = new FlatCompat({
 });
 
 const config = [
+
   ...compat.extends(
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -29,6 +29,7 @@ const config = [
   {
     plugins: {
       import: fixupPluginRules(_import),
+      '@matrixai': matrixaiPlugin,
     },
     languageOptions: {
       globals: {
@@ -42,10 +43,39 @@ const config = [
       sourceType: 'module',
       parserOptions: {
         // Dynamically detect tsconfig.json in target repo
-         project: [path.resolve(process.cwd(), 'tsconfig.json'), './src/app/tsconfig.json'],
+        // project: [path.resolve(process.cwd(), 'tsconfig.json'), './src/app/tsconfig.json'],
+        // project: [path.resolve(process.cwd(), 'tsconfig.json')],
+
+        project: true
+
       },
     },
     rules: {
+      '@matrixai/no-aliased-imports': [
+        'error',
+        {
+          aliases: [{ prefix: '#', target: 'src' }],
+          includeFolders: ['src'],
+          autoFix: false,
+        },
+      ],
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        {
+          ignoreVoid: true,
+          ignoreIIFE: true,
+        },
+      ],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: false,
+        },
+      ],
+      '@typescript-eslint/await-thenable': ['error'],
+    
+
+
       'linebreak-style': ['error', 'unix'],
       'no-empty': 1,
       'no-useless-catch': 1,
