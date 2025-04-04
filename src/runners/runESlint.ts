@@ -1,17 +1,29 @@
 import process from 'node:process';
-import { FlatESLint } from '@typescript-eslint/utils/ts-eslint';
+import path from 'node:path';
+import url from 'node:url';
 import matrixaiConfigBundle from '../configs/matrixai-config-bundle.js';
 import { ESLint } from 'eslint';
 
-export async function runESLint({ fix }) {
-  const eslint = new FlatESLint({
-    overrideConfigFile: "../configs/matrixai-config-bundle.ts",
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+
+export async function runESLint({ fix, patterns }) {
+  // Resolve absolute path to config
+  const configPath = path.resolve(
+    __dirname,
+    '../configs/matrixai-config-bundle.js',
+  );
+
+  const eslint = new ESLint({
+    overrideConfigFile: configPath,
     fix,
+    errorOnUnmatchedPattern: false,
+    
   });
 
+  console.log ("config bundle: " + matrixaiConfigBundle.toString());
   console.log("config:" + eslint.findConfigFile());
 
-  const results = await eslint.lintFiles([
+  const results = await eslint.lintFiles(patterns ||[
     'src/**/*.{js,ts,jsx,tsx}',
     'scripts/**/*.{js,ts}',
     'tests/**/*.{js,ts}',
@@ -23,7 +35,7 @@ export async function runESLint({ fix }) {
 
 
   if (fix) {
-    await FlatESLint.outputFixes(results);
+    await ESLint.outputFixes(results);
   }
 
   const formatter = await eslint.loadFormatter('stylish');

@@ -34,23 +34,23 @@ async function main(argv = process.argv) {
     }
   }
   // Linting code
-  const eslintArgs = [
-    '{src,pages,blog,docs,server,scripts}/**/*.{js,mjs,ts,mts,jsx,tsx,json}',
+  const eslintArgs = restArgs.length > 0 ? restArgs : [
+    '{src,pages,blog,docs,server,scripts,benches,fixtures}/**/*.{js,mjs,ts,mts,jsx,tsx,json}',
     'docusaurus.config.ts',
   ];
   if (fix) {
     eslintArgs.push('--fix');
   }
   console.error('Running eslint:');
-  await runESLint({ fix });
+  await runESLint({ fix, patterns: eslintArgs });
   console.error(['eslint', ...eslintArgs].join(' '));
-  childProcess.execFileSync('eslint', eslintArgs, {
-    stdio: ['inherit', 'inherit', 'inherit'],
-    windowsHide: true,
-    encoding: 'utf-8',
-    shell: platform === 'win32' ? true : false,
-    cwd: projectPath,
-  });
+  // childProcess.execFileSync('eslint', eslintArgs, {
+  //   stdio: ['inherit', 'inherit', 'inherit'],
+  //   windowsHide: true,
+  //   encoding: 'utf-8',
+  //   shell: platform === 'win32' ? true : false,
+  //   cwd: projectPath,
+  // });
   // Linting shell scripts (this does not have auto-fixing)
   const shellCheckArgs = [
     './src',
