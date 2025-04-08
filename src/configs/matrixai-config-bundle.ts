@@ -25,12 +25,23 @@ const config = [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
+    'plugin:tailwindcss/recommended',
+    'plugin:jsx-a11y/recommended',
   ),
   {
     plugins: {
       import: fixupPluginRules(_import),
       '@matrixai': matrixaiPlugin,
     },
+
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -47,12 +58,37 @@ const config = [
       },
     },
     rules: {
+
+      // React rules
+      'react/react-in-jsx-scope': 0,
+      'react/no-unknown-property': 'off',
+      'react/button-has-type': 'error',
+      'react/no-unused-prop-types': 'error',
+      'react/jsx-pascal-case': 'error',
+      'react/jsx-no-script-url': 'error',
+      'react/no-children-prop': 'error',
+      'react/no-danger': 'error',
+      'react/no-danger-with-children': 'error',
+      'react/no-unstable-nested-components': ['error', { allowAsProps: true }],
+      'react/jsx-fragments': 'error',
+      'react/destructuring-assignment': ['error', 'always', { destructureInSignature: 'always' }],
+      'react/jsx-no-leaked-render': ['error', { validStrategies: ['ternary'] }],
+      'react/function-component-definition': ['warn', { namedComponents: 'arrow-function' }],
+      'react/jsx-key': ['error', { checkFragmentShorthand: true, checkKeyMustBeforeSpread: true, warnOnDuplicates: true }],
+      'react/jsx-no-useless-fragment': 'warn',
+      'react/jsx-curly-brace-presence': 'warn',
+      'react/no-typos': 'warn',
+      'react/display-name': 'warn',
+      'react/jsx-sort-props': 'warn',
+      'react/jsx-one-expression-per-line': 'off',
+      'react/prop-types': 'off',
+
       '@matrixai/no-aliased-imports': [
         'error',
         {
           aliases: [{ prefix: '#', target: 'src' }],
           includeFolders: ['src'],
-          autoFix: false,
+          autoFix: true,
         },
       ],
       '@typescript-eslint/no-floating-promises': [
@@ -70,8 +106,6 @@ const config = [
       ],
       '@typescript-eslint/await-thenable': ['error'],
     
-
-
       'linebreak-style': ['error', 'unix'],
       'no-empty': 1,
       'no-useless-catch': 1,

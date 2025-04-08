@@ -34,21 +34,21 @@ async function main(argv = process.argv) {
     }
   }
   // Linting code
-  const eslintArgs = restArgs.length > 0 ? restArgs : [
-    '{src,pages,blog,docs,server,scripts,benches,fixtures}/**/*.{js,mjs,ts,mts,jsx,tsx,json}',
-    'docusaurus.config.ts',
-  ];
-  if (fix) {
-    eslintArgs.push('--fix');
-  }
+  // const eslintArgs = restArgs.length > 0 ? restArgs : [
+  //   '{src,pages,blog,docs,server,scripts,benches,fixtures}/**/*.{js,mjs,ts,mts,jsx,tsx,json}',
+  //   'docusaurus.config.ts',
+  // ];
+  // if (fix) {
+  //   eslintArgs.push('--fix');
+  // }
   console.error('Running eslint:');
-  await runESLint({ fix, patterns: eslintArgs });
-  console.error(['eslint', ...eslintArgs].join(' '));
+  await runESLint({ fix });
+  // console.error(['eslint', ...eslintArgs].join(' '));
 
   // Commenting out the shellcheck and prettier commands for now
   // because they are not working as expected and will need to be implemented later
 
-  // Linting shell scripts (this does not have auto-fixing)
+  // // Linting shell scripts (this does not have auto-fixing)
   // const shellCheckArgs = [
   //   './src',
   //   './scripts',
@@ -79,7 +79,7 @@ async function main(argv = process.argv) {
   //   );
   // }
 
-  // Linting markdown
+  // // Linting markdown
   // const prettierArgs = [
   //   !fix ? '--check' : '--write',
   //   './README.md',
@@ -101,6 +101,9 @@ async function main(argv = process.argv) {
 /* eslint-enable no-console */
 
 export default main;
+
+console.log('process.argv[1]:', process.argv[1]);
+console.log('modulePath:', projectPath);
 
 if (import.meta.url.startsWith('file:')) {
   const modulePath = url.fileURLToPath(import.meta.url);

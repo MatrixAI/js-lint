@@ -1,8 +1,9 @@
-import process from 'node:process';
-import path from 'node:path';
-import url from 'node:url';
-import matrixaiConfigBundle from '../configs/matrixai-config-bundle.js';
+import process from 'process';
+import path from 'path';
+import url from 'url';
 import { ESLint } from 'eslint';
+import fs from 'fs';
+import glob from 'fast-glob';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -12,32 +13,46 @@ interface RunESLintOptions {
   configPath?: string; // Optional path to config file
 }
 
+// A helper to parse a tsconfig, returning its `include` array (and/or `files`)
+function loadTsconfigIncludes(tsconfigPath: string) : string[] {
+  const tsconfigText = fs.readFileSync(tsconfigPath, 'utf-8');
+  const tsconfig = JSON.parse(tsconfigText);
+  return [
+    ...(tsconfig.include ?? []),
+  ];
+}
+
+function findTsconfigFiles(repoRoot = process.cwd()) {
+  return glob.sync('tsconfig.json', {
+    cwd: repoRoot,
+    absolute: true,
+    deep: 1, // only look at top-level (or you can use deep: true for nested)
+  });
+}
+
 export async function runESLint({ fix, patterns, configPath } : RunESLintOptions) {
-  
+
+  const tsconfigFiles = findTsconfigFiles();
+  const tsconfigIncludes = loadTsconfigIncludes(tsconfigFiles[0]);
+
+  const expandedIncludes = tsconfigIncludes.map(element =>
+    `${element}.{js,mjs,ts,mts,jsx,tsx,json}`
+  );
+
   // Resolve absolute path to config
   const defaultConfigPath = path.resolve(
     __dirname,
     '../configs/matrixai-config-bundle.js',
   );
-
+  
   const eslint = new ESLint({
-    overrideConfigFile: configPath,
+    overrideConfigFile: configPath || defaultConfigPath,
     fix,
     errorOnUnmatchedPattern: false,
     warnIgnored: false,
   });
 
-  const defaultPatterns: string[] = 
-  [
-    'src/**/*.{js,ts,jsx,tsx}',
-    'scripts/**/*.{js,ts}',
-    'tests/**/*.{js,ts}',
-    'pages/**/*.{js,ts,jsx,tsx}',
-    'docs/**/*.{js,ts,jsx,tsx}',
-    'server/**/*.{js,ts,jsx,tsx}',
-  ]
-
-  const results = await eslint.lintFiles(patterns || defaultPatterns);
+  const results = await eslint.lintFiles(expandedIncludes);
 
   if (fix) {
     await ESLint.outputFixes(results);
