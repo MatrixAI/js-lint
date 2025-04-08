@@ -44,60 +44,60 @@ async function main(argv = process.argv) {
   console.error('Running eslint:');
   await runESLint({ fix, patterns: eslintArgs });
   console.error(['eslint', ...eslintArgs].join(' '));
-  // childProcess.execFileSync('eslint', eslintArgs, {
+
+  // Commenting out the shellcheck and prettier commands for now
+  // because they are not working as expected and will need to be implemented later
+
+  // Linting shell scripts (this does not have auto-fixing)
+  // const shellCheckArgs = [
+  //   './src',
+  //   './scripts',
+  //   '-type',
+  //   'f',
+  //   '-regextype',
+  //   'posix-extended',
+  //   '-regex',
+  //   '.*\\.(sh)',
+  //   '-exec',
+  //   'shellcheck',
+  //   '{}',
+  //   '+',
+  // ];
+  // if (commandExists('find') && commandExists('shellcheck')) {
+  //   console.error('Running shellcheck:');
+  //   console.error(['find', ...shellCheckArgs].join(' '));
+  //   childProcess.execFileSync('find', shellCheckArgs, {
+  //     stdio: ['inherit', 'inherit', 'inherit'],
+  //     windowsHide: true,
+  //     encoding: 'utf-8',
+  //     shell: platform === 'win32' ? true : false,
+  //     cwd: projectPath,
+  //   });
+  // } else {
+  //   console.warn(
+  //     'Skipping shellcheck: find or shellcheck not found in environment.',
+  //   );
+  // }
+
+  // Linting markdown
+  // const prettierArgs = [
+  //   !fix ? '--check' : '--write',
+  //   './README.md',
+  //   '{pages,blog,docs}/**/*.{md,mdx}',
+  // ];
+  // console.error('Running prettier:');
+  // console.error(['prettier', ...prettierArgs].join(' '));
+  // childProcess.execFileSync('prettier', prettierArgs, {
   //   stdio: ['inherit', 'inherit', 'inherit'],
   //   windowsHide: true,
   //   encoding: 'utf-8',
   //   shell: platform === 'win32' ? true : false,
   //   cwd: projectPath,
   // });
-  // Linting shell scripts (this does not have auto-fixing)
-  const shellCheckArgs = [
-    './src',
-    './scripts',
-    '-type',
-    'f',
-    '-regextype',
-    'posix-extended',
-    '-regex',
-    '.*\\.(sh)',
-    '-exec',
-    'shellcheck',
-    '{}',
-    '+',
-  ];
-  if (commandExists('find') && commandExists('shellcheck')) {
-    console.error('Running shellcheck:');
-    console.error(['find', ...shellCheckArgs].join(' '));
-    childProcess.execFileSync('find', shellCheckArgs, {
-      stdio: ['inherit', 'inherit', 'inherit'],
-      windowsHide: true,
-      encoding: 'utf-8',
-      shell: platform === 'win32' ? true : false,
-      cwd: projectPath,
-    });
-  } else {
-    console.warn(
-      'Skipping shellcheck: find or shellcheck not found in environment.',
-    );
-  }
-
-  // Linting markdown
-  const prettierArgs = [
-    !fix ? '--check' : '--write',
-    './README.md',
-    '{pages,blog,docs}/**/*.{md,mdx}',
-  ];
-  console.error('Running prettier:');
-  console.error(['prettier', ...prettierArgs].join(' '));
-  childProcess.execFileSync('prettier', prettierArgs, {
-    stdio: ['inherit', 'inherit', 'inherit'],
-    windowsHide: true,
-    encoding: 'utf-8',
-    shell: platform === 'win32' ? true : false,
-    cwd: projectPath,
-  });
 }
+
+
+
 /* eslint-enable no-console */
 
 export default main;

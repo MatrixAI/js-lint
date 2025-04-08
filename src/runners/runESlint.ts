@@ -6,9 +6,16 @@ import { ESLint } from 'eslint';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
-export async function runESLint({ fix, patterns }) {
+interface RunESLintOptions {
+  fix: boolean;
+  patterns?: string[]; // Optional array of strings
+  configPath?: string; // Optional path to config file
+}
+
+export async function runESLint({ fix, patterns, configPath } : RunESLintOptions) {
+  
   // Resolve absolute path to config
-  const configPath = path.resolve(
+  const defaultConfigPath = path.resolve(
     __dirname,
     '../configs/matrixai-config-bundle.js',
   );
@@ -20,19 +27,17 @@ export async function runESLint({ fix, patterns }) {
     warnIgnored: false,
   });
 
-  console.log ("config bundle: " + matrixaiConfigBundle.toString());
-  console.log("config:" + eslint.findConfigFile());
-
-  const results = await eslint.lintFiles(patterns ||[
+  const defaultPatterns: string[] = 
+  [
     'src/**/*.{js,ts,jsx,tsx}',
     'scripts/**/*.{js,ts}',
     'tests/**/*.{js,ts}',
     'pages/**/*.{js,ts,jsx,tsx}',
     'docs/**/*.{js,ts,jsx,tsx}',
     'server/**/*.{js,ts,jsx,tsx}',
-  ]);
+  ]
 
-
+  const results = await eslint.lintFiles(patterns || defaultPatterns);
 
   if (fix) {
     await ESLint.outputFixes(results);

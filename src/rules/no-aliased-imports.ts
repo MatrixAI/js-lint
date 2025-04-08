@@ -50,7 +50,7 @@ export const noAliasedImportsRule: RuleModule<
       noAlias:
         'Use relative import instead of alias import in src files "{{ aliasImport }}".',
       noAliasNoAutofix:
-        'Use relative import instead of alias import in src files "{{ aliasImport }}" (auto-fix is disabled - enable in config if desired.)',
+        'Use relative import instead of alias import in src files "{{ aliasImport }}" (auto-fix is disabled)',
     },
   },
   // Provide defaults if none are given

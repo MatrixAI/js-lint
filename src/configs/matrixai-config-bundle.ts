@@ -42,10 +42,6 @@ const config = [
       ecmaVersion: 5 as EcmaVersion,
       sourceType: 'module',
       parserOptions: {
-        // Dynamically detect tsconfig.json in target repo
-        // project: [path.resolve(process.cwd(), 'tsconfig.json'), './src/app/tsconfig.json'],
-        // project: [path.resolve(process.cwd(), 'tsconfig.json')],
-
         project: true
 
       },
