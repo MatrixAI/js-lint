@@ -127,8 +127,4 @@ console.log('modulePath:', projectPath);
 if (import.meta.url.startsWith('file:')) {
   const modulePath = url.fileURLToPath(import.meta.url);
   void main();
-//   if (process.argv[1] === modulePath) {
-//     console.log("try run main");
-//     void main();
-//   }
 }
