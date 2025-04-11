@@ -5,41 +5,7 @@ import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'fs';
 import { runESLint } from '../runners/runESlint.js';
-
-export function findUserESLintConfig(repoRoot = process.cwd()): string | null {
-  const candidates = [
-    'eslint.config.js',
-    'eslint.config.mjs',
-    'eslint.config.cjs',
-    'eslint.config.ts',
-  ];
-  for (const file of candidates) {
-    const abs = path.join(repoRoot, file);
-    if (fs.existsSync(abs)) return abs;
-  }
-  return null;
-}
-
-/** Recursively collect *.md / *.mdx files under a directory */
-function collectMarkdown(dir: string): string[] {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  const files: string[] = [];
-  for (const e of entries) {
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) {
-      files.push(...collectMarkdown(p));
-    } else if (e.isFile() && /\.(md|mdx)$/i.test(e.name)) {
-      files.push(p);
-    }
-  }
-  return files;
-}
-
-function commandExists(cmd: string): boolean {
-  const whichCmd = process.platform === 'win32' ? 'where' : 'which';
-  const result = childProcess.spawnSync(whichCmd, [cmd], { stdio: 'ignore' });
-  return result.status === 0;
-}
+import * as utils from '../utils/index.js';
 
 const platform = os.platform();
 
@@ -84,7 +50,7 @@ async function main(argv = process.argv) {
 
     chosenConfig = abs;
   } else if (useUserConfig) {
-    chosenConfig = findUserESLintConfig() ?? undefined;
+    chosenConfig = utils.findUserESLintConfig() ?? undefined;
     if (!chosenConfig) {
       console.error(
         '--user-config given but no local ESLint config was found. Falling back to built-in config.',
@@ -113,7 +79,7 @@ async function main(argv = process.argv) {
     '{}',
     '+',
   ];
-  if (commandExists('find') && commandExists('shellcheck')) {
+  if (utils.commandExists('find') && utils.commandExists('shellcheck')) {
     console.error('Running shellcheck:');
     console.error(['find', ...shellCheckArgs].join(' '));
     childProcess.execFileSync('find', shellCheckArgs, {
@@ -137,7 +103,7 @@ async function main(argv = process.argv) {
   // Add files from pages/, blog/, docs/ **if they exist AND contain md/mdx**
   for (const dir of ['pages', 'blog', 'docs']) {
     if (fs.existsSync(dir)) {
-      markdownFiles.push(...collectMarkdown(dir));
+      markdownFiles.push(...utils.collectMarkdown(dir));
     }
   }
 

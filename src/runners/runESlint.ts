@@ -1,37 +1,21 @@
 import process from 'process';
 import path from 'path';
 import url from 'url';
-import fs from 'fs';
 import { ESLint } from 'eslint';
-import glob from 'fast-glob';
+import configBundle from '../configs/matrixai-config-bundle.js';
+import * as utils from '../utils/index.js';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 interface RunESLintOptions {
   fix: boolean;
-  patterns?: string[]; // Optional array of strings
   configPath?: string; // Optional path to config file
 }
 
-// A helper to parse a tsconfig, returning its `include` array (and/or `files`)
-function loadTsconfigIncludes(tsconfigPath: string): string[] {
-  const tsconfigText = fs.readFileSync(tsconfigPath, 'utf-8');
-  const tsconfig = JSON.parse(tsconfigText);
-  return [...(tsconfig.include ?? [])];
-}
-
-function findTsconfigFiles(repoRoot = process.cwd()) {
-  return glob.sync('tsconfig.json', {
-    cwd: repoRoot,
-    absolute: true,
-    deep: 1, // Only look at top-level (or you can use deep: true for nested)
-  });
-}
-
 export async function runESLint({ fix, configPath }: RunESLintOptions) {
-  const tsconfigFiles = findTsconfigFiles();
-  const tsconfigIncludes = loadTsconfigIncludes(tsconfigFiles[0]);
+  const tsconfigFiles = utils.findTsconfigFiles();
+  const tsconfigIncludes = utils.loadTsconfigIncludes(tsconfigFiles[0]);
 
   const expandedIncludes = tsconfigIncludes.map(
     (element) => `${element}.{js,mjs,ts,mts,jsx,tsx,json}`,
