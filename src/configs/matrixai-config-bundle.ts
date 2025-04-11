@@ -7,7 +7,7 @@ import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
-import matrixaiPlugin from '@matrixai/lint';
+import matrixaiPlugin from '../index.js';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url);

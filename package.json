@@ -10,9 +10,6 @@
   },
   "type": "module",
   "exports": {
-    ".": {
-      "import": "./dist/index.js"
-    },
     "./config": {
       "import": "./dist/configs/matrixai-config-bundle.js"
     }
@@ -63,8 +60,5 @@
     "tsx": "^3.12.7",
     "typedoc": "^0.24.8",
     "typescript": "^5.1.6"
-  },
-  "peerDependencies": {
-    "eslint": ">=9.0.0"
   }
 }
