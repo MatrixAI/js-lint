@@ -49,8 +49,9 @@ async function main(argv = process.argv) {
       restArgs.push(option);
     }
   }
+
   console.error('Running eslint:');
-  await runESLint({ fix });
+  runESLint({ fix });
 
   // Linting shell scripts (this does not have auto-fixing)
   const shellCheckArgs = [

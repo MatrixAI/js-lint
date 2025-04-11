@@ -9,7 +9,6 @@
     "url": "https://github.com/MatrixAI/js-eslint.git"
   },
   "type": "module",
-  "main": "./dist/index.js",
   "exports": {
     ".": {
       "import": "./dist/index.js"
