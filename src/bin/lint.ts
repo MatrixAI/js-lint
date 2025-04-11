@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 import os from 'node:os';
 import path from 'node:path';
-import url from 'node:url';
 import process from 'node:process';
 import childProcess from 'node:child_process';
-import { runESLint } from '../runners/runESlint.js';
 import fs from 'fs';
-console.log("running custom linter");  
+import { runESLint } from '../runners/runESlint.js';
 
 /** Recursively collect *.md / *.mdx files under a directory */
 function collectMarkdown(dir: string): string[] {
@@ -29,10 +27,6 @@ function commandExists(cmd: string): boolean {
   return result.status === 0;
 }
 
-const projectPath = path.dirname(
-  path.dirname(url.fileURLToPath(import.meta.url)),
-);
-
 const platform = os.platform();
 
 /* eslint-disable no-console */
@@ -51,7 +45,10 @@ async function main(argv = process.argv) {
   }
 
   console.error('Running eslint:');
-  runESLint({ fix });
+  runESLint({ fix }).catch((err) => {
+    console.error('ESLint failed:', err);
+    process.exit(1);
+  });
 
   // Linting shell scripts (this does not have auto-fixing)
   const shellCheckArgs = [
@@ -101,10 +98,7 @@ async function main(argv = process.argv) {
     return;
   }
 
-  const prettierArgs = [
-    fix ? '--write' : '--check',
-    ...markdownFiles,
-  ];
+  const prettierArgs = [fix ? '--write' : '--check', ...markdownFiles];
 
   console.error('Running prettier:');
   console.error(['prettier', ...prettierArgs].join(' '));
@@ -114,7 +108,7 @@ async function main(argv = process.argv) {
     windowsHide: true,
     encoding: 'utf-8',
     shell: platform === 'win32',
-    cwd: process.cwd(), 
+    cwd: process.cwd(),
   });
 }
 
@@ -122,10 +116,6 @@ async function main(argv = process.argv) {
 
 export default main;
 
-console.log('process.argv[1]:', process.argv[1]);
-console.log('modulePath:', projectPath);
-
 if (import.meta.url.startsWith('file:')) {
-  const modulePath = url.fileURLToPath(import.meta.url);
   void main();
 }

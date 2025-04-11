@@ -1,3 +1,4 @@
+import type { EcmaVersion } from '@typescript-eslint/utils/ts-eslint';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import globals from 'globals';
@@ -6,8 +7,7 @@ import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
-import { EcmaVersion, } from '@typescript-eslint/utils/ts-eslint';
-import matrixaiPlugin  from '@matrixai/lint';
+import matrixaiPlugin from '@matrixai/lint';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url);
@@ -20,7 +20,6 @@ const compat = new FlatCompat({
 });
 
 const config = [
-
   ...compat.extends(
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -53,12 +52,10 @@ const config = [
       ecmaVersion: 5 as EcmaVersion,
       sourceType: 'module',
       parserOptions: {
-        project: true
-
+        project: true,
       },
     },
     rules: {
-
       // React rules
       'react/react-in-jsx-scope': 0,
       'react/no-unknown-property': 'off',
@@ -71,10 +68,24 @@ const config = [
       'react/no-danger-with-children': 'error',
       'react/no-unstable-nested-components': ['error', { allowAsProps: true }],
       'react/jsx-fragments': 'error',
-      'react/destructuring-assignment': ['error', 'always', { destructureInSignature: 'always' }],
+      'react/destructuring-assignment': [
+        'error',
+        'always',
+        { destructureInSignature: 'always' },
+      ],
       'react/jsx-no-leaked-render': ['error', { validStrategies: ['ternary'] }],
-      'react/function-component-definition': ['warn', { namedComponents: 'arrow-function' }],
-      'react/jsx-key': ['error', { checkFragmentShorthand: true, checkKeyMustBeforeSpread: true, warnOnDuplicates: true }],
+      'react/function-component-definition': [
+        'warn',
+        { namedComponents: 'arrow-function' },
+      ],
+      'react/jsx-key': [
+        'error',
+        {
+          checkFragmentShorthand: true,
+          checkKeyMustBeforeSpread: true,
+          warnOnDuplicates: true,
+        },
+      ],
       'react/jsx-no-useless-fragment': 'warn',
       'react/jsx-curly-brace-presence': 'warn',
       'react/no-typos': 'warn',
@@ -105,7 +116,7 @@ const config = [
         },
       ],
       '@typescript-eslint/await-thenable': ['error'],
-    
+
       'linebreak-style': ['error', 'unix'],
       'no-empty': 1,
       'no-useless-catch': 1,
@@ -246,4 +257,3 @@ const config = [
 ];
 
 export default config;
-
