@@ -2,8 +2,8 @@ import process from 'process';
 import path from 'path';
 import url from 'url';
 import { ESLint } from 'eslint';
-import configBundle from '../configs/matrixai-config-bundle.js';
-import * as utils from '../utils/index.js';
+import { buildPatterns } from '../utils/buildPatterns.js';
+import { resolveMatrixConfig } from '../utils/resolveMatrixConfig.js';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -13,13 +13,27 @@ interface RunESLintOptions {
   configPath?: string; // Optional path to config file
 }
 
+/* eslint-disable no-console */
 export async function runESLint({ fix, configPath }: RunESLintOptions) {
-  const tsconfigFiles = utils.findTsconfigFiles();
-  const tsconfigIncludes = utils.loadTsconfigIncludes(tsconfigFiles[0]);
+  const { tsconfigPaths, forceInclude } = resolveMatrixConfig();
 
-  const expandedIncludes = tsconfigIncludes.map(
-    (element) => `${element}.{js,mjs,ts,mts,jsx,tsx,json}`,
+  if (tsconfigPaths.length === 0) {
+    console.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
+    process.exit(1);
+  }
+
+  console.log(`Found ${tsconfigPaths.length} tsconfig.json files:`);
+  tsconfigPaths.forEach((tsconfigPath) => console.log('  ' + tsconfigPath));
+
+  const { files: lintFiles, ignore } = buildPatterns(
+    tsconfigPaths[0],
+    forceInclude,
   );
+
+  console.log('Linting files:');
+  lintFiles.forEach((file) => console.log('  ' + file));
+  console.log('Ignoring files:');
+  ignore.forEach((file) => console.log('  ' + file));
 
   // Resolve absolute path to config
   const defaultConfigPath = path.resolve(
@@ -32,9 +46,10 @@ export async function runESLint({ fix, configPath }: RunESLintOptions) {
     fix,
     errorOnUnmatchedPattern: false,
     warnIgnored: false,
+    ignorePatterns: ignore,
   });
 
-  const results = await eslint.lintFiles(expandedIncludes);
+  const results = await eslint.lintFiles(lintFiles);
 
   if (fix) {
     await ESLint.outputFixes(results);
@@ -42,11 +57,12 @@ export async function runESLint({ fix, configPath }: RunESLintOptions) {
 
   const formatter = await eslint.loadFormatter('stylish');
   const resultText = formatter.format(results);
-  // eslint-disable-next-line no-console
   console.log(resultText);
 
   const hasErrors = results.some((r) => r.errorCount > 0);
   if (hasErrors) {
     process.exit(1);
   }
+
+  /* eslint-enable no-console */
 }

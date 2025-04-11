@@ -8,6 +8,7 @@ import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
 import matrixaiPlugin from '../index.js';
+import { resolveMatrixConfig } from '../utils/resolveMatrixConfig.js';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url);
@@ -52,7 +53,7 @@ const config = [
       ecmaVersion: 5 as EcmaVersion,
       sourceType: 'module',
       parserOptions: {
-        project: true,
+        project: resolveMatrixConfig().tsconfigPaths,
       },
     },
     rules: {

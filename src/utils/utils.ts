@@ -3,6 +3,15 @@ import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'fs';
 import glob from 'fast-glob';
+import ts from 'typescript';
+
+const DEFAULT_IGNORE = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/build/**',
+  '**/.next/**',
+  '**/.turbo/**',
+];
 
 /**
  * Find all `tsconfig.json` files in the current working directory.
@@ -16,7 +25,8 @@ function findTsconfigFiles(repoRoot = process.cwd()) {
   return glob.sync('tsconfig.json', {
     cwd: repoRoot,
     absolute: true,
-    deep: 1, // Only look at top-level (or you can use deep: true for nested)
+    deep: 1,
+    ignore: DEFAULT_IGNORE,
   });
 }
 
@@ -45,16 +55,43 @@ function findUserESLintConfig(repoRoot = process.cwd()): string | null {
   return null;
 }
 
-/**
- * Load the `include` property from a `tsconfig.json` file.
- *
- * @param tsconfigPath The path to the `tsconfig.json` file.
- * @returns An array of paths included in the `include` property.
- */
-function loadTsconfigIncludes(tsconfigPath: string): string[] {
-  const tsconfigText = fs.readFileSync(tsconfigPath, 'utf-8');
-  const tsconfig = JSON.parse(tsconfigText);
-  return [...(tsconfig.include ?? [])];
+function loadTsconfigIncludes(tsconfigPaths: string | string[]): string[] {
+  const paths = Array.isArray(tsconfigPaths) ? tsconfigPaths : [tsconfigPaths];
+  const includes: string[] = [];
+
+  for (const cfgPath of paths) {
+    // Ts.readConfigFile handles JSONC and returns `{ config, error }`
+    const { config, error } = ts.readConfigFile(cfgPath, ts.sys.readFile);
+
+    if (error) {
+      // Non‑fatal: just warn and continue
+      const msg = ts.flattenDiagnosticMessageText(error.messageText, '\n');
+      console.warn(`Skipping ${cfgPath}: ${msg}`);
+      continue;
+    }
+
+    if (Array.isArray(config.include)) {
+      includes.push(...config.include);
+    }
+  }
+
+  return includes;
+}
+
+function loadTsconfigExcludes(tsconfigPaths: string | string[]): string[] {
+  const paths = Array.isArray(tsconfigPaths) ? tsconfigPaths : [tsconfigPaths];
+  const excludes: string[] = [];
+
+  for (const tsconfigPath of paths) {
+    const tsconfigText = fs.readFileSync(tsconfigPath, 'utf-8');
+    const tsconfig = JSON.parse(tsconfigText);
+    const normalizedExcludes = (tsconfig.exclude ?? []).map((exclude: string) =>
+      exclude.replace(/^(\.\/|\.\.\/)+/, ''),
+    );
+    excludes.push(...normalizedExcludes);
+  }
+
+  return excludes;
 }
 
 /**
@@ -93,6 +130,7 @@ export {
   findTsconfigFiles,
   findUserESLintConfig,
   loadTsconfigIncludes,
+  loadTsconfigExcludes,
   collectMarkdown,
   commandExists,
 };
