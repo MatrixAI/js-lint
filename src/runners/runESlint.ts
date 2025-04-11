@@ -14,8 +14,6 @@ interface RunESLintOptions {
   configPath?: string; // Optional path to config file
 }
 
-
-
 // A helper to parse a tsconfig, returning its `include` array (and/or `files`)
 function loadTsconfigIncludes(tsconfigPath: string): string[] {
   const tsconfigText = fs.readFileSync(tsconfigPath, 'utf-8');

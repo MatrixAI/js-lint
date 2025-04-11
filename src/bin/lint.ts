@@ -62,26 +62,26 @@ async function main(argv = process.argv) {
         useUserConfig = true;
         break;
       case '--config':
-        explicitConfigPath = argv.shift();   // grab the next token
+        explicitConfigPath = argv.shift(); // Grab the next token
         break;
       default:
         restArgs.push(option);
     }
   }
 
-  // resolve which config file to use
+  // Resolve which config file to use
   let chosenConfig: string | undefined;
 
   if (explicitConfigPath) {
     const abs = path.resolve(explicitConfigPath);
-  
+
     if (!fs.existsSync(abs)) {
       console.error(
         `--config points to “${explicitConfigPath}”, but that file does not exist.`,
       );
-      process.exit(1);                    // hard‑fail; nothing to lint against
+      process.exit(1); // Hard‑fail; nothing to lint against
     }
-  
+
     chosenConfig = abs;
   } else if (useUserConfig) {
     chosenConfig = findUserESLintConfig() ?? undefined;
