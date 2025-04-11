@@ -6,6 +6,20 @@ import childProcess from 'node:child_process';
 import fs from 'fs';
 import { runESLint } from '../runners/runESlint.js';
 
+export function findUserESLintConfig(repoRoot = process.cwd()): string | null {
+  const candidates = [
+    'eslint.config.js',
+    'eslint.config.mjs',
+    'eslint.config.cjs',
+    'eslint.config.ts',
+  ];
+  for (const file of candidates) {
+    const abs = path.join(repoRoot, file);
+    if (fs.existsSync(abs)) return abs;
+  }
+  return null;
+}
+
 /** Recursively collect *.md / *.mdx files under a directory */
 function collectMarkdown(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -32,20 +46,54 @@ const platform = os.platform();
 /* eslint-disable no-console */
 async function main(argv = process.argv) {
   argv = argv.slice(2);
+
   let fix = false;
+  let useUserConfig = false;
+  let explicitConfigPath: string | undefined;
   const restArgs: string[] = [];
+
   while (argv.length > 0) {
-    const option = argv.shift();
-    if (option === '--fix') {
-      fix = true;
-      argv.shift();
-    } else if (option !== undefined) {
-      restArgs.push(option);
+    const option = argv.shift()!;
+    switch (option) {
+      case '--fix':
+        fix = true;
+        break;
+      case '--user-config':
+        useUserConfig = true;
+        break;
+      case '--config':
+        explicitConfigPath = argv.shift();   // grab the next token
+        break;
+      default:
+        restArgs.push(option);
+    }
+  }
+
+  // resolve which config file to use
+  let chosenConfig: string | undefined;
+
+  if (explicitConfigPath) {
+    const abs = path.resolve(explicitConfigPath);
+  
+    if (!fs.existsSync(abs)) {
+      console.error(
+        `--config points to “${explicitConfigPath}”, but that file does not exist.`,
+      );
+      process.exit(1);                    // hard‑fail; nothing to lint against
+    }
+  
+    chosenConfig = abs;
+  } else if (useUserConfig) {
+    chosenConfig = findUserESLintConfig() ?? undefined;
+    if (!chosenConfig) {
+      console.error(
+        '--user-config given but no local ESLint config was found. Falling back to built-in config.',
+      );
     }
   }
 
   console.error('Running eslint:');
-  runESLint({ fix }).catch((err) => {
+  runESLint({ fix, configPath: chosenConfig }).catch((err) => {
     console.error('ESLint failed:', err);
     process.exit(1);
   });
