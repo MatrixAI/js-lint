@@ -49,7 +49,7 @@ export function resolveMatrixConfig(
     g.replace(/^\.\//, ''),
   );
 
-  // Fallback to root tsconfig 
+  // Fallback to root tsconfig
   if (tsconfigPaths.length === 0) {
     const rootTs = path.join(repoRoot, 'tsconfig.json');
     if (exists(rootTs)) tsconfigPaths.push(rootTs);

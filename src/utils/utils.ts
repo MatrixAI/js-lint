@@ -14,23 +14,6 @@ const DEFAULT_IGNORE = [
 ];
 
 /**
- * Find all `tsconfig.json` files in the current working directory.
- * It looks for the following files:
- * - tsconfig.json
- *
- * @param repoRoot The root directory of the repository (default: process.cwd())
- * @returns An array of paths to `tsconfig.json` files.
- */
-function findTsconfigFiles(repoRoot = process.cwd()) {
-  return glob.sync('tsconfig.json', {
-    cwd: repoRoot,
-    absolute: true,
-    deep: 1,
-    ignore: DEFAULT_IGNORE,
-  });
-}
-
-/**
  * Find the user's ESLint config file in the current working directory.
  * It looks for the following files:
  * - eslint.config.js
@@ -53,45 +36,6 @@ function findUserESLintConfig(repoRoot = process.cwd()): string | null {
     if (fs.existsSync(abs)) return abs;
   }
   return null;
-}
-
-function loadTsconfigIncludes(tsconfigPaths: string | string[]): string[] {
-  const paths = Array.isArray(tsconfigPaths) ? tsconfigPaths : [tsconfigPaths];
-  const includes: string[] = [];
-
-  for (const cfgPath of paths) {
-    // Ts.readConfigFile handles JSONC and returns `{ config, error }`
-    const { config, error } = ts.readConfigFile(cfgPath, ts.sys.readFile);
-
-    if (error) {
-      // Non‑fatal: just warn and continue
-      const msg = ts.flattenDiagnosticMessageText(error.messageText, '\n');
-      console.warn(`Skipping ${cfgPath}: ${msg}`);
-      continue;
-    }
-
-    if (Array.isArray(config.include)) {
-      includes.push(...config.include);
-    }
-  }
-
-  return includes;
-}
-
-function loadTsconfigExcludes(tsconfigPaths: string | string[]): string[] {
-  const paths = Array.isArray(tsconfigPaths) ? tsconfigPaths : [tsconfigPaths];
-  const excludes: string[] = [];
-
-  for (const tsconfigPath of paths) {
-    const tsconfigText = fs.readFileSync(tsconfigPath, 'utf-8');
-    const tsconfig = JSON.parse(tsconfigText);
-    const normalizedExcludes = (tsconfig.exclude ?? []).map((exclude: string) =>
-      exclude.replace(/^(\.\/|\.\.\/)+/, ''),
-    );
-    excludes.push(...normalizedExcludes);
-  }
-
-  return excludes;
 }
 
 /**
@@ -126,8 +70,4 @@ function commandExists(cmd: string): boolean {
   return result.status === 0;
 }
 
-export {
-  findUserESLintConfig,
-  collectMarkdown,
-  commandExists,
-};
+export { findUserESLintConfig, collectMarkdown, commandExists };

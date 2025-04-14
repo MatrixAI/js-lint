@@ -57,7 +57,6 @@ const config = [
       },
     },
     rules: {
-      
       // MatrixAI rules
       '@matrixai/no-aliased-imports': [
         'error',
@@ -105,7 +104,6 @@ const config = [
       'react/jsx-sort-props': 'warn',
       'react/jsx-one-expression-per-line': 'off',
       'react/prop-types': 'off',
-
 
       '@typescript-eslint/no-floating-promises': [
         'error',

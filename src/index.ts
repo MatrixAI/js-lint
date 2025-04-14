@@ -8,10 +8,7 @@ const matrixaiPlugin = {
   rules: {
     'no-aliased-imports': noAliasedImportsRule,
   },
-  configs: {
-  },
+  configs: {},
 };
-
-
 
 export default matrixaiPlugin;

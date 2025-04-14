@@ -8,6 +8,7 @@ import { resolveMatrixConfig } from '../utils/resolveMatrixConfig.js';
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
+const defaultConfigPath = path.resolve(__dirname, '../configs/js.js');
 interface RunESLintOptions {
   fix: boolean;
   configPath?: string; // Optional path to config file
@@ -36,10 +37,6 @@ export async function runESLint({ fix, configPath }: RunESLintOptions) {
   ignore.forEach((file) => console.log('  ' + file));
 
   // Resolve absolute path to config
-  const defaultConfigPath = path.resolve(
-    __dirname,
-    '../configs/matrixai-config-bundle.js',
-  );
 
   const eslint = new ESLint({
     overrideConfigFile: configPath || defaultConfigPath,
