@@ -28,7 +28,6 @@ export function resolveMatrixConfig(
     }
   }
 
-  // ---------- helpers ----------
   const toStringArray = (v: unknown): string[] =>
     typeof v === 'string'
       ? [v]
@@ -38,7 +37,6 @@ export function resolveMatrixConfig(
 
   const cfg = rawCfg as { tsconfigPaths?: unknown; forceInclude?: unknown };
 
-  // ---------- tsconfigPaths ----------
   const tsconfigPaths = toStringArray(cfg.tsconfigPaths)
     .map(abs)
     .filter((p) => {
@@ -47,12 +45,11 @@ export function resolveMatrixConfig(
       return false;
     });
 
-  // ---------- forceInclude ----------
   const forceInclude = toStringArray(cfg.forceInclude).map((g) =>
     g.replace(/^\.\//, ''),
   );
 
-  // ---------- fallback to root tsconfig ----------
+  // Fallback to root tsconfig 
   if (tsconfigPaths.length === 0) {
     const rootTs = path.join(repoRoot, 'tsconfig.json');
     if (exists(rootTs)) tsconfigPaths.push(rootTs);

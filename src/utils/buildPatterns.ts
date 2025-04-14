@@ -15,7 +15,7 @@ export function buildPatterns(
   const include = (config.include ?? []).map(strip);
   const exclude = (config.exclude ?? []).map(strip);
 
-  // ---------- forceInclude overrides exclude ----------
+  // forceInclude overrides exclude
   const ignore = exclude.filter(
     (ex) => !forceInclude.some((fi) => fi.startsWith(ex) || ex.startsWith(fi)),
   );

@@ -127,10 +127,7 @@ function commandExists(cmd: string): boolean {
 }
 
 export {
-  findTsconfigFiles,
   findUserESLintConfig,
-  loadTsconfigIncludes,
-  loadTsconfigExcludes,
   collectMarkdown,
   commandExists,
 };

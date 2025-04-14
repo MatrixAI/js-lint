@@ -57,6 +57,17 @@ const config = [
       },
     },
     rules: {
+      
+      // MatrixAI rules
+      '@matrixai/no-aliased-imports': [
+        'error',
+        {
+          aliases: [{ prefix: '#', target: 'src' }],
+          includeFolders: ['src'],
+          autoFix: true,
+        },
+      ],
+
       // React rules
       'react/react-in-jsx-scope': 0,
       'react/no-unknown-property': 'off',
@@ -95,14 +106,7 @@ const config = [
       'react/jsx-one-expression-per-line': 'off',
       'react/prop-types': 'off',
 
-      '@matrixai/no-aliased-imports': [
-        'error',
-        {
-          aliases: [{ prefix: '#', target: 'src' }],
-          includeFolders: ['src'],
-          autoFix: true,
-        },
-      ],
+
       '@typescript-eslint/no-floating-promises': [
         'error',
         {
