@@ -70,4 +70,96 @@ function commandExists(cmd: string): boolean {
   return result.status === 0;
 }
 
-export { findUserESLintConfig, collectMarkdown, commandExists };
+interface MatrixAILintConfig {
+  tsconfigPaths: string[];
+  forceInclude: string[];
+}
+
+function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
+  const cfgPath = path.join(repoRoot, 'matrixai-lint-config.json');
+
+  const abs = (p: string) => path.resolve(repoRoot, p);
+  const exists = (p: string) => fs.existsSync(p);
+
+  let rawCfg: unknown = {};
+
+  if (exists(cfgPath)) {
+    try {
+      const text = fs.readFileSync(cfgPath, 'utf8').trim();
+      rawCfg = text.length ? JSON.parse(text) : {};
+    } catch {
+      console.error(
+        '[matrixai‑lint]  ✖  matrixai-lint-config.json is not valid JSON – falling back to defaults.',
+      );
+    }
+  }
+
+  const toStringArray = (v: unknown): string[] =>
+    typeof v === 'string'
+      ? [v]
+      : Array.isArray(v)
+        ? v.filter((x): x is string => typeof x === 'string')
+        : [];
+
+  const cfg = rawCfg as { tsconfigPaths?: unknown; forceInclude?: unknown };
+
+  const tsconfigPaths = toStringArray(cfg.tsconfigPaths)
+    .map(abs)
+    .filter((p) => {
+      if (exists(p)) return true;
+      console.warn(`[matrixai‑lint]  ⚠  tsconfig not found: ${p}`);
+      return false;
+    });
+
+  const forceInclude = toStringArray(cfg.forceInclude).map((g) =>
+    g.replace(/^\.\//, ''),
+  );
+
+  // Fallback to root tsconfig
+  if (tsconfigPaths.length === 0) {
+    const rootTs = path.join(repoRoot, 'tsconfig.json');
+    if (exists(rootTs)) tsconfigPaths.push(rootTs);
+  }
+
+  return { tsconfigPaths, forceInclude };
+}
+
+interface Patterns {
+  files: string[];
+  ignore: string[];
+}
+
+function buildPatterns(
+  tsconfigPath: string,
+  forceInclude: string[] = [],
+): Patterns {
+  const { config } = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
+  const strip = (p: string) => p.replace(/^\.\//, '');
+
+  const include = (config.include ?? []).map(strip);
+  const exclude = (config.exclude ?? []).map(strip);
+
+  // ForceInclude overrides exclude
+  const ignore = exclude.filter(
+    (ex) => !forceInclude.some((fi) => fi.startsWith(ex) || ex.startsWith(fi)),
+  );
+
+  const files = [
+    ...include.map((g) => `${g}.{js,mjs,ts,mts,jsx,tsx,json}`),
+    ...forceInclude.map((g) => `${g}.{js,mjs,ts,mts,jsx,tsx,json}`),
+  ];
+
+  if (!exclude.length) {
+    ignore.push('node_modules/**', 'bower_components/**', 'jspm_packages/**');
+  }
+
+  return { files, ignore };
+}
+
+export {
+  findUserESLintConfig,
+  collectMarkdown,
+  commandExists,
+  resolveMatrixConfig,
+  buildPatterns,
+};

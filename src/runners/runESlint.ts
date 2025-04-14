@@ -2,8 +2,7 @@ import process from 'process';
 import path from 'path';
 import url from 'url';
 import { ESLint } from 'eslint';
-import { buildPatterns } from '../utils/buildPatterns.js';
-import { resolveMatrixConfig } from '../utils/resolveMatrixConfig.js';
+import { resolveMatrixConfig, buildPatterns } from '../utils/utils.js';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
