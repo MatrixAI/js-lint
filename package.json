@@ -19,7 +19,7 @@
   },
   "./package.json": "./package.json",
   "bin": {
-  "matrixai-lint": "./dist/bin/lint.js"
+    "matrixai-lint": "./dist/bin/lint.js"
   },
   "scripts": {
     "prepare": "tsc -p ./tsconfig.build.json",
