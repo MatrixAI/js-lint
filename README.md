@@ -29,12 +29,12 @@ matrixai-lint --fix
 
 ### CLI Options
 
-| Flag              | Description                                 |   |                                       |
-| ----------------- | ------------------------------------------- | - | ------------------------------------- |
-| *(no flag)*       | Uses built-in Matrix AI ESLint config       |   |                                       |
-| `--fix`           | Enables auto-fixing via ESLint and Prettier |   |                                       |
-| `--user-config`   | Uses detected \`eslint.config.[c            | m | t]js\` from the project root if found |
-| `--config <path>` | Explicitly use a custom ESLint config file  |   |                                       |
+| Flag              | Description                                 |     |                                       |
+| ----------------- | ------------------------------------------- | --- | ------------------------------------- |
+| _(no flag)_       | Uses built-in Matrix AI ESLint config       |     |                                       |
+| `--fix`           | Enables auto-fixing via ESLint and Prettier |     |                                       |
+| `--user-config`   | Uses detected \`eslint.config.[c            | m   | t]js\` from the project root if found |
+| `--config <path>` | Explicitly use a custom ESLint config file  |     |                                       |
 
 ### Examples
 
@@ -59,14 +59,8 @@ If your project uses more than one `tsconfig.json` or doesn't have one at the ro
 
 ```json
 {
-  "tsconfigPaths": [
-    "./tsconfig.base.json",
-    "./packages/core/tsconfig.json"
-  ],
-  "forceInclude": [
-    "scripts",
-    "src/overrides"
-  ]
+  "tsconfigPaths": ["./tsconfig.base.json", "./packages/core/tsconfig.json"],
+  "forceInclude": ["scripts", "src/overrides"]
 }
 ```
 
@@ -92,6 +86,7 @@ matrixai-lint --config ./eslint.config.js
 ```sh
 matrixai-lint --user-config
 ```
+
 This will look for a valid eslint.config file in the project root.
 
 Valid config filenames:
@@ -112,13 +107,12 @@ export default [
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
-      'no-console': 'off'
-    }
-  }
+      'no-console': 'off',
+    },
+  },
 ];
 ```
 
 ## License
 
 Apache 2.0 © Matrix AI. Maintained by [Roger Qiu](https://github.com/MatrixAI)
-
