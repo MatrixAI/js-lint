@@ -33,7 +33,7 @@ matrixai-lint --fix
 | ----------------- | ------------------------------------------- |
 | _(no flag)_       | Uses built-in Matrix AI ESLint config       |                                           
 | `--fix`           | Enables auto-fixing via ESLint and Prettier |                                          
-| `--user-config`   | Uses detected \`eslint.config.[js,mjs,cjs,ts]from the project root if found |      
+| `--user-config`   | Uses detected \`eslint.config.[js,mjs,cjs,ts] from the project root if found |      
 | `--config <path>` | Explicitly use a custom ESLint config file  |                                           
 
 ### Examples
