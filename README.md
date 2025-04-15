@@ -46,7 +46,7 @@ matrixai-lint --config ./eslint.config.js --fix
 
 ## TypeScript Support
 
-The linter is TypeScript-aware and \*\*requires a \*\***`tsconfig.json`** to determine which files to lint and how to parse them.
+The linter is TypeScript-aware and requires a `tsconfig.json` to determine which files to lint and how to parse them.
 
 By default:
 
