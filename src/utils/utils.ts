@@ -62,6 +62,18 @@ function asRawMatrixCfg(v: unknown): RawMatrixCfg | undefined {
   return typeof v === 'object' && v !== null ? (v as RawMatrixCfg) : undefined;
 }
 
+/**
+ * Loads and sanitises MatrixAI‑linter config for a repo.
+ *
+ * - Reads `matrixai-lint-config.json` in `repoRoot` (if present).
+ *   - Throws if the JSON is invalid.
+ * - Extracts `tsconfigPaths` & `forceInclude`, coercing each to `string[]`.
+ * - Resolves `tsconfigPaths` to absolute paths and keeps only files that exist.
+ *   - If none remain, falls back to `repoRoot/tsconfig.json` when available.
+ * - Strips leading “./” from every `forceInclude` glob.
+ *
+ * Returns a normalised `{ tsconfigPaths, forceInclude }`.
+ */
 function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintCfg {
   const cfgPath = path.join(repoRoot, 'matrixai-lint-config.json');
 
@@ -121,6 +133,22 @@ function toStringArray(value: unknown): string[] {
   return [];
 }
 
+/**
+ * Builds file and ignore patterns based on a given TypeScript configuration file path,
+ * with optional forced inclusion of specific paths.
+ *
+ * @param tsconfigPath - The path to the TypeScript configuration file (tsconfig.json).
+ * @param forceInclude - An optional array of paths or patterns to forcefully include,
+ *                       even if they overlap with excluded patterns.
+ * @returns An object containing:
+ *          - `files`: An array of glob patterns for files to include.
+ *          - `ignore`: An array of glob patterns for files or directories to ignore.
+ *
+ * The function reads the `include` and `exclude` properties from the TypeScript
+ * configuration file, processes them into glob patterns, and applies overrides
+ * based on the `forceInclude` parameter. If no `exclude` patterns are specified,
+ * default ignore patterns for common directories like `node_modules` are added.
+ */
 function buildPatterns(
   tsconfigPath: string,
   forceInclude: string[] = [],
