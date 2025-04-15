@@ -36,17 +36,10 @@ function findUserESLintConfig(repoRoot = process.cwd()): string | undefined {
  * @returns An array of paths to Markdown files.
  */
 function collectMarkdown(dir: string): string[] {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  const files: string[] = [];
-  for (const e of entries) {
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) {
-      files.push(...collectMarkdown(p));
-    } else if (e.isFile() && /\.(md|mdx)$/i.test(e.name)) {
-      files.push(p);
-    }
-  }
-  return files;
+  const entries = fs.readdirSync(dir, { withFileTypes: true, recursive: true });
+  return entries
+    .filter((e) => e.isFile() && /\.(md|mdx)$/i.test(e.name))
+    .map((e) => path.join(dir, e.name));
 }
 
 /**
@@ -66,21 +59,25 @@ interface MatrixAILintConfig {
   forceInclude: string[];
 }
 
+type RawMatrixCfg = Partial<{
+  tsconfigPaths: unknown;
+  forceInclude: unknown;
+}>; // “might have these two keys, values are unknown”
+
 function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
   const cfgPath = path.join(repoRoot, 'matrixai-lint-config.json');
 
-  const abs = (p: string) => path.resolve(repoRoot, p);
-  const exists = (p: string) => fs.existsSync(p);
-
   let rawCfg: unknown = {};
 
-  if (exists(cfgPath)) {
+  if (fs.existsSync(cfgPath)) {
     try {
       const text = fs.readFileSync(cfgPath, 'utf8').trim();
-      rawCfg = text.length ? JSON.parse(text) : {};
-    } catch {
-      console.error(
-        '[matrixai-lint]  ✖  matrixai-lint-config.json is not valid JSON - falling back to defaults.',
+      rawCfg = text.length > 0 ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error(
+        '[matrixai-lint]  ✖  matrixai-lint-config.json has been provided but it is not valid JSON.' +
+          '\n' +
+          e,
       );
     }
   }
@@ -88,9 +85,9 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
   const cfg = rawCfg as { tsconfigPaths?: unknown; forceInclude?: unknown };
 
   const tsconfigPaths = toStringArray(cfg.tsconfigPaths)
-    .map(abs)
+    .map((p) => path.resolve(repoRoot, p))
     .filter((p) => {
-      if (exists(p)) return true;
+      if (fs.existsSync(p)) return true;
       console.warn(`[matrixai-lint]  ⚠  tsconfig not found: ${p}`);
       return false;
     });
@@ -102,7 +99,7 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
   // Fallback to root tsconfig
   if (tsconfigPaths.length === 0) {
     const rootTs = path.join(repoRoot, 'tsconfig.json');
-    if (exists(rootTs)) tsconfigPaths.push(rootTs);
+    if (fs.existsSync(rootTs)) tsconfigPaths.push(rootTs);
   }
 
   return { tsconfigPaths, forceInclude };
