@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
-import fs from 'fs';
+import fs from 'node:fs';
 import { runESLint } from '../runners/runESlint.js';
 import * as utils from '../utils/index.js';
 
@@ -39,16 +39,16 @@ async function main(argv = process.argv) {
   let chosenConfig: string | undefined;
 
   if (explicitConfigPath) {
-    const abs = path.resolve(explicitConfigPath);
+    const absolutePath = path.resolve(explicitConfigPath);
 
-    if (!fs.existsSync(abs)) {
+    if (!fs.existsSync(absolutePath)) {
       console.error(
         `--config points to “${explicitConfigPath}”, but that file does not exist.`,
       );
       process.exit(1); // Hard‑fail; nothing to lint against
     }
 
-    chosenConfig = abs;
+    chosenConfig = absolutePath;
   } else if (useUserConfig) {
     chosenConfig = utils.findUserESLintConfig() ?? undefined;
     if (!chosenConfig) {

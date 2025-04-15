@@ -10,12 +10,11 @@ import { fixupPluginRules } from '@eslint/compat';
 import matrixaiPlugin from '../index.js';
 import { resolveMatrixConfig } from '../utils/utils.js';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const __filename = fileURLToPath(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const __dirname = path.dirname(__filename);
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
+
 const compat = new FlatCompat({
-  baseDirectory: __dirname,
+  baseDirectory: dirname,
   recommendedConfig: js.configs.recommended,
   allConfig: js.configs.all,
 });
