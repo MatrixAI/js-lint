@@ -225,7 +225,7 @@ function buildPatterns(
     ...forceInclude.map((g) => `${g}.{js,mjs,ts,mts,jsx,tsx,json}`),
   ];
 
-  if (!exclude.length) {
+  if (exclude.length <= 0) {
     ignore.push('node_modules/**', 'bower_components/**', 'jspm_packages/**');
   }
 
