@@ -44,7 +44,7 @@ matrixai-lint --user-config
 matrixai-lint --config ./eslint.config.js --fix
 ```
 
-## TypeScript Support
+### TypeScript Support
 
 The linter is TypeScript-aware and requires a `tsconfig.json` to determine which files to lint and how to parse them.
 
@@ -71,17 +71,17 @@ If your project uses more than one `tsconfig.json` or doesn't have one at the ro
 
 > ⚠ If a path in `forceInclude` is not included in any of the `tsconfigPaths`, TypeScript will throw a parsing error.
 
-## ESLint Config Override
+### ESLint Config Override
 
 You can use your own ESLint config by one of the following methods:
 
-### 1. Inline Custom Config
+#### 1. Inline Custom Config
 
 ```sh
 matrixai-lint --config ./eslint.config.js
 ```
 
-### 2. Auto-detect with `--user-config`
+#### 2. Auto-detect with `--user-config`
 
 ```sh
 matrixai-lint --user-config
@@ -96,7 +96,7 @@ Valid config filenames:
 - `eslint.config.mjs`
 - `eslint.config.ts`
 
-### 3. Extend the base config
+#### 3. Extend the base config
 
 ```ts
 // eslint.config.js
