@@ -4,7 +4,6 @@ import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
-import { runESLint } from '../runners/runESlint.js';
 import * as utils from '../utils/index.js';
 
 const platform = os.platform();
@@ -60,7 +59,7 @@ async function main(argv = process.argv) {
   }
 
   try {
-    await runESLint({ fix, configPath: chosenConfig });
+    await utils.runESLint({ fix, configPath: chosenConfig });
   } catch (err) {
     console.error(`ESLint failed: \n${err}`);
     hadFailure = true;

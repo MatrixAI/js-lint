@@ -3,7 +3,60 @@ import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
+import url from 'node:url';
 import ts from 'typescript';
+import { ESLint } from 'eslint';
+
+/* eslint-disable no-console */
+async function runESLint({
+  fix,
+  configPath,
+}: {
+  fix: boolean;
+  configPath?: string;
+}) {
+  const dirname = path.dirname(url.fileURLToPath(import.meta.url));
+  const defaultConfigPath = path.resolve(dirname, '../configs/js.js');
+
+  const matrixaiLintConfig = resolveMatrixConfig();
+  const forceInclude = matrixaiLintConfig.forceInclude;
+  const tsconfigPaths = matrixaiLintConfig.tsconfigPaths;
+
+  if (tsconfigPaths.length === 0) {
+    console.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
+  }
+
+  console.log(`Found ${tsconfigPaths.length} tsconfig.json files:`);
+  tsconfigPaths.forEach((tsconfigPath) => console.log('  ' + tsconfigPath));
+
+  const { files: lintFiles, ignore } = buildPatterns(
+    tsconfigPaths[0],
+    forceInclude,
+  );
+
+  console.log('Linting files:');
+  lintFiles.forEach((file) => console.log(' ' + file));
+
+  const eslint = new ESLint({
+    overrideConfigFile: configPath || defaultConfigPath,
+    fix,
+    errorOnUnmatchedPattern: false,
+    warnIgnored: false,
+    ignorePatterns: ignore,
+  });
+
+  const results = await eslint.lintFiles(lintFiles);
+
+  if (fix) {
+    await ESLint.outputFixes(results);
+  }
+
+  const formatter = await eslint.loadFormatter('stylish');
+  const resultText = formatter.format(results);
+  console.log(resultText);
+
+  /* eslint-enable no-console */
+}
 
 /**
  * Find the user's ESLint config file in the current working directory.
@@ -180,6 +233,7 @@ function buildPatterns(
 }
 
 export {
+  runESLint,
   findUserESLintConfig,
   collectMarkdown,
   commandExists,
