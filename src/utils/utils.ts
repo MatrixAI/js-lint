@@ -2,16 +2,7 @@ import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'fs';
-import glob from 'fast-glob';
 import ts from 'typescript';
-
-const DEFAULT_IGNORE = [
-  '**/node_modules/**',
-  '**/dist/**',
-  '**/build/**',
-  '**/.next/**',
-  '**/.turbo/**',
-];
 
 /**
  * Find the user's ESLint config file in the current working directory.
@@ -24,7 +15,7 @@ const DEFAULT_IGNORE = [
  * @param repoRoot The root directory of the repository (default: process.cwd())
  * @returns The path to the ESLint config file, or null if not found.
  */
-function findUserESLintConfig(repoRoot = process.cwd()): string | null {
+function findUserESLintConfig(repoRoot = process.cwd()): string | undefined {
   const candidates = [
     'eslint.config.js',
     'eslint.config.mjs',
@@ -35,7 +26,7 @@ function findUserESLintConfig(repoRoot = process.cwd()): string | null {
     const abs = path.join(repoRoot, file);
     if (fs.existsSync(abs)) return abs;
   }
-  return null;
+  return undefined;
 }
 
 /**
@@ -89,17 +80,10 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
       rawCfg = text.length ? JSON.parse(text) : {};
     } catch {
       console.error(
-        '[matrixai‑lint]  ✖  matrixai-lint-config.json is not valid JSON – falling back to defaults.',
+        '[matrixai-lint]  ✖  matrixai-lint-config.json is not valid JSON - falling back to defaults.',
       );
     }
   }
-
-  const toStringArray = (v: unknown): string[] =>
-    typeof v === 'string'
-      ? [v]
-      : Array.isArray(v)
-        ? v.filter((x): x is string => typeof x === 'string')
-        : [];
 
   const cfg = rawCfg as { tsconfigPaths?: unknown; forceInclude?: unknown };
 
@@ -107,7 +91,7 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
     .map(abs)
     .filter((p) => {
       if (exists(p)) return true;
-      console.warn(`[matrixai‑lint]  ⚠  tsconfig not found: ${p}`);
+      console.warn(`[matrixai-lint]  ⚠  tsconfig not found: ${p}`);
       return false;
     });
 
@@ -124,15 +108,33 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
   return { tsconfigPaths, forceInclude };
 }
 
-interface Patterns {
-  files: string[];
-  ignore: string[];
+/**
+ * Converts a value into an array of strings.
+ *
+ * - If the value is a string, it returns an array containing that string.
+ * - If the value is an array, it filters the array to include only strings.
+ * - For any other type, it returns an empty array.
+ *
+ * @param value The value to convert.
+ * @returns An array of strings.
+ */
+function toStringArray(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return [];
 }
 
 function buildPatterns(
   tsconfigPath: string,
   forceInclude: string[] = [],
-): Patterns {
+): {
+  files: string[];
+  ignore: string[];
+} {
   const { config } = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
   const strip = (p: string) => p.replace(/^\.\//, '');
 

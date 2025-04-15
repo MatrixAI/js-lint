@@ -38,7 +38,7 @@ async function main(argv = process.argv) {
   // Resolve which config file to use
   let chosenConfig: string | undefined;
 
-  if (explicitConfigPath) {
+  if (explicitConfigPath !== undefined) {
     const absolutePath = path.resolve(explicitConfigPath);
 
     if (!fs.existsSync(absolutePath)) {
@@ -50,8 +50,8 @@ async function main(argv = process.argv) {
 
     chosenConfig = absolutePath;
   } else if (useUserConfig) {
-    chosenConfig = utils.findUserESLintConfig() ?? undefined;
-    if (!chosenConfig) {
+    chosenConfig = utils.findUserESLintConfig();
+    if (chosenConfig === undefined) {
       console.error(
         '--user-config given but no local ESLint config was found. Falling back to built-in config.',
       );
