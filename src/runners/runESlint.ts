@@ -19,7 +19,6 @@ export async function runESLint({ fix, configPath }: RunESLintOptions) {
 
   if (tsconfigPaths.length === 0) {
     console.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
-    process.exit(1);
   }
 
   console.log(`Found ${tsconfigPaths.length} tsconfig.json files:`);
@@ -54,11 +53,6 @@ export async function runESLint({ fix, configPath }: RunESLintOptions) {
   const formatter = await eslint.loadFormatter('stylish');
   const resultText = formatter.format(results);
   console.log(resultText);
-
-  const hasErrors = results.some((r) => r.errorCount > 0);
-  if (hasErrors) {
-    process.exit(1);
-  }
 
   /* eslint-enable no-console */
 }

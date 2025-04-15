@@ -13,6 +13,7 @@ const platform = os.platform();
 async function main(argv = process.argv) {
   argv = argv.slice(2);
 
+  let hadFailure = false;
   let fix = false;
   let useUserConfig = false;
   let explicitConfigPath: string | undefined;
@@ -58,11 +59,12 @@ async function main(argv = process.argv) {
     }
   }
 
-  console.error('Running eslint:');
-  runESLint({ fix, configPath: chosenConfig }).catch((err) => {
-    console.error('ESLint failed:', err);
-    process.exit(1);
-  });
+  try {
+    await runESLint({ fix, configPath: chosenConfig });
+  } catch (err) {
+    console.error(`ESLint failed: \n${err}`);
+    hadFailure = true;
+  }
 
   // Linting shell scripts (this does not have auto-fixing)
   const shellCheckArgs = [
@@ -81,14 +83,19 @@ async function main(argv = process.argv) {
   ];
   if (utils.commandExists('find') && utils.commandExists('shellcheck')) {
     console.error('Running shellcheck:');
-    console.error(['find', ...shellCheckArgs].join(' '));
-    childProcess.execFileSync('find', shellCheckArgs, {
-      stdio: ['inherit', 'inherit', 'inherit'],
-      windowsHide: true,
-      encoding: 'utf-8',
-      shell: platform === 'win32' ? true : false,
-      cwd: process.cwd(),
-    });
+    console.error(' ' + ['find', ...shellCheckArgs].join(' '));
+    try {
+      childProcess.execFileSync('find', shellCheckArgs, {
+        stdio: ['inherit', 'inherit', 'inherit'],
+        windowsHide: true,
+        encoding: 'utf-8',
+        shell: platform === 'win32' ? true : false,
+        cwd: process.cwd(),
+      });
+    } catch (err) {
+      console.error('Shellcheck failed.' + err);
+      hadFailure = true;
+    }
   } else {
     console.warn(
       'Skipping shellcheck: find or shellcheck not found in environment.',
@@ -115,15 +122,28 @@ async function main(argv = process.argv) {
   const prettierArgs = [fix ? '--write' : '--check', ...markdownFiles];
 
   console.error('Running prettier:');
-  console.error(['prettier', ...prettierArgs].join(' '));
+  console.error(' ' + ['prettier', ...prettierArgs].join(' '));
 
-  childProcess.execFileSync('prettier', prettierArgs, {
-    stdio: 'inherit',
-    windowsHide: true,
-    encoding: 'utf-8',
-    shell: platform === 'win32',
-    cwd: process.cwd(),
-  });
+  try {
+    childProcess.execFileSync('prettier', prettierArgs, {
+      stdio: 'inherit',
+      windowsHide: true,
+      encoding: 'utf-8',
+      shell: platform === 'win32',
+      cwd: process.cwd(),
+    });
+  } catch (err) {
+    if (!fix) {
+      console.error('Prettier check failed.');
+      hadFailure = true;
+    } else {
+      throw err; // Unexpected if --write fails
+    }
+  }
+
+  if (hadFailure) {
+    process.exit(1);
+  }
 }
 
 /* eslint-enable no-console */

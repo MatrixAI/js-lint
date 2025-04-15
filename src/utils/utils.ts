@@ -54,15 +54,22 @@ function commandExists(cmd: string): boolean {
   return result.status === 0;
 }
 
-interface MatrixAILintConfig {
+type MatrixAILintConfig = {
   tsconfigPaths: string[];
   forceInclude: string[];
-}
+};
 
 type RawMatrixCfg = Partial<{
   tsconfigPaths: unknown;
   forceInclude: unknown;
 }>; // “might have these two keys, values are unknown”
+
+// Checks if the value is an object and not null
+// and then casts it to RawMatrixCfg. If the value is not an object or is null,
+// it returns undefined.
+function asRawMatrixCfg(v: unknown): RawMatrixCfg | undefined {
+  return typeof v === 'object' && v !== null ? (v as RawMatrixCfg) : undefined;
+}
 
 function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
   const cfgPath = path.join(repoRoot, 'matrixai-lint-config.json');
@@ -75,16 +82,14 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
       rawCfg = text.length > 0 ? JSON.parse(text) : {};
     } catch (e) {
       throw new Error(
-        '[matrixai-lint]  ✖  matrixai-lint-config.json has been provided but it is not valid JSON.' +
-          '\n' +
-          e,
+        `[matrixai-lint]  ✖  matrixai-lint-config.json has been provided but it is not valid JSON.\n ${e}`,
       );
     }
   }
 
-  const cfg = rawCfg as { tsconfigPaths?: unknown; forceInclude?: unknown };
+  const cfg = asRawMatrixCfg(rawCfg);
 
-  const tsconfigPaths = toStringArray(cfg.tsconfigPaths)
+  const tsconfigPaths = toStringArray(cfg?.tsconfigPaths ?? [])
     .map((p) => path.resolve(repoRoot, p))
     .filter((p) => {
       if (fs.existsSync(p)) return true;
@@ -92,11 +97,12 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
       return false;
     });
 
-  const forceInclude = toStringArray(cfg.forceInclude).map((g) =>
+  const forceInclude = toStringArray(cfg?.forceInclude ?? []).map((g) =>
     g.replace(/^\.\//, ''),
   );
 
-  // Fallback to root tsconfig
+  // Fallback to root tsconfig if no tsconfigPaths are provided
+  // and the root tsconfig exists
   if (tsconfigPaths.length === 0) {
     const rootTs = path.join(repoRoot, 'tsconfig.json');
     if (fs.existsSync(rootTs)) tsconfigPaths.push(rootTs);
