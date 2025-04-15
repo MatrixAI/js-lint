@@ -3,18 +3,20 @@ import url from 'node:url';
 import { ESLint } from 'eslint';
 import { resolveMatrixConfig, buildPatterns } from '../utils/utils.js';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-
-const defaultConfigPath = path.resolve(__dirname, '../configs/js.js');
-interface RunESLintOptions {
-  fix: boolean;
-  configPath?: string; // Optional path to config file
-}
+const dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const defaultConfigPath = path.resolve(dirname, '../configs/js.js');
 
 /* eslint-disable no-console */
-export async function runESLint({ fix, configPath }: RunESLintOptions) {
-  const { tsconfigPaths, forceInclude } = resolveMatrixConfig();
+export async function runESLint({
+  fix,
+  configPath,
+}: {
+  fix: boolean;
+  configPath?: string;
+}) {
+  const matrixaiLintConfig = resolveMatrixConfig();
+  const forceInclude = matrixaiLintConfig.forceInclude;
+  const tsconfigPaths = matrixaiLintConfig.tsconfigPaths;
 
   if (tsconfigPaths.length === 0) {
     console.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
@@ -29,11 +31,7 @@ export async function runESLint({ fix, configPath }: RunESLintOptions) {
   );
 
   console.log('Linting files:');
-  lintFiles.forEach((file) => console.log('  ' + file));
-  console.log('Ignoring files:');
-  ignore.forEach((file) => console.log('  ' + file));
-
-  // Resolve absolute path to config
+  lintFiles.forEach((file) => console.log(' ' + file));
 
   const eslint = new ESLint({
     overrideConfigFile: configPath || defaultConfigPath,

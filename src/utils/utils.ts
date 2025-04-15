@@ -1,3 +1,4 @@
+import type { MatrixAILintCfg, RawMatrixCfg } from './types.js';
 import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
@@ -54,16 +55,6 @@ function commandExists(cmd: string): boolean {
   return result.status === 0;
 }
 
-type MatrixAILintConfig = {
-  tsconfigPaths: string[];
-  forceInclude: string[];
-};
-
-type RawMatrixCfg = Partial<{
-  tsconfigPaths: unknown;
-  forceInclude: unknown;
-}>; // “might have these two keys, values are unknown”
-
 // Checks if the value is an object and not null
 // and then casts it to RawMatrixCfg. If the value is not an object or is null,
 // it returns undefined.
@@ -71,7 +62,7 @@ function asRawMatrixCfg(v: unknown): RawMatrixCfg | undefined {
   return typeof v === 'object' && v !== null ? (v as RawMatrixCfg) : undefined;
 }
 
-function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
+function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintCfg {
   const cfgPath = path.join(repoRoot, 'matrixai-lint-config.json');
 
   let rawCfg: unknown = {};
@@ -93,7 +84,6 @@ function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintConfig {
     .map((p) => path.resolve(repoRoot, p))
     .filter((p) => {
       if (fs.existsSync(p)) return true;
-      console.warn(`[matrixai-lint]  ⚠  tsconfig not found: ${p}`);
       return false;
     });
 
