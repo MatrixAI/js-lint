@@ -1,4 +1,4 @@
-import noAliasedImportsRule from './rules/no-aliased-imports.js';
+import noAliasedImportsRule from '../rules/no-aliased-imports.js';
 
 const matrixaiPlugin = {
   meta: {

@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
-import * as utils from '../utils/index.js';
+import * as utils from '../utils.js';
 
 const platform = os.platform();
 

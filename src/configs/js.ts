@@ -7,8 +7,8 @@ import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
-import matrixaiPlugin from '../index.js';
-import { resolveMatrixConfig } from '../utils/utils.js';
+import matrixaiPlugin from '../plugins/eslint-plugin-matrixai.js';
+import { resolveMatrixConfig } from '../utils.js';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);

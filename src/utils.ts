@@ -16,7 +16,7 @@ async function runESLint({
   configPath?: string;
 }) {
   const dirname = path.dirname(url.fileURLToPath(import.meta.url));
-  const defaultConfigPath = path.resolve(dirname, '../configs/js.js');
+  const defaultConfigPath = path.resolve(dirname, './configs/js.js');
 
   const matrixaiLintConfig = resolveMatrixConfig();
   const forceInclude = matrixaiLintConfig.forceInclude;
