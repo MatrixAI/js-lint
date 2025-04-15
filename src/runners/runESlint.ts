@@ -1,6 +1,5 @@
-import process from 'process';
-import path from 'path';
-import url from 'url';
+import path from 'node:path';
+import url from 'node:url';
 import { ESLint } from 'eslint';
 import { resolveMatrixConfig, buildPatterns } from '../utils/utils.js';
 

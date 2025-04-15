@@ -1,6 +1,6 @@
 import type { EcmaVersion } from '@typescript-eslint/utils/ts-eslint';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import globals from 'globals';
 import _import from 'eslint-plugin-import';
 import js from '@eslint/js';
