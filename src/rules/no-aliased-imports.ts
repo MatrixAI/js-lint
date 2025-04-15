@@ -50,7 +50,7 @@ export const noAliasedImportsRule: RuleModule<
       noAlias:
         'Use relative import instead of alias import in src files "{{ aliasImport }}".',
       noAliasNoAutofix:
-        'Use relative import instead of alias import in src files "{{ aliasImport }}" (auto-fix is disabled - enable in config if desired.)',
+        'Use relative import instead of alias import in src files "{{ aliasImport }}" (auto-fix is disabled)',
     },
   },
   // Provide defaults if none are given
@@ -73,7 +73,7 @@ export const noAliasedImportsRule: RuleModule<
         const importPath = node.source.value;
 
         // The absolute path of the current file being linted
-        const filename = context.getFilename();
+        const filename = context.filename;
 
         // 1) Check if the file is in one of the "includeFolders"
         const isInIncludedFolder = includeFolders.some((folder) => {
