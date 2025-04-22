@@ -65,10 +65,14 @@ async function main(argv = process.argv) {
     hadFailure = true;
   }
 
+  const shellcheckDefaultSearchRoots = ['./src', './scripts', './tests'];
+  const searchRoots = shellcheckDefaultSearchRoots
+    .map((p) => path.resolve(process.cwd(), p))
+    .filter((p) => fs.existsSync(p));
+
   // Linting shell scripts (this does not have auto-fixing)
   const shellCheckArgs = [
-    './src',
-    './scripts',
+    ...searchRoots,
     '-type',
     'f',
     '-regextype',
@@ -82,18 +86,24 @@ async function main(argv = process.argv) {
   ];
   if (utils.commandExists('find') && utils.commandExists('shellcheck')) {
     console.error('Running shellcheck:');
-    console.error(' ' + ['find', ...shellCheckArgs].join(' '));
-    try {
-      childProcess.execFileSync('find', shellCheckArgs, {
-        stdio: ['inherit', 'inherit', 'inherit'],
-        windowsHide: true,
-        encoding: 'utf-8',
-        shell: platform === 'win32' ? true : false,
-        cwd: process.cwd(),
-      });
-    } catch (err) {
-      console.error('Shellcheck failed.' + err);
-      hadFailure = true;
+    if (searchRoots.length === 0) {
+      console.warn(
+        'No search roots found for shellcheck. Skipping shellcheck.',
+      );
+    } else {
+      console.error(' ' + ['find', ...shellCheckArgs].join(' '));
+      try {
+        childProcess.execFileSync('find', shellCheckArgs, {
+          stdio: ['inherit', 'inherit', 'inherit'],
+          windowsHide: true,
+          encoding: 'utf-8',
+          shell: platform === 'win32' ? true : false,
+          cwd: process.cwd(),
+        });
+      } catch (err) {
+        console.error('Shellcheck failed. ' + err);
+        hadFailure = true;
+      }
     }
   } else {
     console.warn(
