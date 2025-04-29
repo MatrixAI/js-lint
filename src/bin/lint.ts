@@ -4,36 +4,34 @@ import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
+import { Command } from 'commander';
 import * as utils from '../utils.js';
 
 const platform = os.platform();
+const program = new Command();
+
+program
+  .name('matrixai-lint')
+  .description(
+    'Lint source files, scripts, and markdown with configured rules.',
+  )
+  .option('-f, --fix', 'Automatically fix problems')
+  .option(
+    '--user-config',
+    'Use user-provided ESLint config instead of built-in one',
+  )
+  .option('--config <path>', 'Path to explicit ESLint config file')
+  .allowUnknownOption(false); // Optional: force rejection of unknown flags
 
 /* eslint-disable no-console */
 async function main(argv = process.argv) {
-  argv = argv.slice(2);
+  await program.parseAsync(argv);
+  const options = program.opts();
 
+  const fix = Boolean(options.fix);
+  const useUserConfig = Boolean(options.userConfig);
+  const explicitConfigPath: string | undefined = options.config;
   let hadFailure = false;
-  let fix = false;
-  let useUserConfig = false;
-  let explicitConfigPath: string | undefined;
-  const restArgs: string[] = [];
-
-  while (argv.length > 0) {
-    const option = argv.shift()!;
-    switch (option) {
-      case '--fix':
-        fix = true;
-        break;
-      case '--user-config':
-        useUserConfig = true;
-        break;
-      case '--config':
-        explicitConfigPath = argv.shift(); // Grab the next token
-        break;
-      default:
-        restArgs.push(option);
-    }
-  }
 
   // Resolve which config file to use
   let chosenConfig: string | undefined;
