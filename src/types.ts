@@ -14,7 +14,6 @@ type CLIOptions = {
   config?: string;
   eslint?: string[];
   shell?: string[];
-}
-
+};
 
 export type { MatrixAILintCfg, RawMatrixCfg, CLIOptions };

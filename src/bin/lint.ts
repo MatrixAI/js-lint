@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import type { CLIOptions } from '../types.js';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -6,7 +7,6 @@ import childProcess from 'node:child_process';
 import fs from 'node:fs';
 import { Command } from 'commander';
 import * as utils from '../utils.js';
-import type { CLIOptions } from '../types.js';
 
 const platform = os.platform();
 const program = new Command();
@@ -35,8 +35,8 @@ async function main(argv = process.argv) {
   const useUserConfig = Boolean(options.userConfig);
   const explicitConfigPath: string | undefined = options.config;
 
-  const eslintPatterns: string[] | undefined = options.eslint?.flatMap(utils.splitCommaOrSpace);
-  const shellPatterns: string[] | undefined = options.shell?.flatMap(utils.splitCommaOrSpace);
+  const eslintPatterns: string[] | undefined = options.eslint;
+  const shellPatterns: string[] | undefined = options.shell;
 
   let hadFailure = false;
 
@@ -64,7 +64,11 @@ async function main(argv = process.argv) {
   }
 
   try {
-    await utils.runESLint({ fix, configPath: chosenConfig, explicitGlobs: eslintPatterns });
+    await utils.runESLint({
+      fix,
+      configPath: chosenConfig,
+      explicitGlobs: eslintPatterns,
+    });
   } catch (err) {
     console.error(`ESLint failed: \n${err}`);
     hadFailure = true;

@@ -244,10 +244,6 @@ function buildPatterns(
   return { files, ignore };
 }
 
-function splitCommaOrSpace(s: string): string[] {
-  return s.split(/[, ]+/).filter(Boolean);
-}
-
 export {
   runESLint,
   findUserESLintConfig,
@@ -255,5 +251,4 @@ export {
   commandExists,
   resolveMatrixConfig,
   buildPatterns,
-  splitCommaOrSpace
 };
