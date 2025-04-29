@@ -11,9 +11,11 @@ import { ESLint } from 'eslint';
 async function runESLint({
   fix,
   configPath,
+  explicitGlobs,
 }: {
   fix: boolean;
   configPath?: string;
+  explicitGlobs?: string[];
 }) {
   const dirname = path.dirname(url.fileURLToPath(import.meta.url));
   const defaultConfigPath = path.resolve(dirname, './configs/js.js');
@@ -29,23 +31,33 @@ async function runESLint({
   console.log(`Found ${tsconfigPaths.length} tsconfig.json files:`);
   tsconfigPaths.forEach((tsconfigPath) => console.log('  ' + tsconfigPath));
 
-  const { files: lintFiles, ignore } = buildPatterns(
-    tsconfigPaths[0],
-    forceInclude,
-  );
+  let patterns: string[] = [];
+  let ignorePats: string[] = [];
+
+  if (explicitGlobs?.length) {
+    patterns = explicitGlobs;
+    ignorePats = [];
+  } else {
+    const { files: lintFiles, ignore: ignorePatterns } = buildPatterns(
+      tsconfigPaths[0],
+      forceInclude,
+    );
+    patterns = lintFiles;
+    ignorePats = ignorePatterns;
+  }
 
   console.log('Linting files:');
-  lintFiles.forEach((file) => console.log(' ' + file));
+  patterns.forEach((file) => console.log(' ' + file));
 
   const eslint = new ESLint({
     overrideConfigFile: configPath || defaultConfigPath,
     fix,
     errorOnUnmatchedPattern: false,
     warnIgnored: false,
-    ignorePatterns: ignore,
+    ignorePatterns: explicitGlobs?.length ? [] : ignorePats,
   });
 
-  const results = await eslint.lintFiles(lintFiles);
+  const results = await eslint.lintFiles(patterns);
 
   if (fix) {
     await ESLint.outputFixes(results);
@@ -232,6 +244,10 @@ function buildPatterns(
   return { files, ignore };
 }
 
+function splitCommaOrSpace(s: string): string[] {
+  return s.split(/[, ]+/).filter(Boolean);
+}
+
 export {
   runESLint,
   findUserESLintConfig,
@@ -239,4 +255,5 @@ export {
   commandExists,
   resolveMatrixConfig,
   buildPatterns,
+  splitCommaOrSpace
 };

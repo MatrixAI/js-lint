@@ -6,6 +6,7 @@ import childProcess from 'node:child_process';
 import fs from 'node:fs';
 import { Command } from 'commander';
 import * as utils from '../utils.js';
+import type { CLIOptions } from '../types.js';
 
 const platform = os.platform();
 const program = new Command();
@@ -21,16 +22,22 @@ program
     'Use user-provided ESLint config instead of built-in one',
   )
   .option('--config <path>', 'Path to explicit ESLint config file')
-  .allowUnknownOption(false); // Optional: force rejection of unknown flags
+  .option('--eslint <pat...>', 'Glob(s) to pass to ESLint')
+  .option('--shell  <pat...>', 'Glob(s) to pass to shell-check')
+  .allowUnknownOption(true); // Optional: force rejection of unknown flags
 
 /* eslint-disable no-console */
 async function main(argv = process.argv) {
   await program.parseAsync(argv);
-  const options = program.opts();
+  const options = program.opts<CLIOptions>();
 
   const fix = Boolean(options.fix);
   const useUserConfig = Boolean(options.userConfig);
   const explicitConfigPath: string | undefined = options.config;
+
+  const eslintPatterns: string[] | undefined = options.eslint?.flatMap(utils.splitCommaOrSpace);
+  const shellPatterns: string[] | undefined = options.shell?.flatMap(utils.splitCommaOrSpace);
+
   let hadFailure = false;
 
   // Resolve which config file to use
@@ -57,7 +64,7 @@ async function main(argv = process.argv) {
   }
 
   try {
-    await utils.runESLint({ fix, configPath: chosenConfig });
+    await utils.runESLint({ fix, configPath: chosenConfig, explicitGlobs: eslintPatterns });
   } catch (err) {
     console.error(`ESLint failed: \n${err}`);
     hadFailure = true;

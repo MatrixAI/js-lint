@@ -8,4 +8,13 @@ type RawMatrixCfg = Partial<{
   forceInclude: unknown;
 }>; // “might have these two keys, values are unknown”
 
-export type { MatrixAILintCfg, RawMatrixCfg };
+type CLIOptions = {
+  fix: boolean;
+  userConfig: boolean;
+  config?: string;
+  eslint?: string[];
+  shell?: string[];
+}
+
+
+export type { MatrixAILintCfg, RawMatrixCfg, CLIOptions };
