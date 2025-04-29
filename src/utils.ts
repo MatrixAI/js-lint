@@ -20,43 +20,53 @@ async function runESLint({
   const dirname = path.dirname(url.fileURLToPath(import.meta.url));
   const defaultConfigPath = path.resolve(dirname, './configs/js.js');
 
-  const matrixaiLintConfig = resolveMatrixConfig();
-  const forceInclude = matrixaiLintConfig.forceInclude;
-  const tsconfigPaths = matrixaiLintConfig.tsconfigPaths;
+  // PATH A – user supplied explicit globs
+  if (explicitGlobs?.length) {
+    console.log('Linting with explicit patterns:');
+    explicitGlobs.forEach((g) => console.log('  ' + g));
+
+    const eslint = new ESLint({
+      overrideConfigFile: configPath || defaultConfigPath,
+      fix,
+      errorOnUnmatchedPattern: false,
+      warnIgnored: false,
+      ignorePatterns: [], // Trust caller entirely
+    });
+
+    await lintAndReport(eslint, explicitGlobs, fix);
+    return;
+  }
+
+  // PATH B – default behaviour (tsconfig + matrix config)
+  const { forceInclude, tsconfigPaths } = resolveMatrixConfig();
 
   if (tsconfigPaths.length === 0) {
     console.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
   }
 
   console.log(`Found ${tsconfigPaths.length} tsconfig.json files:`);
-  tsconfigPaths.forEach((tsconfigPath) => console.log('  ' + tsconfigPath));
+  tsconfigPaths.forEach((p) => console.log('  ' + p));
 
-  let patterns: string[] = [];
-  let ignorePats: string[] = [];
-
-  if (explicitGlobs?.length) {
-    patterns = explicitGlobs;
-    ignorePats = [];
-  } else {
-    const { files: lintFiles, ignore: ignorePatterns } = buildPatterns(
-      tsconfigPaths[0],
-      forceInclude,
-    );
-    patterns = lintFiles;
-    ignorePats = ignorePatterns;
-  }
+  const { files: patterns, ignore: ignorePats } = buildPatterns(
+    tsconfigPaths[0],
+    forceInclude,
+  );
 
   console.log('Linting files:');
-  patterns.forEach((file) => console.log(' ' + file));
+  patterns.forEach((p) => console.log('  ' + p));
 
   const eslint = new ESLint({
     overrideConfigFile: configPath || defaultConfigPath,
     fix,
     errorOnUnmatchedPattern: false,
     warnIgnored: false,
-    ignorePatterns: explicitGlobs?.length ? [] : ignorePats,
+    ignorePatterns: ignorePats,
   });
 
+  await lintAndReport(eslint, patterns, fix);
+}
+
+async function lintAndReport(eslint: ESLint, patterns: string[], fix: boolean) {
   const results = await eslint.lintFiles(patterns);
 
   if (fix) {
@@ -64,11 +74,9 @@ async function runESLint({
   }
 
   const formatter = await eslint.loadFormatter('stylish');
-  const resultText = formatter.format(results);
-  console.log(resultText);
-
-  /* eslint-enable no-console */
+  console.log(formatter.format(results));
 }
+/* eslint-enable no-console */
 
 /**
  * Find the user's ESLint config file in the current working directory.
