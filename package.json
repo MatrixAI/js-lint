@@ -26,8 +26,8 @@
     "build": "shx rm -rf ./dist && tsc -p ./tsconfig.build.json && shx chmod +x dist/bin/lint.js",
     "postversion": "npm install --package-lock-only --ignore-scripts --silent",
     "tsx": "tsx",
-    "lint": "test -f ./dist/bin/lint.js || npm run build && ./dist/bin/lint.js",
-    "lintfix": "sh -c 'test -f ./dist/bin/lint.js || npm run build && ./dist/bin/lint.js --fix --eslint \"{src,scripts}/**/*.{js,mjs,ts,mts,jsx,tsx}\"'",
+    "lint": "test -f ./dist/bin/lint.js || npm run build && ./dist/bin/lint.js --eslint \"{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}\"",
+    "lintfix": "sh -c 'test -f ./dist/bin/lint.js || npm run build && ./dist/bin/lint.js --fix --eslint \"{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}\"'",
     "lint-shell": "find ./src ./tests ./scripts -type f -regextype posix-extended -regex '.*\\.(sh)' -exec shellcheck {} +",
     "docs": "shx rm -rf ./docs && typedoc --entryPointStrategy expand --gitRevision master --tsconfig ./tsconfig.build.json --out ./docs src",
     "test": "node ./scripts/test.mjs"
