@@ -10,6 +10,7 @@ import * as utils from '../utils.js';
 
 const platform = os.platform();
 const program = new Command();
+const DEFAULT_SHELLCHECK_SEARCH_ROOTS = ['./src', './scripts', './tests'];
 
 program
   .name('matrixai-lint')
@@ -74,8 +75,9 @@ async function main(argv = process.argv) {
     hadFailure = true;
   }
 
-  const shellcheckDefaultSearchRoots = ['./src', './scripts', './tests'];
-  const searchRoots = shellcheckDefaultSearchRoots
+  const searchRoots = (
+    shellPatterns?.length ? shellPatterns : DEFAULT_SHELLCHECK_SEARCH_ROOTS
+  )
     .map((p) => path.resolve(process.cwd(), p))
     .filter((p) => fs.existsSync(p));
 
