@@ -33,38 +33,28 @@
 <tr>
 <th>Flag</th>
 <th>Description</th>
-<th></th>
-<th></th>
 </tr>
 </thead>
 <tbody><tr>
 <td><em>(no flag)</em></td>
 <td>Uses built-in Matrix AI ESLint config</td>
-<td></td>
-<td></td>
 </tr>
 <tr>
 <td><code>--fix</code></td>
 <td>Enables auto-fixing via ESLint and Prettier</td>
-<td></td>
-<td></td>
 </tr>
 <tr>
 <td><code>--user-config</code></td>
-<td>Uses detected `eslint.config.[c</td>
-<td>m</td>
-<td>t]js` from the project root if found</td>
+<td>Uses detected `eslint.config.[js,mjs,cjs,ts] from the project root if found</td>
 </tr>
 <tr>
 <td><code>--config &lt;path&gt;</code></td>
 <td>Explicitly use a custom ESLint config file</td>
-<td></td>
-<td></td>
 </tr>
 </tbody></table>
 <a id="md:examples" class="tsd-anchor"></a><h3><a href="#md:examples">Examples</a></h3><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span><span class="hl-1"> </span><span class="hl-3">--fix</span>
 </code><button>Copy</button></pre>
-<a id="md:typescript-support" class="tsd-anchor"></a><h2><a href="#md:typescript-support">TypeScript Support</a></h2><p>The linter is TypeScript-aware and **requires a **<strong><code>tsconfig.json</code></strong> to determine which files to lint and how to parse them.</p>
+<a id="md:typescript-support" class="tsd-anchor"></a><h3><a href="#md:typescript-support">TypeScript Support</a></h3><p>The linter is TypeScript-aware and requires a <code>tsconfig.json</code> to determine which files to lint and how to parse them.</p>
 <p>By default:</p>
 <ul>
 <li>It looks for <code>tsconfig.json</code> in the project root</li>
@@ -95,10 +85,10 @@
 <blockquote>
 <p>⚠ If a path in <code>forceInclude</code> is not included in any of the <code>tsconfigPaths</code>, TypeScript will throw a parsing error.</p>
 </blockquote>
-<a id="md:eslint-config-override" class="tsd-anchor"></a><h2><a href="#md:eslint-config-override">ESLint Config Override</a></h2><p>You can use your own ESLint config by one of the following methods:</p>
-<a id="md:1-inline-custom-config" class="tsd-anchor"></a><h3><a href="#md:1-inline-custom-config">1. Inline Custom Config</a></h3><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span>
+<a id="md:eslint-config-override" class="tsd-anchor"></a><h3><a href="#md:eslint-config-override">ESLint Config Override</a></h3><p>You can use your own ESLint config by one of the following methods:</p>
+<a id="md:1-inline-custom-config" class="tsd-anchor"></a><h4><a href="#md:1-inline-custom-config">1. Inline Custom Config</a></h4><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span>
 </code><button>Copy</button></pre>
-<a id="md:2-auto-detect-with---user-config" class="tsd-anchor"></a><h3><a href="#md:2-auto-detect-with---user-config">2. Auto-detect with <code>--user-config</code></a></h3><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span>
+<a id="md:2-auto-detect-with---user-config" class="tsd-anchor"></a><h4><a href="#md:2-auto-detect-with---user-config">2. Auto-detect with <code>--user-config</code></a></h4><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span>
 </code><button>Copy</button></pre>
 <p>This will look for a valid eslint.config file in the project root.</p>
 <p>Valid config filenames:</p>
@@ -108,7 +98,7 @@
 <li><code>eslint.config.mjs</code></li>
 <li><code>eslint.config.ts</code></li>
 </ul>
-<a id="md:3-extend-the-base-config" class="tsd-anchor"></a><h3><a href="#md:3-extend-the-base-config">3. Extend the base config</a></h3><pre><code class="language-ts"><span class="hl-5">// eslint.config.js</span><br/><span class="hl-6">import</span><span class="hl-1"> </span><span class="hl-7">matrixai</span><span class="hl-1"> </span><span class="hl-6">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint/config&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-6">export</span><span class="hl-1"> </span><span class="hl-6">default</span><span class="hl-1"> [</span><br/><span class="hl-1">  ...</span><span class="hl-7">matrixai</span><span class="hl-1">,</span><br/><span class="hl-1">  {</span><br/><span class="hl-1">    </span><span class="hl-7">rules:</span><span class="hl-1"> {</span><br/><span class="hl-1">      </span><span class="hl-2">&#39;@typescript-eslint/no-explicit-any&#39;</span><span class="hl-7">:</span><span class="hl-1"> </span><span class="hl-2">&#39;error&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-2">&#39;no-console&#39;</span><span class="hl-7">:</span><span class="hl-1"> </span><span class="hl-2">&#39;off&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    },</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">];</span>
+<a id="md:3-extend-the-base-config" class="tsd-anchor"></a><h4><a href="#md:3-extend-the-base-config">3. Extend the base config</a></h4><pre><code class="language-ts"><span class="hl-5">// eslint.config.js</span><br/><span class="hl-6">import</span><span class="hl-1"> </span><span class="hl-7">matrixai</span><span class="hl-1"> </span><span class="hl-6">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint/config&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-6">export</span><span class="hl-1"> </span><span class="hl-6">default</span><span class="hl-1"> [</span><br/><span class="hl-1">  ...</span><span class="hl-7">matrixai</span><span class="hl-1">,</span><br/><span class="hl-1">  {</span><br/><span class="hl-1">    </span><span class="hl-7">rules:</span><span class="hl-1"> {</span><br/><span class="hl-1">      </span><span class="hl-2">&#39;@typescript-eslint/no-explicit-any&#39;</span><span class="hl-7">:</span><span class="hl-1"> </span><span class="hl-2">&#39;error&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-2">&#39;no-console&#39;</span><span class="hl-7">:</span><span class="hl-1"> </span><span class="hl-2">&#39;off&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    },</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">];</span>
 </code><button>Copy</button></pre>
 <a id="md:development" class="tsd-anchor"></a><h2><a href="#md:development">Development</a></h2><p>Run <code>nix develop</code>, and once you&#39;re inside, you can use:</p>
 <pre><code class="language-sh"><span class="hl-5"># install (or reinstall packages from package.json)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><br/><span class="hl-5"># build the dist</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span><br/><span class="hl-5"># run the repl (this allows you to import from ./src)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">tsx</span><br/><span class="hl-5"># run the tests</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test</span><br/><span class="hl-5"># lint the source code</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">lint</span><br/><span class="hl-5"># automatically fix the source</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">lintfix</span>
@@ -156,17 +146,15 @@
 <li>
 <ul>
 <li><a href="#md:cli-options"><span>CLI <wbr/>Options</span></a></li>
-<li><a href="#md:examples"><span>Examples</span></a></li></ul></li>
+<li><a href="#md:examples"><span>Examples</span></a></li>
 <li><a href="#md:typescript-support"><span>Type<wbr/>Script <wbr/>Support</span></a></li>
-<li>
-<ul>
-<li><a href="#md:working-with-multiple-tsconfigs"><span>Working with multiple tsconfigs</span></a></li></ul></li>
+<li><a href="#md:working-with-multiple-tsconfigs"><span>Working with multiple tsconfigs</span></a></li>
 <li><a href="#md:eslint-config-override"><span>ESLint <wbr/>Config <wbr/>Override</span></a></li>
 <li>
 <ul>
 <li><a href="#md:1-inline-custom-config"><span>1. <wbr/>Inline <wbr/>Custom <wbr/>Config</span></a></li>
 <li><a href="#md:2-auto-detect-with---user-config"><span>2. <wbr/>Auto-<wbr/>detect with --user-<wbr/>config</span></a></li>
-<li><a href="#md:3-extend-the-base-config"><span>3. <wbr/>Extend the base config</span></a></li></ul></li>
+<li><a href="#md:3-extend-the-base-config"><span>3. <wbr/>Extend the base config</span></a></li></ul></li></ul></li>
 <li><a href="#md:development"><span>Development</span></a></li>
 <li>
 <ul>
