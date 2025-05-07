@@ -1,39 +1,45 @@
 #!/usr/bin/env node
+import type { CLIOptions } from '../types.js';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
+import { Command } from 'commander';
 import * as utils from '../utils.js';
 
 const platform = os.platform();
+const program = new Command();
+const DEFAULT_SHELLCHECK_SEARCH_ROOTS = ['./src', './scripts', './tests'];
+
+program
+  .name('matrixai-lint')
+  .description(
+    'Lint source files, scripts, and markdown with configured rules.',
+  )
+  .option('-f, --fix', 'Automatically fix problems')
+  .option(
+    '--user-config',
+    'Use user-provided ESLint config instead of built-in one',
+  )
+  .option('--config <path>', 'Path to explicit ESLint config file')
+  .option('--eslint <pat...>', 'Glob(s) to pass to ESLint')
+  .option('--shell  <pat...>', 'Glob(s) to pass to shell-check')
+  .allowUnknownOption(true); // Optional: force rejection of unknown flags
 
 /* eslint-disable no-console */
 async function main(argv = process.argv) {
-  argv = argv.slice(2);
+  await program.parseAsync(argv);
+  const options = program.opts<CLIOptions>();
+
+  const fix = Boolean(options.fix);
+  const useUserConfig = Boolean(options.userConfig);
+  const explicitConfigPath: string | undefined = options.config;
+
+  const eslintPatterns: string[] | undefined = options.eslint;
+  const shellPatterns: string[] | undefined = options.shell;
 
   let hadFailure = false;
-  let fix = false;
-  let useUserConfig = false;
-  let explicitConfigPath: string | undefined;
-  const restArgs: string[] = [];
-
-  while (argv.length > 0) {
-    const option = argv.shift()!;
-    switch (option) {
-      case '--fix':
-        fix = true;
-        break;
-      case '--user-config':
-        useUserConfig = true;
-        break;
-      case '--config':
-        explicitConfigPath = argv.shift(); // Grab the next token
-        break;
-      default:
-        restArgs.push(option);
-    }
-  }
 
   // Resolve which config file to use
   let chosenConfig: string | undefined;
@@ -59,14 +65,19 @@ async function main(argv = process.argv) {
   }
 
   try {
-    await utils.runESLint({ fix, configPath: chosenConfig });
+    await utils.runESLint({
+      fix,
+      configPath: chosenConfig,
+      explicitGlobs: eslintPatterns,
+    });
   } catch (err) {
     console.error(`ESLint failed: \n${err}`);
     hadFailure = true;
   }
 
-  const shellcheckDefaultSearchRoots = ['./src', './scripts', './tests'];
-  const searchRoots = shellcheckDefaultSearchRoots
+  const searchRoots = (
+    shellPatterns?.length ? shellPatterns : DEFAULT_SHELLCHECK_SEARCH_ROOTS
+  )
     .map((p) => path.resolve(process.cwd(), p))
     .filter((p) => fs.existsSync(p));
 
