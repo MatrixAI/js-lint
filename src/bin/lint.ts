@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import * as utils from '../utils.js';
 
@@ -126,38 +127,57 @@ async function main(argv = process.argv) {
   // Always include README if it exists
   const markdownFiles: string[] = [];
   if (fs.existsSync('README.md')) markdownFiles.push('README.md');
-
-  // Add files from pages/, blog/, docs/ **if they exist AND contain md/mdx**
   for (const dir of ['pages', 'blog', 'docs']) {
-    if (fs.existsSync(dir)) {
-      markdownFiles.push(...utils.collectMarkdown(dir));
-    }
+    if (fs.existsSync(dir)) markdownFiles.push(...utils.collectMarkdown(dir));
   }
-
   if (markdownFiles.length === 0) {
     console.warn('Skipping Prettier: no Markdown/MDX files found.');
     return;
   }
 
   const prettierArgs = [fix ? '--write' : '--check', ...markdownFiles];
-
   console.error('Running prettier:');
-  console.error(' ' + ['prettier', ...prettierArgs].join(' '));
+
+  const require = createRequire(import.meta.url);
+  let prettierBin: string | null = null;
+  try {
+    // Resolves to @matrixai/lint/node_modules/prettier/bin/prettier.cjs
+    prettierBin = require.resolve('prettier/bin/prettier.cjs');
+  } catch {
+    // Bundled copy not found
+  }
 
   try {
-    childProcess.execFileSync('prettier', prettierArgs, {
-      stdio: 'inherit',
-      windowsHide: true,
-      encoding: 'utf-8',
-      shell: platform === 'win32',
-      cwd: process.cwd(),
-    });
+    if (prettierBin) {
+      console.error(
+        ` ${process.execPath} ${prettierBin} ${prettierArgs.join(' ')}`,
+      );
+      childProcess.execFileSync(
+        process.execPath,
+        [prettierBin, ...prettierArgs],
+        {
+          stdio: 'inherit',
+          windowsHide: true,
+          encoding: 'utf-8',
+          cwd: process.cwd(),
+        },
+      );
+    } else {
+      console.error(' prettier ' + prettierArgs.join(' '));
+      childProcess.execFileSync('prettier', prettierArgs, {
+        stdio: 'inherit',
+        windowsHide: true,
+        encoding: 'utf-8',
+        shell: platform === 'win32',
+        cwd: process.cwd(),
+      });
+    }
   } catch (err) {
     if (!fix) {
       console.error('Prettier check failed.');
       hadFailure = true;
     } else {
-      throw err; // Unexpected if --write fails
+      throw err; // Should not happen when --write
     }
   }
 
