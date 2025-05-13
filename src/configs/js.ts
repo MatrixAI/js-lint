@@ -118,6 +118,8 @@ const config = [
         },
       ],
       '@typescript-eslint/await-thenable': ['error'],
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-unsafe-declaration-merging': 'off',
 
       'linebreak-style': ['error', 'unix'],
       'no-empty': 1,
