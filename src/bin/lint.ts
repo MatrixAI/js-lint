@@ -66,11 +66,15 @@ async function main(argv = process.argv) {
   }
 
   try {
-    await utils.runESLint({
+    const hadLintingErrors = await utils.runESLint({
       fix,
       configPath: chosenConfig,
       explicitGlobs: eslintPatterns,
     });
+
+    if (hadLintingErrors) {
+      hadFailure = true;
+    }
   } catch (err) {
     console.error(`ESLint failed: \n${err}`);
     hadFailure = true;
@@ -182,7 +186,10 @@ async function main(argv = process.argv) {
   }
 
   if (hadFailure) {
+    console.error('[matrixai-lint]  ✖  Linting failed.');
     process.exit(1);
+  } else {
+    console.error('[matrixai-lint]  ✔  Linting passed.');
   }
 }
 

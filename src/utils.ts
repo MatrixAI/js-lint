@@ -16,7 +16,7 @@ async function runESLint({
   fix: boolean;
   configPath?: string;
   explicitGlobs?: string[];
-}) {
+}): Promise<boolean> {
   const dirname = path.dirname(url.fileURLToPath(import.meta.url));
   const defaultConfigPath = path.resolve(dirname, './configs/js.js');
 
@@ -33,8 +33,7 @@ async function runESLint({
       ignorePatterns: [], // Trust caller entirely
     });
 
-    await lintAndReport(eslint, explicitGlobs, fix);
-    return;
+    return await lintAndReport(eslint, explicitGlobs, fix);
   }
 
   // PATH B – default behaviour (tsconfig + matrix config)
@@ -63,10 +62,14 @@ async function runESLint({
     ignorePatterns: ignorePats,
   });
 
-  await lintAndReport(eslint, patterns, fix);
+  return await lintAndReport(eslint, patterns, fix);
 }
 
-async function lintAndReport(eslint: ESLint, patterns: string[], fix: boolean) {
+async function lintAndReport(
+  eslint: ESLint,
+  patterns: string[],
+  fix: boolean,
+): Promise<boolean> {
   const results = await eslint.lintFiles(patterns);
 
   if (fix) {
@@ -75,6 +78,9 @@ async function lintAndReport(eslint: ESLint, patterns: string[], fix: boolean) {
 
   const formatter = await eslint.loadFormatter('stylish');
   console.log(formatter.format(results));
+  const hasErrors = results.some((r) => r.errorCount > 0);
+
+  return hasErrors;
 }
 /* eslint-enable no-console */
 
