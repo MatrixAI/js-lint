@@ -116,11 +116,20 @@ function findUserESLintConfig(repoRoot = process.cwd()): string | undefined {
  * @returns An array of paths to Markdown files.
  */
 function collectMarkdown(dir: string): string[] {
-  const entries = fs.readdirSync(dir, { withFileTypes: true, recursive: true });
-  return entries
-    .filter((e) => e.isFile() && /\.(md|mdx)$/i.test(e.name))
-    .map((e) => path.join(dir, e.name));
+  const files = fs.readdirSync(dir, { encoding: 'utf8', recursive: true });
+
+  return files
+    .filter((f) => /\.(md|mdx)$/i.test(f))
+    .map((f) => path.join(dir, f)); 
 }
+
+// function collectMarkdown(dir: string): string[] {
+//   const entries = fs.readdirSync(dir, { withFileTypes: true, recursive: true });
+//   return entries
+//     .filter((e) => e.isFile() && /\.(md|mdx)$/i.test(e.name))
+//     .map((e) => path.join(dir, e.name));
+// }
+
 
 /**
  * Check if a command exists in the system PATH.
