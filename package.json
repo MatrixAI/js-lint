@@ -11,7 +11,7 @@
   "type": "module",
   "exports": {
     "./config": {
-      "import": "./dist/configs/matrixai-config-bundle.js"
+      "import": "./dist/configs/js.js"
     }
   },
   "imports": {
