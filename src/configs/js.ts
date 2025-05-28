@@ -7,6 +7,7 @@ import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
+import prettierOptions from './prettier.config.mjs';
 import matrixaiPlugin from '../plugins/eslint-plugin-matrixai.js';
 import { resolveMatrixConfig } from '../utils.js';
 
@@ -65,6 +66,9 @@ const config = [
           autoFix: true,
         },
       ],
+
+      // Prettier override
+      'prettier/prettier': ['error', prettierOptions],
 
       // React rules
       'react/react-in-jsx-scope': 0,
