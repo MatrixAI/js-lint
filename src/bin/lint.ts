@@ -6,12 +6,19 @@ import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import url from 'node:url';
 import { Command } from 'commander';
 import * as utils from '../utils.js';
 
 const platform = os.platform();
 const program = new Command();
 const DEFAULT_SHELLCHECK_SEARCH_ROOTS = ['./src', './scripts', './tests'];
+
+const dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const builtinPrettierCfg = path.resolve(
+  dirname,
+  '../configs/prettier.config.mjs',
+);
 
 program
   .name('matrixai-lint')
@@ -139,7 +146,16 @@ async function main(argv = process.argv) {
     return;
   }
 
-  const prettierArgs = [fix ? '--write' : '--check', ...markdownFiles];
+  const prettierArgs = [
+    '--config',
+    builtinPrettierCfg,
+    '--config-precedence',
+    'cli-override',
+    '--no-editorconfig',
+    fix ? '--write' : '--check',
+    ...markdownFiles,
+  ];
+
   console.error('Running prettier:');
 
   const require = createRequire(import.meta.url);

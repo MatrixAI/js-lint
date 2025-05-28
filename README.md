@@ -1,12 +1,16 @@
 # js-lint
 
-A batteries-included, TypeScript-aware linting CLI and ESLint flat config bundle for use in Matrix AI JavaScript/TypeScript projects.
+A batteries-included, TypeScript-aware linting CLI and ESLint flat config bundle
+for use in Matrix AI JavaScript/TypeScript projects.
 
-- Type-aware linting powered by `@typescript-eslint` using one or more `tsconfig.json` files
-- Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom rules
+- Type-aware linting powered by `@typescript-eslint` using one or more
+  `tsconfig.json` files
+- Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
+  rules
 - Supports Prettier formatting for Markdown and ShellCheck for shell scripts
 - Single command to lint JavaScript/TypeScript, Markdown, and shell scripts
-- Customizable via `matrixai-lint-config.json` and extensible with your own ESLint config
+- Customizable via `matrixai-lint-config.json` and extensible with your own
+  ESLint config
 - CLI options to override config and enable auto-fix
 
 ## Installation
@@ -46,7 +50,8 @@ matrixai-lint --config ./eslint.config.js --fix
 
 ### TypeScript Support
 
-The linter is TypeScript-aware and requires a `tsconfig.json` to determine which files to lint and how to parse them.
+The linter is TypeScript-aware and requires a `tsconfig.json` to determine which
+files to lint and how to parse them.
 
 By default:
 
@@ -55,7 +60,9 @@ By default:
 
 ### Working with multiple tsconfigs
 
-If your project uses more than one `tsconfig.json` or doesn't have one at the root, you can configure the linter using a `matrixai-lint-config.json` file at the root:
+If your project uses more than one `tsconfig.json` or doesn't have one at the
+root, you can configure the linter using a `matrixai-lint-config.json` file at
+the root:
 
 ```json
 {
@@ -69,7 +76,8 @@ If your project uses more than one `tsconfig.json` or doesn't have one at the ro
 | `tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                               |
 | `forceInclude`  | `string[]` | Paths to always include, even if excluded by tsconfig (must be included by at least one) |
 
-> ⚠ If a path in `forceInclude` is not included in any of the `tsconfigPaths`, TypeScript will throw a parsing error.
+> ⚠ If a path in `forceInclude` is not included in any of the `tsconfigPaths`,
+> TypeScript will throw a parsing error.
 
 ### ESLint Config Override
 
@@ -100,14 +108,14 @@ Valid config filenames:
 
 ```ts
 // eslint.config.js
-import matrixai from '@matrixai/lint/config';
+import matrixai from "@matrixai/lint/config";
 
 export default [
   ...matrixai,
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
-      'no-console': 'off',
+      "@typescript-eslint/no-explicit-any": "error",
+      "no-console": "off",
     },
   },
 ];
