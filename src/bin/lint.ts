@@ -169,7 +169,7 @@ async function main(argv = process.argv) {
 
   try {
     if (prettierBin) {
-      console.error(` ${prettierBin} ${prettierArgs.join('\n' + ' ')}`);
+      console.error(` ${prettierBin} \n ${prettierArgs.join('\n' + ' ')}`);
       childProcess.execFileSync(
         process.execPath,
         [prettierBin, ...prettierArgs],
