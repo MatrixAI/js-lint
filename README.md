@@ -108,14 +108,14 @@ Valid config filenames:
 
 ```ts
 // eslint.config.js
-import matrixai from "@matrixai/lint/config";
+import matrixai from '@matrixai/lint/config';
 
 export default [
   ...matrixai,
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "error",
-      "no-console": "off",
+      '@typescript-eslint/no-explicit-any': 'error',
+      'no-console': 'off',
     },
   },
 ];
