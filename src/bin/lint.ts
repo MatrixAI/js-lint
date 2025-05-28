@@ -169,9 +169,7 @@ async function main(argv = process.argv) {
 
   try {
     if (prettierBin) {
-      console.error(
-        ` ${process.execPath} ${prettierBin} ${prettierArgs.join(' ')}`,
-      );
+      console.error(` ${prettierBin} ${prettierArgs.join('\n' + ' ')}`);
       childProcess.execFileSync(
         process.execPath,
         [prettierBin, ...prettierArgs],
@@ -183,7 +181,7 @@ async function main(argv = process.argv) {
         },
       );
     } else {
-      console.error(' prettier ' + prettierArgs.join(' '));
+      console.error('prettier' + prettierArgs.join('\n' + ' '));
       childProcess.execFileSync('prettier', prettierArgs, {
         stdio: 'inherit',
         windowsHide: true,
