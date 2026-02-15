@@ -1,0 +1,23 @@
+{
+  inputs = {
+    nixpkgs-matrix = {
+      type = "indirect";
+      id = "nixpkgs-matrix";
+    };
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { nixpkgs-matrix, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs-matrix.legacyPackages.${system};
+      in {
+        devShells.default = pkgs.mkShell {
+          nativeBuildInputs = [ ];
+          shellHook = ''
+            echo "Entering $(basename "$PWD")"
+            mkdir -p "$PWD/tmp"
+          '';
+        };
+      });
+}

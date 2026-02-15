@@ -1,0 +1,23 @@
+# AGENTS
+- This is the **standards source repo**. It is not a product repo and does not declare/enforce a product profile.
+- Downstream product repos vendor this repo under `./.matrixai/matrixai-standards/` and keep their own repo-root `AGENTS.md` + `./.matrixai/repo-profile.yml` (see [`README.md`](README.md)).
+- When editing standards, enforce the universal hotset [`standards/HOTSET.md`](standards/HOTSET.md).
+- When editing templates, keep them consistent with the downstream contract documented in [`README.md`](README.md#profile-key-first-navigation-for-architecture-overlays).
+- Prefer ASCII punctuation/symbols when an equivalent exists (see [`standards/HOTSET.md`](standards/HOTSET.md) [MXS-GEN-006]).
+- Ensure edits comply with [`.editorconfig`](.editorconfig) (LF line endings, 2-space indent, final newline, trim trailing whitespace).
+- Line-reference policy (applies to all agent-generated repository content: Markdown, docs, templates, and code comments):
+  - Never emit `path:line` (e.g. `foo.ts:1`, `README.md:126`) into repository files.
+  - Do NOT put `:number` inside Markdown link destinations: `[x](path:123)` is banned.
+  - If a line reference is needed, use either:
+    - `[x](path#heading-anchor)` (if possible), or
+    - `[x](path) (line 123)` (preferred, portable), or
+    - `[x](path#L123)` only when explicitly targeting a renderer that supports `#L` anchors.
+  - If you would have emitted `:1`, drop it entirely: use `path` with no line info.
+  - For downstream-only paths that are not present in this standards repo (e.g. product-repo files like `wrangler.toml`), use inline code instead of a Markdown link.
+- Apply repo-local golden commands and overrides here (fill if/when you standardize them for this repo):
+  - build: ___
+  - test: ___
+  - lint: ___
+  - lintfix: ___
+  - docs: ___
+  - bench: ___

@@ -1,0 +1,12 @@
+/_seed
+/.direnv
+/tmp
+/dist
+.env*
+!.env.example
+!.envrc
+/result*
+/builds
+.DS_Store
+.idea
+.aider*

@@ -1,0 +1,8 @@
+profile: library-js
+# Place at `.matrixai/repo-profile.yml` in product repos.
+#
+# Profile docs live in the vendored standards (path is relative to `.matrixai/repo-profile.yml`):
+# - library-js: [`matrixai-standards/standards/profiles/library-js.md`](matrixai-standards/standards/profiles/library-js.md:1)
+# - application-js: [`matrixai-standards/standards/profiles/application-js.md`](matrixai-standards/standards/profiles/application-js.md:1)
+# - worker-js-cloudflare: [`matrixai-standards/standards/profiles/worker-js-cloudflare.md`](matrixai-standards/standards/profiles/worker-js-cloudflare.md:1)
+# - docusaurus-js-cloudflare: [`matrixai-standards/standards/profiles/docusaurus-js-cloudflare.md`](matrixai-standards/standards/profiles/docusaurus-js-cloudflare.md:1)

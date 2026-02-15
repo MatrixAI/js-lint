@@ -1,0 +1,21 @@
+{
+  "name": "@example/cloudflare-worker",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "matrixai-lint",
+    "lintfix": "matrixai-lint --fix",
+    "dev": "node ./scripts/dev.mjs",
+    "deploy": "node ./scripts/deploy.mjs"
+  },
+  "devDependencies": {
+    "@matrixai/async-init": "^2.1.2",
+    "@matrixai/logger": "^4.0.3",
+    "itty-router": "^5.0.18",
+    "@cloudflare/workers-types": "^4.20250724.0",
+    "@types/node": "^22.19.11",
+    "@matrixai/lint": "^0.2.12",
+    "typescript": "^5.1.6",
+    "wrangler": "^4.26.0"
+  }
+}
