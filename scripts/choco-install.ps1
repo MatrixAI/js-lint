@@ -1,122 +1,91 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# ---- Config ----
-$NodeMajor = 20
+# Make native command failures behave like errors in PS7+ (prevents "choco failed but we continued" style issues)
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue) {
+  $global:PSNativeCommandUseErrorActionPreference = $true
+}
+
+# ---------------------------
+# Config
+# ---------------------------
+$NodeMajor = if ($env:NODE_MAJOR) { [int]$env:NODE_MAJOR } else { 20 }
 $Arch = "x64"
 
-# Keep using your repo tmp area so it's easy to cache between runs
-$CacheRoot = Join-Path $PSScriptRoot "..\tmp\chocolatey"
-$NodeCache = Join-Path $CacheRoot "node"
+# Cache under repo tmp (so your CI cache can persist it)
+$CacheRoot = Join-Path $PSScriptRoot "..\tmp"
+$NodeCache = Join-Path $CacheRoot "node-cache"
 New-Item -Path $NodeCache -ItemType Directory -Force | Out-Null
 
-# (Optional) keep your original Chocolatey cache source spirit (harmless if you later add more choco pkgs)
+# Keep the spirit of the original: ensure choco cache dir exists + source (harmless even if unused here)
 if ($env:ChocolateyInstall) {
-  New-Item -Path $CacheRoot -ItemType Directory -Force | Out-Null
+  $ChocoCache = Join-Path $CacheRoot "chocolatey"
+  New-Item -Path $ChocoCache -ItemType Directory -Force | Out-Null
   & choco source remove --name="cache" -y --no-progress 2>$null | Out-Null
-  & choco source add --name="cache" --source="$CacheRoot" --priority=1 -y --no-progress | Out-Null
+  & choco source add --name="cache" --source="$ChocoCache" --priority=1 -y --no-progress | Out-Null
 }
 
-# ---- Helpers ----
-function Get-NodeVersionString {
-  try { return (& node -v).Trim() } catch { return $null }
-}
-
+# ---------------------------
+# Helpers
+# ---------------------------
 function Parse-Version([string] $v) {
   if (-not $v) { return $null }
   $vv = $v.Trim().TrimStart('v')
   try { return [version]$vv } catch { return $null }
 }
 
-function Prepend-Path([string] $dir) {
-  $env:Path = "$dir;$env:Path"
-  if ($env:GITHUB_PATH) { Add-Content -LiteralPath $env:GITHUB_PATH -Value $dir }
+function Get-CommandPath([string] $name) {
+  try { return (Get-Command $name -ErrorAction Stop).Source } catch { return $null }
 }
 
-function Patch-RefreshEnvToKeepNodeFirst([string] $nodeBinDir) {
-  # Your workflow calls refreshenv AFTER this script.
-  # Wrap it so our chosen node stays first.
-  $cmd = Get-Command refreshenv -ErrorAction SilentlyContinue
-  if (-not $cmd) { return }
-  if ($cmd.CommandType -ne 'Function') { return }
-
-  $global:__ORIG_REFRESHENV = $cmd.ScriptBlock
-  $global:__NODE_BIN_DIR = $nodeBinDir
-
-  function global:refreshenv {
-    if ($global:__ORIG_REFRESHENV) { & $global:__ORIG_REFRESHENV }
-    if ($global:__NODE_BIN_DIR) { $env:Path = "$($global:__NODE_BIN_DIR);$env:Path" }
-  }
-}
-
-function Find-ToolcacheNodeBin {
-  param([Parameter(Mandatory)][int] $Major, [ValidateSet('x64','x86')][string] $Arch = 'x64')
-
+function Find-ToolcacheNodeHome([int] $Major, [string] $Arch) {
   $toolcache = $env:RUNNER_TOOL_CACHE
   if (-not $toolcache -or -not (Test-Path -LiteralPath $toolcache)) {
-    # common GH windows hosted path; best-effort fallback
     $toolcache = "C:\hostedtoolcache\windows"
   }
+  $root = Join-Path $toolcache "node"
+  if (-not (Test-Path -LiteralPath $root)) { return $null }
 
-  $nodeRoot = Join-Path $toolcache "node"
-  if (-not (Test-Path -LiteralPath $nodeRoot)) { return $null }
-
-  $best = Get-ChildItem -LiteralPath $nodeRoot -Directory -ErrorAction SilentlyContinue |
+  $best = Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -like "$Major.*" } |
     ForEach-Object {
       $ver = Parse-Version $_.Name
-      if ($ver) { [pscustomobject]@{ Dir = $_.FullName; Ver = $ver } }
+      if ($ver) { [pscustomobject]@{ Ver = $ver; Dir = $_.FullName } }
     } |
     Sort-Object Ver -Descending |
     Select-Object -First 1
 
   if (-not $best) { return $null }
 
-  $bin = Join-Path $best.Dir $Arch
-  if (Test-Path -LiteralPath (Join-Path $bin "node.exe")) { return $bin }
+  $home = Join-Path $best.Dir $Arch
+  if (Test-Path -LiteralPath (Join-Path $home "node.exe")) { return $home }
   return $null
 }
 
-function Get-LatestNodeMajorFromIndex {
-  param([Parameter(Mandatory)][int] $Major)
-
-  $indexUrl = "https://nodejs.org/dist/index.json"
+function Get-LatestNodeMajorVersion([int] $Major) {
   $ProgressPreference = 'SilentlyContinue'
-
-  # best-effort TLS nudge
-  try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-
-  $index = Invoke-RestMethod -Uri $indexUrl -MaximumRedirection 5
-  if (-not $index) { throw "Failed to fetch Node dist index." }
+  $index = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -MaximumRedirection 5
 
   $best = $index |
     Where-Object { $_.version -match "^v$Major\." } |
     ForEach-Object {
       $ver = Parse-Version $_.version
-      if ($ver) { [pscustomobject]@{ Ver = $ver; VersionStr = $_.version } }
+      if ($ver) { [pscustomobject]@{ Ver = $ver; S = $_.version } }
     } |
     Sort-Object Ver -Descending |
     Select-Object -First 1
 
-  if (-not $best) { throw "Could not find Node v$Major.* in dist index." }
+  if (-not $best) { throw "No Node v$Major.* found in dist index." }
   return $best.Ver.ToString()
 }
 
-function Ensure-NodeZip {
-  param(
-    [Parameter(Mandatory)][string] $Version,
-    [Parameter(Mandatory)][string] $CacheDir,
-    [ValidateSet('x64','x86')][string] $Arch = 'x64'
-  )
-
-  New-Item -Path $CacheDir -ItemType Directory -Force | Out-Null
-
+function Ensure-PortableNodeHome([string] $Version, [string] $Arch, [string] $CacheDir) {
   $zipName = "node-v$Version-win-$Arch.zip"
   $zipPath = Join-Path $CacheDir $zipName
-  $dirPath = Join-Path $CacheDir "node-v$Version-win-$Arch"
-  $exePath = Join-Path $dirPath "node.exe"
+  $homeDir = Join-Path $CacheDir "node-v$Version-win-$Arch"
+  $nodeExe = Join-Path $homeDir "node.exe"
 
-  if (Test-Path -LiteralPath $exePath) { return $dirPath }
+  if (Test-Path -LiteralPath $nodeExe) { return $homeDir }
 
   $base = "https://nodejs.org/dist/v$Version"
   $zipUrl = "$base/$zipName"
@@ -124,107 +93,127 @@ function Ensure-NodeZip {
   $shaPath = Join-Path $CacheDir "SHASUMS256-v$Version.txt"
 
   if (-not (Test-Path -LiteralPath $zipPath -PathType Leaf)) {
-    Write-Host "Downloading Node $Version ($zipName) ..."
+    Write-Host "Downloading Node $Version ($zipName)"
     $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -MaximumRedirection 5
   }
-
   if (-not (Test-Path -LiteralPath $shaPath -PathType Leaf)) {
     Invoke-WebRequest -Uri $shaUrl -OutFile $shaPath -MaximumRedirection 5
   }
 
-  # Verify SHA256 (robust against bad caches / partial downloads)
-  $expected = (Select-String -LiteralPath $shaPath -Pattern [regex]::Escape($zipName) | Select-Object -First 1).Line
-  if (-not $expected) { throw "SHA file missing entry for $zipName" }
-  $expectedHash = ($expected -split '\s+')[0].Trim().ToLowerInvariant()
-
-  $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-  if ($actualHash -ne $expectedHash) {
+  # Integrity check (hash from SHASUMS256.txt)
+  $line = (Select-String -LiteralPath $shaPath -Pattern ([regex]::Escape($zipName)) | Select-Object -First 1).Line
+  if (-not $line) { throw "No hash entry for $zipName in SHASUMS256.txt" }
+  $expected = ($line -split '\s+')[0].Trim().ToLowerInvariant()
+  $actual = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($actual -ne $expected) {
     Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
-    throw "SHA256 mismatch for $zipName (expected $expectedHash, got $actualHash)"
+    throw "SHA256 mismatch for $zipName (expected $expected got $actual)"
   }
 
-  Write-Host "Extracting Node $Version ..."
+  Write-Host "Extracting Node $Version"
   Expand-Archive -LiteralPath $zipPath -DestinationPath $CacheDir -Force
 
-  if (-not (Test-Path -LiteralPath $exePath)) {
-    throw "Node exe not found after extraction: $exePath"
+  if (-not (Test-Path -LiteralPath $nodeExe)) {
+    throw "node.exe missing after extraction: $nodeExe"
   }
-
-  return $dirPath
+  return $homeDir
 }
 
-function Find-BestCachedNodeDir {
-  param([Parameter(Mandatory)][string] $CacheDir, [Parameter(Mandatory)][int] $Major, [string] $Arch = 'x64')
-
-  $dirs = Get-ChildItem -LiteralPath $CacheDir -Directory -ErrorAction SilentlyContinue |
+function Find-BestCachedPortableNodeHome([int] $Major, [string] $Arch, [string] $CacheDir) {
+  $best = Get-ChildItem -LiteralPath $CacheDir -Directory -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -like "node-v$Major.*-win-$Arch" } |
     ForEach-Object {
       if ($_.Name -match "^node-v(\d+\.\d+\.\d+)-win-$Arch$") {
         $ver = Parse-Version $Matches[1]
-        if ($ver -and (Test-Path -LiteralPath (Join-Path $_.FullName "node.exe"))) {
-          [pscustomobject]@{ Dir = $_.FullName; Ver = $ver }
-        }
+        $exe = Join-Path $_.FullName "node.exe"
+        if ($ver -and (Test-Path -LiteralPath $exe)) { [pscustomobject]@{ Ver = $ver; Dir = $_.FullName } }
       }
     } |
     Sort-Object Ver -Descending |
     Select-Object -First 1
 
-  if ($dirs) { return $dirs.Dir }
+  if ($best) { return $best.Dir }
   return $null
 }
 
-# ---- Main selection logic ----
+function Install-NodeShims([string] $NodeHome) {
+  $nodeExe = Join-Path $NodeHome "node.exe"
+  $npmCmd  = Join-Path $NodeHome "npm.cmd"
+  $npxCmd  = Join-Path $NodeHome "npx.cmd"
 
-# 0) If already Node 20 on PATH, keep it (simple + fastest)
-$currentStr = Get-NodeVersionString
-$currentVer = Parse-Version $currentStr
-if ($currentVer -and $currentVer.Major -eq $NodeMajor) {
-  Write-Host "Node already on PATH: $currentStr"
-  exit 0
+  if (-not (Test-Path -LiteralPath $nodeExe)) { throw "Missing $nodeExe" }
+  if (-not (Test-Path -LiteralPath $npmCmd))  { throw "Missing $npmCmd" }
+
+  # Shims make PATH irrelevant (survives refreshenv + system PATH ordering)
+  function global:node { & $using:nodeExe @args; exit $LASTEXITCODE }
+  function global:npm  { & $using:npmCmd  @args; exit $LASTEXITCODE }
+  if (Test-Path -LiteralPath $npxCmd) {
+    function global:npx { & $using:npxCmd @args; exit $LASTEXITCODE }
+  }
+
+  # Also prepend PATH (useful for child processes launched by other tooling)
+  $env:Path = "$NodeHome;$env:Path"
+  if ($env:GITHUB_PATH) { Add-Content -LiteralPath $env:GITHUB_PATH -Value $NodeHome }
+
+  Write-Host "Pinned Node home: $NodeHome"
 }
 
-# 1) Prefer GH toolcache Node 20 if available
-$toolBin = Find-ToolcacheNodeBin -Major $NodeMajor -Arch $Arch
-if ($toolBin) {
-  Write-Host "Selecting Node from toolcache: $toolBin"
-  Prepend-Path $toolBin
-  Patch-RefreshEnvToKeepNodeFirst $toolBin
+# ---------------------------
+# Select Node home
+# ---------------------------
+$selectedHome = $null
 
-  $v = Parse-Version (Get-NodeVersionString)
+# 0) If node already exists and is correct major AND has npm next to it, reuse it
+$nodePath = Get-CommandPath "node"
+if ($nodePath) {
+  $v = Parse-Version (& node -v)
   if ($v -and $v.Major -eq $NodeMajor) {
-    Write-Host "Using Node: $(& node -v)"
-    exit 0
+    $home = Split-Path -Parent $nodePath
+    if (Test-Path -LiteralPath (Join-Path $home "npm.cmd")) {
+      $selectedHome = $home
+      Write-Host "Using existing Node v$($v.ToString()) from $selectedHome"
+    }
   }
-  throw "Toolcache selection failed: node is not v$NodeMajor after PATH prepend."
 }
 
-# 2) If no toolcache, attempt to download latest Node 20.x (portable zip)
-$selectedDir = $null
-$onlineVersion = $null
-try {
-  $onlineVersion = Get-LatestNodeMajorFromIndex -Major $NodeMajor
-  $selectedDir = Ensure-NodeZip -Version $onlineVersion -CacheDir $NodeCache -Arch $Arch
-  Write-Host "Selecting Node from downloaded zip: $selectedDir"
-} catch {
-  Write-Host "Online fetch/download failed: $($_.Exception.Message)"
-  Write-Host "Falling back to cached Node if available..."
-  $selectedDir = Find-BestCachedNodeDir -CacheDir $NodeCache -Major $NodeMajor -Arch $Arch
-  if (-not $selectedDir) {
-    throw "No toolcache Node v$NodeMajor found, and no cached Node v$NodeMajor zip available."
+# 1) Prefer GH toolcache highest patch for the major
+if (-not $selectedHome) {
+  $tcHome = Find-ToolcacheNodeHome -Major $NodeMajor -Arch $Arch
+  if ($tcHome) {
+    $selectedHome = $tcHome
+    Write-Host "Selecting Node from toolcache: $selectedHome"
   }
-  Write-Host "Selecting Node from cache: $selectedDir"
 }
 
-Prepend-Path $selectedDir
-Patch-RefreshEnvToKeepNodeFirst $selectedDir
-
-# 3) Hard verify (never silently run tests on Node 22 again)
-$afterStr = Get-NodeVersionString
-$afterVer = Parse-Version $afterStr
-if (-not $afterVer -or $afterVer.Major -ne $NodeMajor) {
-  $which = (Get-Command node -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -ErrorAction SilentlyContinue)
-  throw "Expected Node v$NodeMajor.*, got '$afterStr' (node at: $which)"
+# 2) Portable fallback (cache -> download latest)
+if (-not $selectedHome) {
+  $cached = Find-BestCachedPortableNodeHome -Major $NodeMajor -Arch $Arch -CacheDir $NodeCache
+  if ($cached) {
+    $selectedHome = $cached
+    Write-Host "Selecting Node from cached portable zip: $selectedHome"
+  } else {
+    $allowDownload = ($env:ALLOW_NODE_DOWNLOAD -ne "0")
+    if (-not $allowDownload) {
+      throw "No toolcache Node v$NodeMajor found and ALLOW_NODE_DOWNLOAD=0. Failing."
+    }
+    $latest = Get-LatestNodeMajorVersion -Major $NodeMajor
+    $selectedHome = Ensure-PortableNodeHome -Version $latest -Arch $Arch -CacheDir $NodeCache
+    Write-Host "Selecting Node from downloaded portable zip: $selectedHome"
+  }
 }
 
-Write-Host "Using Node: $afterStr"
+# Pin node/npm regardless of refreshenv/PATH
+Install-NodeShims -NodeHome $selectedHome
+
+# Final verification: ensure npm is actually running under Node major
+$nodeV = & node -v
+Write-Host "Using Node: $nodeV"
+# This is the key proof: npm is backed by the same Node home
+$npmNodeV = & npm exec --yes node -v
+Write-Host "npm-backed Node: $npmNodeV"
+
+$nv = Parse-Version $nodeV
+$nnv = Parse-Version $npmNodeV
+if (-not $nv -or $nv.Major -ne $NodeMajor) { throw "node is not v$NodeMajor (got $nodeV)" }
+if (-not $nnv -or $nnv.Major -ne $NodeMajor) { throw "npm is not backed by v$NodeMajor (got $npmNodeV)" }
