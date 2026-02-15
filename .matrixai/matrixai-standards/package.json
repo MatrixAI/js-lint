@@ -1,0 +1,11 @@
+{
+  "name": "matrixai-standards",
+  "private": true,
+  "scripts": {
+    "lint": "matrixai-lint",
+    "lintfix": "matrixai-lint --fix"
+  },
+  "devDependencies": {
+    "@matrixai/lint": "^0.2.12"
+  }
+}

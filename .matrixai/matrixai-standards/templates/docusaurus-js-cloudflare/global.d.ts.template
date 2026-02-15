@@ -1,0 +1,19 @@
+/**
+ * Minimal ambient stubs for resource-query imports.
+ * Remove this file if your project does not use ?raw / ?inline / ?url imports.
+ */
+
+declare module '*?raw' {
+  const content: string;
+  export default content;
+}
+
+declare module '*?inline' {
+  const dataUrl: string;
+  export default dataUrl;
+}
+
+declare module '*?url' {
+  const url: string;
+  export default url;
+}
