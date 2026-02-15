@@ -12,20 +12,24 @@
 <div class="col-content">
 <div class="tsd-page-title">
 <h2>@matrixai/lint</h2></div>
-<div class="tsd-panel tsd-typography"><a id="md:js-lint" class="tsd-anchor"></a><h1><a href="#md:js-lint">js-lint</a></h1><p>A batteries-included, TypeScript-aware linting CLI and ESLint flat config bundle for use in Matrix AI JavaScript/TypeScript projects.</p>
+<div class="tsd-panel tsd-typography"><a id="md:js-lint" class="tsd-anchor"></a><h1><a href="#md:js-lint">js-lint</a></h1><p>A batteries-included, TypeScript-aware linting CLI and ESLint flat config bundle
+for use in Matrix AI JavaScript/TypeScript projects.</p>
 <ul>
-<li>Type-aware linting powered by <code>@typescript-eslint</code> using one or more <code>tsconfig.json</code> files</li>
-<li>Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom rules</li>
+<li>Type-aware linting powered by <code>@typescript-eslint</code> using one or more
+<code>tsconfig.json</code> files</li>
+<li>Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
+rules</li>
 <li>Supports Prettier formatting for Markdown and ShellCheck for shell scripts</li>
 <li>Single command to lint JavaScript/TypeScript, Markdown, and shell scripts</li>
-<li>Customizable via <code>matrixai-lint-config.json</code> and extensible with your own ESLint config</li>
+<li>Customizable via <code>matrixai-lint-config.json</code> and extensible with your own
+ESLint config</li>
 <li>CLI options to override config and enable auto-fix</li>
 </ul>
 <a id="md:installation" class="tsd-anchor"></a><h2><a href="#md:installation">Installation</a></h2><pre><code class="language-sh"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1"> </span><span class="hl-3">--save-dev</span><span class="hl-1"> </span><span class="hl-2">@matrixai/lint</span>
 </code><button>Copy</button></pre>
-<a id="md:usage" class="tsd-anchor"></a><h2><a href="#md:usage">Usage</a></h2><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span>
+<a id="md:usage" class="tsd-anchor"></a><h2><a href="#md:usage">Usage</a></h2><a id="md:cli" class="tsd-anchor"></a><h3><a href="#md:cli">CLI</a></h3><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span>
 </code><button>Copy</button></pre>
-<p>To run with autofix:</p>
+<p>With autofix:</p>
 <pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--fix</span>
 </code><button>Copy</button></pre>
 <a id="md:cli-options" class="tsd-anchor"></a><h3><a href="#md:cli-options">CLI Options</a></h3><table>
@@ -45,23 +49,35 @@
 </tr>
 <tr>
 <td><code>--user-config</code></td>
-<td>Uses detected `eslint.config.[js,mjs,cjs,ts] from the project root if found</td>
+<td>Uses detected <code>eslint.config.[js,mjs,cjs,ts]</code> from the project root if found</td>
 </tr>
 <tr>
 <td><code>--config &lt;path&gt;</code></td>
 <td>Explicitly use a custom ESLint config file</td>
 </tr>
+<tr>
+<td><code>--eslint &lt;paths&gt;</code></td>
+<td>Glob(s) forwarded to ESLint</td>
+</tr>
+<tr>
+<td><code>--shell &lt;paths&gt;</code></td>
+<td>Glob(s) forwarded to ShellCheck search roots</td>
+</tr>
 </tbody></table>
-<a id="md:examples" class="tsd-anchor"></a><h3><a href="#md:examples">Examples</a></h3><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span><span class="hl-1"> </span><span class="hl-3">--fix</span>
+<a id="md:examples" class="tsd-anchor"></a><h4><a href="#md:examples">Examples</a></h4><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--eslint</span><span class="hl-1"> </span><span class="hl-2">&quot;src/**/*.{ts,tsx}&quot;</span><span class="hl-1"> </span><span class="hl-3">--shell</span><span class="hl-1"> </span><span class="hl-2">scripts</span>
 </code><button>Copy</button></pre>
-<a id="md:typescript-support" class="tsd-anchor"></a><h3><a href="#md:typescript-support">TypeScript Support</a></h3><p>The linter is TypeScript-aware and requires a <code>tsconfig.json</code> to determine which files to lint and how to parse them.</p>
-<p>By default:</p>
-<ul>
-<li>It looks for <code>tsconfig.json</code> in the project root</li>
-<li>Files are selected based on the <code>include</code> and <code>exclude</code> fields in the tsconfig</li>
-</ul>
-<a id="md:working-with-multiple-tsconfigs" class="tsd-anchor"></a><h3><a href="#md:working-with-multiple-tsconfigs">Working with multiple tsconfigs</a></h3><p>If your project uses more than one <code>tsconfig.json</code> or doesn&#39;t have one at the root, you can configure the linter using a <code>matrixai-lint-config.json</code> file at the root:</p>
-<pre><code class="language-json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-4">&quot;tsconfigPaths&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;./tsconfig.base.json&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;./packages/core/tsconfig.json&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-4">&quot;forceInclude&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;scripts&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;src/overrides&quot;</span><span class="hl-1">]</span><br/><span class="hl-1">}</span>
+<a id="md:eslint-config-esm--nodenext" class="tsd-anchor"></a><h3><a href="#md:eslint-config-esm--nodenext">ESLint config (ESM / NodeNext)</a></h3><p><code>matrixai-lint</code> ships an ESLint Flat Config array and types for TypeScript
+projects configured as NodeNext.</p>
+<a id="md:default-import" class="tsd-anchor"></a><h4><a href="#md:default-import">Default import</a></h4><pre><code class="language-js"><span class="hl-4">// eslint.config.js</span><br/><span class="hl-5">import</span><span class="hl-1"> { </span><span class="hl-6">config</span><span class="hl-1"> } </span><span class="hl-5">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">export</span><span class="hl-1"> </span><span class="hl-5">default</span><span class="hl-1"> </span><span class="hl-6">config</span><span class="hl-1">;</span>
+</code><button>Copy</button></pre>
+<a id="md:explicit-subpath-import" class="tsd-anchor"></a><h4><a href="#md:explicit-subpath-import">Explicit subpath import</a></h4><pre><code class="language-js"><span class="hl-4">// eslint.config.js</span><br/><span class="hl-5">import</span><span class="hl-1"> </span><span class="hl-6">matrixai</span><span class="hl-1"> </span><span class="hl-5">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint/config&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">export</span><span class="hl-1"> </span><span class="hl-5">default</span><span class="hl-1"> </span><span class="hl-6">matrixai</span><span class="hl-1">;</span>
+</code><button>Copy</button></pre>
+<a id="md:lint-configuration-file" class="tsd-anchor"></a><h3><a href="#md:lint-configuration-file">Lint configuration file</a></h3><p>The linter is TypeScript-aware and requires a <code>tsconfig.json</code> to determine which
+files to lint and how to parse them. By default it looks for <code>tsconfig.json</code> in
+the project root and uses the <code>include</code>/<code>exclude</code> entries.</p>
+<p>If your project uses more than one <code>tsconfig.json</code> or does not have one at the
+root, configure the linter using a <code>matrixai-lint-config.json</code> file at the root:</p>
+<pre><code class="language-json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-7">&quot;tsconfigPaths&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;./tsconfig.base.json&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;./packages/core/tsconfig.json&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-7">&quot;forceInclude&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;scripts&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;src/overrides&quot;</span><span class="hl-1">]</span><br/><span class="hl-1">}</span>
 </code><button>Copy</button></pre>
 <table>
 <thead>
@@ -82,39 +98,41 @@
 <td>Paths to always include, even if excluded by tsconfig (must be included by at least one)</td>
 </tr>
 </tbody></table>
-<blockquote>
-<p>⚠ If a path in <code>forceInclude</code> is not included in any of the <code>tsconfigPaths</code>, TypeScript will throw a parsing error.</p>
-</blockquote>
-<a id="md:eslint-config-override" class="tsd-anchor"></a><h3><a href="#md:eslint-config-override">ESLint Config Override</a></h3><p>You can use your own ESLint config by one of the following methods:</p>
-<a id="md:1-inline-custom-config" class="tsd-anchor"></a><h4><a href="#md:1-inline-custom-config">1. Inline Custom Config</a></h4><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span>
-</code><button>Copy</button></pre>
-<a id="md:2-auto-detect-with---user-config" class="tsd-anchor"></a><h4><a href="#md:2-auto-detect-with---user-config">2. Auto-detect with <code>--user-config</code></a></h4><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span>
-</code><button>Copy</button></pre>
-<p>This will look for a valid eslint.config file in the project root.</p>
-<p>Valid config filenames:</p>
+<p>Note: If a path in <code>forceInclude</code> is not included in any of the <code>tsconfigPaths</code>,
+TypeScript will throw a parsing error.</p>
+<a id="md:public-api" class="tsd-anchor"></a><h3><a href="#md:public-api">Public API</a></h3><p>Supported imports:</p>
 <ul>
-<li><code>eslint.config.js</code></li>
-<li><code>eslint.config.cjs</code></li>
-<li><code>eslint.config.mjs</code></li>
-<li><code>eslint.config.ts</code></li>
+<li><code>@matrixai/lint</code>: named export <code>config</code>; types <code>MatrixAILintCfg</code>,
+<code>RawMatrixCfg</code>, <code>CLIOptions</code>.</li>
+<li><code>@matrixai/lint/config</code>: default export of the Flat Config array (same shape
+as <code>config</code>).</li>
 </ul>
-<a id="md:3-extend-the-base-config" class="tsd-anchor"></a><h4><a href="#md:3-extend-the-base-config">3. Extend the base config</a></h4><pre><code class="language-ts"><span class="hl-5">// eslint.config.js</span><br/><span class="hl-6">import</span><span class="hl-1"> </span><span class="hl-7">matrixai</span><span class="hl-1"> </span><span class="hl-6">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint/config&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-6">export</span><span class="hl-1"> </span><span class="hl-6">default</span><span class="hl-1"> [</span><br/><span class="hl-1">  ...</span><span class="hl-7">matrixai</span><span class="hl-1">,</span><br/><span class="hl-1">  {</span><br/><span class="hl-1">    </span><span class="hl-7">rules:</span><span class="hl-1"> {</span><br/><span class="hl-1">      </span><span class="hl-2">&#39;@typescript-eslint/no-explicit-any&#39;</span><span class="hl-7">:</span><span class="hl-1"> </span><span class="hl-2">&#39;error&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-2">&#39;no-console&#39;</span><span class="hl-7">:</span><span class="hl-1"> </span><span class="hl-2">&#39;off&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    },</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">];</span>
-</code><button>Copy</button></pre>
-<a id="md:development" class="tsd-anchor"></a><h2><a href="#md:development">Development</a></h2><p>Run <code>nix develop</code>, and once you&#39;re inside, you can use:</p>
-<pre><code class="language-sh"><span class="hl-5"># install (or reinstall packages from package.json)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span><br/><span class="hl-5"># build the dist</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span><br/><span class="hl-5"># run the repl (this allows you to import from ./src)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">tsx</span><br/><span class="hl-5"># run the tests</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test</span><br/><span class="hl-5"># lint the source code</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">lint</span><br/><span class="hl-5"># automatically fix the source</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">lintfix</span>
-</code><button>Copy</button></pre>
-<a id="md:docs-generation" class="tsd-anchor"></a><h3><a href="#md:docs-generation">Docs Generation</a></h3><pre><code class="language-sh"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">docs</span>
-</code><button>Copy</button></pre>
-<p>See the docs at: <a href="https://matrixai.github.io/js-lint/">https://matrixai.github.io/js-lint/</a></p>
+<p>Internal modules (plugins, rules, utilities, and wildcard passthroughs under
+<code>@matrixai/lint/*</code>) are for tooling and are not a stable public API.</p>
+<a id="md:contributing" class="tsd-anchor"></a><h2><a href="#md:contributing">Contributing</a></h2><p>Golden commands:</p>
+<ul>
+<li><code>npm run build</code></li>
+<li><code>npm run lint</code></li>
+<li><code>npm run lintfix</code></li>
+<li><code>npm run docs</code></li>
+</ul>
+<p>Notes:</p>
+<ul>
+<li><code>npm run lint</code> and <code>npm run lintfix</code> invoke <code>npm run prepare</code> first so the
+compiled CLI in <code>dist/bin/lint.js</code> stays up to date while keeping TypeScript
+incremental rebuilds fast.</li>
+</ul>
+<p>For the authoritative contributor guidance see <a href="AGENTS.md">AGENTS.md</a>.</p>
+<p>Docs: <a href="https://matrixai.github.io/js-lint/">https://matrixai.github.io/js-lint/</a></p>
 <a id="md:publishing" class="tsd-anchor"></a><h3><a href="#md:publishing">Publishing</a></h3><p>Publishing is handled automatically by the staging pipeline.</p>
 <p>Prerelease:</p>
-<pre><code class="language-sh"><span class="hl-5"># npm login</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">version</span><span class="hl-1"> </span><span class="hl-2">prepatch</span><span class="hl-1"> </span><span class="hl-3">--preid</span><span class="hl-1"> </span><span class="hl-2">alpha</span><span class="hl-1"> </span><span class="hl-5"># premajor/preminor/prepatch</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><span class="hl-1"> </span><span class="hl-3">--follow-tags</span>
+<pre><code class="language-sh"><span class="hl-4"># npm login</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">version</span><span class="hl-1"> </span><span class="hl-2">prepatch</span><span class="hl-1"> </span><span class="hl-3">--preid</span><span class="hl-1"> </span><span class="hl-2">alpha</span><span class="hl-1"> </span><span class="hl-4"># premajor/preminor/prepatch</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><span class="hl-1"> </span><span class="hl-3">--follow-tags</span>
 </code><button>Copy</button></pre>
 <p>Release:</p>
-<pre><code class="language-sh"><span class="hl-5"># npm login</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">version</span><span class="hl-1"> </span><span class="hl-2">patch</span><span class="hl-1"> </span><span class="hl-5"># major/minor/patch</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><span class="hl-1"> </span><span class="hl-3">--follow-tags</span>
+<pre><code class="language-sh"><span class="hl-4"># npm login</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">version</span><span class="hl-1"> </span><span class="hl-2">patch</span><span class="hl-1"> </span><span class="hl-4"># major/minor/patch</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><span class="hl-1"> </span><span class="hl-3">--follow-tags</span>
 </code><button>Copy</button></pre>
 <p>Manually:</p>
-<pre><code class="language-sh"><span class="hl-5"># npm login</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">version</span><span class="hl-1"> </span><span class="hl-2">patch</span><span class="hl-1"> </span><span class="hl-5"># major/minor/patch</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">publish</span><span class="hl-1"> </span><span class="hl-3">--access</span><span class="hl-1"> </span><span class="hl-2">public</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><span class="hl-1"> </span><span class="hl-3">--tags</span>
+<pre><code class="language-sh"><span class="hl-4"># npm login</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">version</span><span class="hl-1"> </span><span class="hl-2">patch</span><span class="hl-1"> </span><span class="hl-4"># major/minor/patch</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">publish</span><span class="hl-1"> </span><span class="hl-3">--access</span><span class="hl-1"> </span><span class="hl-2">public</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">push</span><span class="hl-1"> </span><span class="hl-3">--tags</span>
 </code><button>Copy</button></pre>
 </div></div>
 <div class="col-sidebar">
@@ -145,26 +163,28 @@
 <li><a href="#md:usage"><span>Usage</span></a></li>
 <li>
 <ul>
+<li><a href="#md:cli"><span>CLI</span></a></li>
 <li><a href="#md:cli-options"><span>CLI <wbr/>Options</span></a></li>
-<li><a href="#md:examples"><span>Examples</span></a></li>
-<li><a href="#md:typescript-support"><span>Type<wbr/>Script <wbr/>Support</span></a></li>
-<li><a href="#md:working-with-multiple-tsconfigs"><span>Working with multiple tsconfigs</span></a></li>
-<li><a href="#md:eslint-config-override"><span>ESLint <wbr/>Config <wbr/>Override</span></a></li>
 <li>
 <ul>
-<li><a href="#md:1-inline-custom-config"><span>1. <wbr/>Inline <wbr/>Custom <wbr/>Config</span></a></li>
-<li><a href="#md:2-auto-detect-with---user-config"><span>2. <wbr/>Auto-<wbr/>detect with --user-<wbr/>config</span></a></li>
-<li><a href="#md:3-extend-the-base-config"><span>3. <wbr/>Extend the base config</span></a></li></ul></li></ul></li>
-<li><a href="#md:development"><span>Development</span></a></li>
+<li><a href="#md:examples"><span>Examples</span></a></li></ul></li>
+<li><a href="#md:eslint-config-esm--nodenext"><span>ESLint config (ESM / <wbr/>Node<wbr/>Next)</span></a></li>
 <li>
 <ul>
-<li><a href="#md:docs-generation"><span>Docs <wbr/>Generation</span></a></li>
+<li><a href="#md:default-import"><span>Default import</span></a></li>
+<li><a href="#md:explicit-subpath-import"><span>Explicit subpath import</span></a></li></ul></li>
+<li><a href="#md:lint-configuration-file"><span>Lint configuration file</span></a></li>
+<li><a href="#md:public-api"><span>Public API</span></a></li></ul></li>
+<li><a href="#md:contributing"><span>Contributing</span></a></li>
+<li>
+<ul>
 <li><a href="#md:publishing"><span>Publishing</span></a></li></ul></li></ul></li></ul></li></ul></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="index.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-4"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-namespace)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.33 16V7.24H10.77L13.446 14.74C13.43 14.54 13.41 14.296 13.386 14.008C13.37 13.712 13.354 13.404 13.338 13.084C13.33 12.756 13.326 12.448 13.326 12.16V7.24H14.37V16H12.93L10.266 8.5C10.282 8.692 10.298 8.936 10.314 9.232C10.33 9.52 10.342 9.828 10.35 10.156C10.366 10.476 10.374 10.784 10.374 11.08V16H9.33Z" fill="var(--color-text)"></path></g></svg><span>@matrixai/lint</span></a>
 <ul class="tsd-small-nested-navigation">
 <li><a href="modules/bin_lint.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>bin/lint</span></a></li>
 <li><a href="modules/configs_js.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>configs/js</span></a></li>
+<li><a href="modules/configs_prettier_config.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>configs/prettier.config</span></a></li>
 <li><a href="modules/plugins_eslint_plugin_matrixai.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>plugins/eslint-<wbr/>plugin-<wbr/>matrixai</span></a></li>
 <li><a href="modules/rules_no_aliased_imports.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>rules/no-<wbr/>aliased-<wbr/>imports</span></a></li>
 <li><a href="modules/types.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>types</span></a></li>
