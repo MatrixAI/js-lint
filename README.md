@@ -21,11 +21,13 @@ npm install --save-dev @matrixai/lint
 
 ## Usage
 
+### CLI
+
 ```sh
 matrixai-lint
 ```
 
-To run with autofix:
+With autofix:
 
 ```sh
 matrixai-lint --fix
@@ -33,36 +35,55 @@ matrixai-lint --fix
 
 ### CLI Options
 
-| Flag              | Description                                                                  |
-| ----------------- | ---------------------------------------------------------------------------- |
-| _(no flag)_       | Uses built-in Matrix AI ESLint config                                        |
-| `--fix`           | Enables auto-fixing via ESLint and Prettier                                  |
-| `--user-config`   | Uses detected \`eslint.config.[js,mjs,cjs,ts] from the project root if found |
-| `--config <path>` | Explicitly use a custom ESLint config file                                   |
+| Flag               | Description                                                                  |
+| ------------------ | ---------------------------------------------------------------------------- |
+| _(no flag)_        | Uses built-in Matrix AI ESLint config                                        |
+| `--fix`            | Enables auto-fixing via ESLint and Prettier                                  |
+| `--user-config`    | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
+| `--config <path>`  | Explicitly use a custom ESLint config file                                   |
+| `--eslint <paths>` | Glob(s) forwarded to ESLint                                                  |
+| `--shell <paths>`  | Glob(s) forwarded to ShellCheck search roots                                 |
 
-### Examples
+#### Examples
 
 ```sh
 matrixai-lint --fix
 matrixai-lint --user-config
 matrixai-lint --config ./eslint.config.js --fix
+matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
 ```
 
-### TypeScript Support
+### ESLint config (ESM / NodeNext)
+
+`matrixai-lint` ships an ESLint Flat Config array and types for TypeScript
+projects configured as NodeNext.
+
+#### Default import
+
+```js
+// eslint.config.js
+import { config } from '@matrixai/lint';
+
+export default config;
+```
+
+#### Explicit subpath import
+
+```js
+// eslint.config.js
+import matrixai from '@matrixai/lint/config';
+
+export default matrixai;
+```
+
+### Lint configuration file
 
 The linter is TypeScript-aware and requires a `tsconfig.json` to determine which
-files to lint and how to parse them.
+files to lint and how to parse them. By default it looks for `tsconfig.json` in
+the project root and uses the `include`/`exclude` entries.
 
-By default:
-
-- It looks for `tsconfig.json` in the project root
-- Files are selected based on the `include` and `exclude` fields in the tsconfig
-
-### Working with multiple tsconfigs
-
-If your project uses more than one `tsconfig.json` or doesn't have one at the
-root, you can configure the linter using a `matrixai-lint-config.json` file at
-the root:
+If your project uses more than one `tsconfig.json` or does not have one at the
+root, configure the linter using a `matrixai-lint-config.json` file at the root:
 
 ```json
 {
@@ -76,77 +97,39 @@ the root:
 | `tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                               |
 | `forceInclude`  | `string[]` | Paths to always include, even if excluded by tsconfig (must be included by at least one) |
 
-> ⚠ If a path in `forceInclude` is not included in any of the `tsconfigPaths`,
-> TypeScript will throw a parsing error.
+Note: If a path in `forceInclude` is not included in any of the `tsconfigPaths`,
+TypeScript will throw a parsing error.
 
-### ESLint Config Override
+### Public API
 
-You can use your own ESLint config by one of the following methods:
+Supported imports:
 
-#### 1. Inline Custom Config
+- `@matrixai/lint`: named export `config`; types `MatrixAILintCfg`,
+  `RawMatrixCfg`, `CLIOptions`.
+- `@matrixai/lint/config`: default export of the Flat Config array (same shape
+  as `config`).
 
-```sh
-matrixai-lint --config ./eslint.config.js
-```
+Internal modules (plugins, rules, utilities, and wildcard passthroughs under
+`@matrixai/lint/*`) are for tooling and are not a stable public API.
 
-#### 2. Auto-detect with `--user-config`
+## Contributing
 
-```sh
-matrixai-lint --user-config
-```
+Golden commands:
 
-This will look for a valid eslint.config file in the project root.
+- `npm run build`
+- `npm run lint`
+- `npm run lintfix`
+- `npm run docs`
 
-Valid config filenames:
+Notes:
 
-- `eslint.config.js`
-- `eslint.config.cjs`
-- `eslint.config.mjs`
-- `eslint.config.ts`
+- `npm run lint` and `npm run lintfix` invoke `npm run prepare` first so the
+  compiled CLI in `dist/bin/lint.js` stays up to date while keeping TypeScript
+  incremental rebuilds fast.
 
-#### 3. Extend the base config
+For the authoritative contributor guidance see [AGENTS.md](AGENTS.md).
 
-```ts
-// eslint.config.js
-import matrixai from '@matrixai/lint/config';
-
-export default [
-  ...matrixai,
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
-      'no-console': 'off',
-    },
-  },
-];
-```
-
-## Development
-
-Run `nix develop`, and once you're inside, you can use:
-
-```sh
-# install (or reinstall packages from package.json)
-npm install
-# build the dist
-npm run build
-# run the repl (this allows you to import from ./src)
-npm run tsx
-# run the tests
-npm run test
-# lint the source code
-npm run lint
-# automatically fix the source
-npm run lintfix
-```
-
-### Docs Generation
-
-```sh
-npm run docs
-```
-
-See the docs at: https://matrixai.github.io/js-lint/
+Docs: https://matrixai.github.io/js-lint/
 
 ### Publishing
 

@@ -1,0 +1,23 @@
+# AGENTS
+- Read the repo profile selector at [`.matrixai/repo-profile.yml`](.matrixai/repo-profile.yml).
+- Enforce the universal hotset [`.matrixai/matrixai-standards/standards/HOTSET.md`](.matrixai/matrixai-standards/standards/HOTSET.md).
+- Enforce the profile doc under [`.matrixai/matrixai-standards/standards/profiles/`](.matrixai/matrixai-standards/standards/profiles) matching `profile:` in `.matrixai/repo-profile.yml` (e.g., `library-js`, `application-js`, `worker-js-cloudflare`, `docusaurus-js-cloudflare`).
+- Profile index (for discovery): [`.matrixai/matrixai-standards/standards/profiles/README.md`](.matrixai/matrixai-standards/standards/profiles/README.md)
+- Tooling contract reference: [`.matrixai/matrixai-standards/standards/coding/tooling/tooling-contract.md`](.matrixai/matrixai-standards/standards/coding/tooling/tooling-contract.md) (commands, artifacts, expectations per profile).
+- Prefer ASCII punctuation/symbols when an equivalent exists (see [`.matrixai/matrixai-standards/standards/HOTSET.md`](.matrixai/matrixai-standards/standards/HOTSET.md) [MXS-GEN-006]).
+- Ensure edits comply with [`.editorconfig`](.editorconfig) (LF line endings, 2-space indent, final newline, trim trailing whitespace).
+- Line-reference policy (applies to all agent-generated repository content: Markdown, docs, templates, and code comments):
+  - Never emit `path:line` (e.g. `foo.ts:1`, `README.md:126`) into repository files.
+  - Do NOT put `:number` inside Markdown link destinations: `[x](path:123)` is banned.
+  - If a line reference is needed, use either:
+    - `[x](path#heading-anchor)` (if possible), or
+    - `[x](path) (line 123)` (preferred, portable), or
+    - `[x](path#L123)` only when explicitly targeting a renderer that supports `#L` anchors.
+  - If you would have emitted `:1`, drop it entirely: use `path` with no line info.
+- Apply repo-local golden commands and overrides here (use `npm run lintfix` during active development; use `npm run lint` for non-mutating CI checks):
+  - build: npm run build
+  - test: npm test
+  - lintfix: npm run lintfix
+  - lint: npm run lint
+  - docs: npm run docs
+  - bench: (not defined in this repo)

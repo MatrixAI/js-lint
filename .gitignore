@@ -1,8 +1,9 @@
+/.direnv
 /tmp
 /dist
-/lib
 .env*
 !.env.example
+!.envrc
 # nix
 /result*
 /builds
@@ -10,6 +11,16 @@
 /build
 # prebuildify
 /prebuilds
+# docusaurus
+/public
+.docusaurus
+.cache-loader
+# wrangler
+.wrangler
+.dev.vars
+/wrangler.deploy.toml
+# github output
+/output
 
 # Logs
 logs
@@ -120,6 +131,10 @@ dist
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+.vscode
+
+# Neo4j Local DB files
+neo4j/
 
 # yarn v2
 .yarn/cache
@@ -127,3 +142,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+.DS_Store
+.idea
+.aider*

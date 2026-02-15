@@ -14,7 +14,7 @@
         shell = { ci ? false }:
           with pkgs;
           pkgs.mkShell {
-            nativeBuildInputs = [ nodejs_20 shellcheck gitAndTools.gh ];
+            nativeBuildInputs = [ nodejs_20 shellcheck gh ];
             PKG_IGNORE_TAG = 1;
             shellHook = ''
               echo "Entering $(npm pkg get name)"
@@ -28,11 +28,13 @@
                 set -o pipefail
                 shopt -s inherit_errexit
               ''}
-              mkdir --parents "$(pwd)/tmp"
+              mkdir --parents "$PWD/tmp"
 
-              export PATH="$(pwd)/dist/bin:$(npm root)/.bin:$PATH"
+              # Built executables and NPM executables
+              export PATH="$PWD/dist/bin:$PWD/node_modules/.bin:$PATH"
 
-              npm install --ignore-scripts
+              flock -x tmp/npm-install.lock \
+                npm install --ignore-scripts --no-audit --fund=false --prefer-offline
 
               set +v
             '';
