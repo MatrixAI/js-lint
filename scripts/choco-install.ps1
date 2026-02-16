@@ -217,7 +217,7 @@ Add-ToGitHubPath $selected
 
 # Final verification: ensure npm is actually running under Node major
 $nodeV = (& node -v).Trim()
-$npmNodeV = (& npm exec --yes node -v).Trim()
+$npmNodeV = (& npm exec --yes -- node -v).Trim()
 Write-Host "Using Node: $nodeV"
 Write-Host "npm-backed Node: $npmNodeV"
 
