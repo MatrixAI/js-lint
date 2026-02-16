@@ -60,7 +60,7 @@ function Find-ToolcacheNodeBin([int] $major, [string] $arch) {
   if (-not $best) { return $null }
 
   $bin = Join-Path $best.Dir $arch
-  if (Test-Path -LiteralPath (Join-Path $bin "node.exe") -and Test-Path -LiteralPath (Join-Path $bin "npm.cmd")) {
+  if ((Test-Path -LiteralPath (Join-Path $bin "node.exe")) -and (Test-Path -LiteralPath (Join-Path $bin "npm.cmd"))) {
     return $bin
   }
   return $null
@@ -90,7 +90,7 @@ function Ensure-PortableNode([string] $version, [string] $arch, [string] $cacheD
   $exePath = Join-Path $dirPath "node.exe"
   $npmPath = Join-Path $dirPath "npm.cmd"
 
-  if (Test-Path -LiteralPath $exePath -and Test-Path -LiteralPath $npmPath) { return $dirPath }
+  if ((Test-Path -LiteralPath $exePath) -and (Test-Path -LiteralPath $npmPath)) { return $dirPath }
 
   $base = "https://nodejs.org/dist/v$version"
   $zipUrl = "$base/$zipName"
@@ -115,7 +115,7 @@ function Ensure-PortableNode([string] $version, [string] $arch, [string] $cacheD
 
   Expand-Archive -LiteralPath $zipPath -DestinationPath $cacheDir -Force
 
-  if (-not (Test-Path -LiteralPath $exePath -and Test-Path -LiteralPath $npmPath)) {
+  if (-not ((Test-Path -LiteralPath $exePath) -and (Test-Path -LiteralPath $npmPath))) {
     throw "Portable Node extraction missing node/npm: $dirPath"
   }
   return $dirPath
