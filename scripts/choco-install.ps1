@@ -9,7 +9,7 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -Er
 # ---------------------------
 # Config
 # ---------------------------
-$NodeMajor = if ($env:NODE_MAJOR) { [int]$env:NODE_MAJOR } else { 20 }
+$NodeMajor = 20
 $Arch = "x64"
 
 # Cache under repo tmp (so your CI cache can persist it)
@@ -17,12 +17,10 @@ $CacheRoot = Join-Path $PSScriptRoot "..\tmp"
 $NodeCache = Join-Path $CacheRoot "node-cache"
 New-Item -Path $NodeCache -ItemType Directory -Force | Out-Null
 
-# Keep the spirit of the original: ensure choco cache dir exists + source (harmless even if unused here)
-if ($env:ChocolateyInstall) {
-  $ChocoCache = Join-Path $CacheRoot "chocolatey"
-  New-Item -Path $ChocoCache -ItemType Directory -Force | Out-Null
-  & choco source remove --name="cache" -y --no-progress 2>$null | Out-Null
-  & choco source add --name="cache" --source="$ChocoCache" --priority=1 -y --no-progress | Out-Null
+# Optional: semicolon-separated list of choco packages to install, e.g. "git;7zip;cmake"
+$ChocoPackages = @()
+if ($env:CHOCO_PACKAGES) {
+  $ChocoPackages = $env:CHOCO_PACKAGES.Split(';') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
 }
 
 # ---------------------------
@@ -38,16 +36,17 @@ function Get-CommandPath([string] $name) {
   try { return (Get-Command $name -ErrorAction Stop).Source } catch { return $null }
 }
 
-function Find-ToolcacheNodeHome([int] $Major, [string] $Arch) {
+function Find-ToolcacheNodeBin([int] $major, [string] $arch) {
   $toolcache = $env:RUNNER_TOOL_CACHE
   if (-not $toolcache -or -not (Test-Path -LiteralPath $toolcache)) {
     $toolcache = "C:\hostedtoolcache\windows"
   }
-  $root = Join-Path $toolcache "node"
-  if (-not (Test-Path -LiteralPath $root)) { return $null }
 
-  $best = Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -like "$Major.*" } |
+  $nodeRoot = Join-Path $toolcache "node"
+  if (-not (Test-Path -LiteralPath $nodeRoot)) { return $null }
+
+  $best = Get-ChildItem -LiteralPath $nodeRoot -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -like "$major.*" } |
     ForEach-Object {
       $ver = Parse-Version $_.Name
       if ($ver) { [pscustomobject]@{ Ver = $ver; Dir = $_.FullName } }
@@ -57,8 +56,10 @@ function Find-ToolcacheNodeHome([int] $Major, [string] $Arch) {
 
   if (-not $best) { return $null }
 
-  $home = Join-Path $best.Dir $Arch
-  if (Test-Path -LiteralPath (Join-Path $home "node.exe")) { return $home }
+  $bin = Join-Path $best.Dir $arch
+  if (Test-Path -LiteralPath (Join-Path $bin "node.exe") -and Test-Path -LiteralPath (Join-Path $bin "npm.cmd")) {
+    return $bin
+  }
   return $null
 }
 
@@ -79,55 +80,55 @@ function Get-LatestNodeMajorVersion([int] $Major) {
   return $best.Ver.ToString()
 }
 
-function Ensure-PortableNodeHome([string] $Version, [string] $Arch, [string] $CacheDir) {
-  $zipName = "node-v$Version-win-$Arch.zip"
-  $zipPath = Join-Path $CacheDir $zipName
-  $homeDir = Join-Path $CacheDir "node-v$Version-win-$Arch"
-  $nodeExe = Join-Path $homeDir "node.exe"
+function Ensure-PortableNode([string] $version, [string] $arch, [string] $cacheDir) {
+  $zipName = "node-v$version-win-$arch.zip"
+  $zipPath = Join-Path $cacheDir $zipName
+  $dirPath = Join-Path $cacheDir "node-v$version-win-$arch"
+  $exePath = Join-Path $dirPath "node.exe"
+  $npmPath = Join-Path $dirPath "npm.cmd"
 
-  if (Test-Path -LiteralPath $nodeExe) { return $homeDir }
+  if (Test-Path -LiteralPath $exePath -and Test-Path -LiteralPath $npmPath) { return $dirPath }
 
-  $base = "https://nodejs.org/dist/v$Version"
+  $base = "https://nodejs.org/dist/v$version"
   $zipUrl = "$base/$zipName"
   $shaUrl = "$base/SHASUMS256.txt"
-  $shaPath = Join-Path $CacheDir "SHASUMS256-v$Version.txt"
+  $shaPath = Join-Path $cacheDir "SHASUMS256-v$version.txt"
 
   if (-not (Test-Path -LiteralPath $zipPath -PathType Leaf)) {
-    Write-Host "Downloading Node $Version ($zipName)"
-    $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -MaximumRedirection 5
   }
   if (-not (Test-Path -LiteralPath $shaPath -PathType Leaf)) {
     Invoke-WebRequest -Uri $shaUrl -OutFile $shaPath -MaximumRedirection 5
   }
 
-  # Integrity check (hash from SHASUMS256.txt)
   $line = (Select-String -LiteralPath $shaPath -Pattern ([regex]::Escape($zipName)) | Select-Object -First 1).Line
   if (-not $line) { throw "No hash entry for $zipName in SHASUMS256.txt" }
   $expected = ($line -split '\s+')[0].Trim().ToLowerInvariant()
   $actual = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($actual -ne $expected) {
     Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
-    throw "SHA256 mismatch for $zipName (expected $expected got $actual)"
+    throw "SHA256 mismatch for $zipName"
   }
 
-  Write-Host "Extracting Node $Version"
-  Expand-Archive -LiteralPath $zipPath -DestinationPath $CacheDir -Force
+  Expand-Archive -LiteralPath $zipPath -DestinationPath $cacheDir -Force
 
-  if (-not (Test-Path -LiteralPath $nodeExe)) {
-    throw "node.exe missing after extraction: $nodeExe"
+  if (-not (Test-Path -LiteralPath $exePath -and Test-Path -LiteralPath $npmPath)) {
+    throw "Portable Node extraction missing node/npm: $dirPath"
   }
-  return $homeDir
+  return $dirPath
 }
 
-function Find-BestCachedPortableNodeHome([int] $Major, [string] $Arch, [string] $CacheDir) {
-  $best = Get-ChildItem -LiteralPath $CacheDir -Directory -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -like "node-v$Major.*-win-$Arch" } |
+function Find-BestCachedPortableNodeBin([int] $major, [string] $arch, [string] $cacheDir) {
+  $best = Get-ChildItem -LiteralPath $cacheDir -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -like "node-v$major.*-win-$arch" } |
     ForEach-Object {
-      if ($_.Name -match "^node-v(\d+\.\d+\.\d+)-win-$Arch$") {
+      if ($_.Name -match "^node-v(\d+\.\d+\.\d+)-win-$arch$") {
         $ver = Parse-Version $Matches[1]
         $exe = Join-Path $_.FullName "node.exe"
-        if ($ver -and (Test-Path -LiteralPath $exe)) { [pscustomobject]@{ Ver = $ver; Dir = $_.FullName } }
+        $npm = Join-Path $_.FullName "npm.cmd"
+        if ($ver -and (Test-Path -LiteralPath $exe) -and (Test-Path -LiteralPath $npm)) {
+          [pscustomobject]@{ Ver = $ver; Dir = $_.FullName }
+        }
       }
     } |
     Sort-Object Ver -Descending |
@@ -137,80 +138,87 @@ function Find-BestCachedPortableNodeHome([int] $Major, [string] $Arch, [string] 
   return $null
 }
 
-function Install-NodeShims([string] $NodeHome) {
-  $nodeExe = Join-Path $NodeHome "node.exe"
-  $npmCmd  = Join-Path $NodeHome "npm.cmd"
-  $npxCmd  = Join-Path $NodeHome "npx.cmd"
-
-  if (-not (Test-Path -LiteralPath $nodeExe)) { throw "Missing $nodeExe" }
-  if (-not (Test-Path -LiteralPath $npmCmd))  { throw "Missing $npmCmd" }
-
-  # Shims make PATH irrelevant (survives refreshenv + system PATH ordering)
-  function global:node { & $using:nodeExe @args; exit $LASTEXITCODE }
-  function global:npm  { & $using:npmCmd  @args; exit $LASTEXITCODE }
-  if (Test-Path -LiteralPath $npxCmd) {
-    function global:npx { & $using:npxCmd @args; exit $LASTEXITCODE }
+function Add-ToGitHubPath([string] $dir) {
+  if ($env:GITHUB_PATH) {
+    $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
   }
-
-  # Also prepend PATH (useful for child processes launched by other tooling)
-  $env:Path = "$NodeHome;$env:Path"
-  if ($env:GITHUB_PATH) { Add-Content -LiteralPath $env:GITHUB_PATH -Value $NodeHome }
-
-  Write-Host "Pinned Node home: $NodeHome"
+  $env:Path = "$dir;$env:Path"
 }
 
 # ---------------------------
-# Select Node home
+# 1) Optional choco installs
 # ---------------------------
-$selectedHome = $null
+if ($ChocoPackages.Count -gt 0) {
+  if (-not $env:ChocolateyInstall) { throw "CHOCO_PACKAGES set but Chocolatey not available." }
 
-# 0) If node already exists and is correct major AND has npm next to it, reuse it
-$nodePath = Get-CommandPath "node"
-if ($nodePath) {
-  $v = Parse-Version (& node -v)
-  if ($v -and $v.Major -eq $NodeMajor) {
-    $home = Split-Path -Parent $nodePath
-    if (Test-Path -LiteralPath (Join-Path $home "npm.cmd")) {
-      $selectedHome = $home
-      Write-Host "Using existing Node v$($v.ToString()) from $selectedHome"
+  Write-Host "Installing choco packages: $($ChocoPackages -join ', ')"
+  foreach ($p in $ChocoPackages) {
+    & choco install $p -y --no-progress
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  }
+
+  # Pull registry env var changes from those installs into this session
+  if ($env:ChocolateyInstall) {
+    $profile = Join-Path $env:ChocolateyInstall "helpers\chocolateyProfile.psm1"
+    if (Test-Path -LiteralPath $profile) {
+      Import-Module $profile -Force -ErrorAction SilentlyContinue | Out-Null
     }
   }
+  $cmd = Get-Command Update-SessionEnvironment -ErrorAction SilentlyContinue
+  if ($cmd) { Update-SessionEnvironment }
 }
 
-# 1) Prefer GH toolcache highest patch for the major
-if (-not $selectedHome) {
-  $tcHome = Find-ToolcacheNodeHome -Major $NodeMajor -Arch $Arch
-  if ($tcHome) {
-    $selectedHome = $tcHome
-    Write-Host "Selecting Node from toolcache: $selectedHome"
+# ---------------------------
+# 2) Select Node (paired node/npm)
+# ---------------------------
+$selected = $null
+
+# If existing node is already correct major AND npm is present, keep it
+try {
+  $nodeExe = (Get-Command node -ErrorAction Stop).Source
+  $existingBin = Split-Path -Parent $nodeExe
+  $v = Parse-Version ((& node -v).Trim())
+  if ($v -and $v.Major -eq $NodeMajor -and (Test-Path -LiteralPath (Join-Path $existingBin "npm.cmd"))) {
+    $selected = $existingBin
+    Write-Host "Using existing Node v$($v.ToString()) from $selected"
+  }
+} catch {}
+
+# Prefer toolcache
+if (-not $selected) {
+  $bin = Find-ToolcacheNodeBin -major $NodeMajor -arch $Arch
+  if ($bin) {
+    $selected = $bin
+    Write-Host "Selecting Node from toolcache: $selected"
   }
 }
 
-# 2) Portable fallback (cache -> download latest)
-if (-not $selectedHome) {
-  $cached = Find-BestCachedPortableNodeHome -Major $NodeMajor -Arch $Arch -CacheDir $NodeCache
+# Cached portable
+if (-not $selected) {
+  $cached = Find-BestCachedPortableNodeBin -major $NodeMajor -arch $Arch -cacheDir $NodeCache
   if ($cached) {
-    $selectedHome = $cached
-    Write-Host "Selecting Node from cached portable zip: $selectedHome"
-  } else {
-    $allowDownload = ($env:ALLOW_NODE_DOWNLOAD -ne "0")
-    if (-not $allowDownload) {
-      throw "No toolcache Node v$NodeMajor found and ALLOW_NODE_DOWNLOAD=0. Failing."
-    }
-    $latest = Get-LatestNodeMajorVersion -Major $NodeMajor
-    $selectedHome = Ensure-PortableNodeHome -Version $latest -Arch $Arch -CacheDir $NodeCache
-    Write-Host "Selecting Node from downloaded portable zip: $selectedHome"
+    $selected = $cached
+    Write-Host "Selecting Node from cached portable zip: $selected"
   }
 }
 
-# Pin node/npm regardless of refreshenv/PATH
-Install-NodeShims -NodeHome $selectedHome
+# Optional download
+if (-not $selected) {
+  if ($env:ALLOW_NODE_DOWNLOAD -eq "0") {
+    throw "No Node $NodeMajor.x found in toolcache/cache and ALLOW_NODE_DOWNLOAD=0"
+  }
+  $latest = Get-LatestNodeMajorVersion -Major $NodeMajor
+  $selected = Ensure-PortableNode -version $latest -arch $Arch -cacheDir $NodeCache
+  Write-Host "Selecting Node from downloaded portable zip: $selected"
+}
+
+# Apply selection to PATH and GITHUB_PATH (next steps) and current step
+Add-ToGitHubPath $selected
 
 # Final verification: ensure npm is actually running under Node major
-$nodeV = & node -v
+$nodeV = (& node -v).Trim()
+$npmNodeV = (& npm exec --yes node -v).Trim()
 Write-Host "Using Node: $nodeV"
-# This is the key proof: npm is backed by the same Node home
-$npmNodeV = & npm exec --yes node -v
 Write-Host "npm-backed Node: $npmNodeV"
 
 $nv = Parse-Version $nodeV
