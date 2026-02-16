@@ -12,6 +12,9 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -Er
 $NodeMajor = 20
 $Arch = "x64"
 
+# Allow selecting an existing Node only if explicitly permitted; default is to prefer toolcache/portable/download
+$AllowExistingNode = $false
+
 # Cache under repo tmp (so your CI cache can persist it)
 $CacheRoot = Join-Path $PSScriptRoot "..\tmp"
 $NodeCache = Join-Path $CacheRoot "node-cache"
@@ -173,16 +176,18 @@ if ($ChocoPackages.Count -gt 0) {
 # ---------------------------
 $selected = $null
 
-# If existing node is already correct major AND npm is present, keep it
-try {
-  $nodeExe = (Get-Command node -ErrorAction Stop).Source
-  $existingBin = Split-Path -Parent $nodeExe
-  $v = Parse-Version ((& node -v).Trim())
-  if ($v -and $v.Major -eq $NodeMajor -and (Test-Path -LiteralPath (Join-Path $existingBin "npm.cmd"))) {
-    $selected = $existingBin
-    Write-Host "Using existing Node v$($v.ToString()) from $selected"
-  }
-} catch {}
+# If explicitly allowed, reuse existing node only if it matches major and has npm colocated
+if ($AllowExistingNode) {
+  try {
+    $nodeExe = (Get-Command node -ErrorAction Stop).Source
+    $existingBin = Split-Path -Parent $nodeExe
+    $v = Parse-Version ((& node -v).Trim())
+    if ($v -and $v.Major -eq $NodeMajor -and (Test-Path -LiteralPath (Join-Path $existingBin "npm.cmd"))) {
+      $selected = $existingBin
+      Write-Host "Using existing Node v$($v.ToString()) from $selected"
+    }
+  } catch {}
+}
 
 # Prefer toolcache
 if (-not $selected) {
@@ -215,13 +220,24 @@ if (-not $selected) {
 # Apply selection to PATH and GITHUB_PATH (next steps) and current step
 Add-ToGitHubPath $selected
 
-# Final verification: ensure npm is actually running under Node major
+# Final verification: ensure npm is colocated and running under Node major
+$nodeCmd = Get-Command node -ErrorAction Stop
+$npmCmd = Get-Command npm -ErrorAction Stop
+$nodeDir = Split-Path -Parent $nodeCmd.Source
+$npmDir = Split-Path -Parent $npmCmd.Source
+Write-Host "node path: $($nodeCmd.Source)"
+Write-Host "npm path:  $($npmCmd.Source)"
+if ($nodeDir -ne $npmDir) { throw "node and npm are not colocated: $nodeDir vs $npmDir" }
+
 $nodeV = (& node -v).Trim()
-$npmNodeV = (& npm exec --yes -- node -v).Trim()
+$npmV = (& npm -v).Trim()
+$npmInfo = npm version --json | ConvertFrom-Json
+$npmRuntimeNodeV = $npmInfo.node
+$npmRuntimeParsed = Parse-Version $npmRuntimeNodeV
 Write-Host "Using Node: $nodeV"
-Write-Host "npm-backed Node: $npmNodeV"
+Write-Host "npm version: $npmV"
+Write-Host "npm runtime node: $npmRuntimeNodeV"
 
 $nv = Parse-Version $nodeV
-$nnv = Parse-Version $npmNodeV
 if (-not $nv -or $nv.Major -ne $NodeMajor) { throw "node is not v$NodeMajor (got $nodeV)" }
-if (-not $nnv -or $nnv.Major -ne $NodeMajor) { throw "npm is not backed by v$NodeMajor (got $npmNodeV)" }
+if (-not $npmRuntimeParsed -or $npmRuntimeParsed.Major -ne $NodeMajor) { throw "npm is not running under Node $NodeMajor (got $npmRuntimeNodeV)" }
