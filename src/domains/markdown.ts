@@ -1,0 +1,131 @@
+import type { LintDomainPlugin } from './engine.js';
+import os from 'node:os';
+import process from 'node:process';
+import childProcess from 'node:child_process';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import {
+  collectFilesByExtensions,
+  relativizeFiles,
+  resolveSearchRootsFromPatterns,
+} from './files.js';
+
+const platform = os.platform();
+const MARKDOWN_FILE_EXTENSIONS = ['.md', '.mdx'] as const;
+const DEFAULT_MARKDOWN_SEARCH_ROOTS = [
+  './README.md',
+  './pages',
+  './blog',
+  './docs',
+];
+
+function collectMarkdownFilesFromScope(
+  searchRoots: readonly string[],
+): string[] {
+  const matchedFiles = collectFilesByExtensions(
+    searchRoots,
+    MARKDOWN_FILE_EXTENSIONS,
+  );
+  const matchedRelativeFiles = relativizeFiles(matchedFiles);
+
+  if (
+    !matchedRelativeFiles.includes('README.md') &&
+    fs.existsSync('README.md')
+  ) {
+    matchedRelativeFiles.unshift('README.md');
+  }
+
+  return matchedRelativeFiles;
+}
+
+/* eslint-disable no-console */
+function createMarkdownDomainPlugin({
+  prettierConfigPath,
+}: {
+  prettierConfigPath: string;
+}): LintDomainPlugin {
+  return {
+    domain: 'markdown',
+    detect: () => {
+      const searchPatterns = DEFAULT_MARKDOWN_SEARCH_ROOTS;
+      const searchRoots = resolveSearchRootsFromPatterns(searchPatterns);
+      const matchedFiles = collectMarkdownFilesFromScope(searchRoots);
+
+      return {
+        relevant: matchedFiles.length > 0,
+        relevanceReason:
+          matchedFiles.length > 0
+            ? undefined
+            : 'No Markdown/MDX files matched in effective scope.',
+        available: true,
+        availabilityKind: 'required' as const,
+        matchedFiles,
+      };
+    },
+    run: ({ fix }, detection) => {
+      const markdownFiles = detection.matchedFiles ?? [];
+      if (markdownFiles.length === 0) {
+        return { hadFailure: false };
+      }
+
+      const prettierArgs = [
+        '--config',
+        prettierConfigPath,
+        '--config-precedence',
+        'cli-override',
+        '--no-editorconfig',
+        fix ? '--write' : '--check',
+        ...markdownFiles,
+      ];
+
+      console.error('Running prettier:');
+
+      const require = createRequire(import.meta.url);
+      let prettierBin: string | null = null;
+      try {
+        // Resolves to @matrixai/lint/node_modules/prettier/bin/prettier.cjs
+        prettierBin = require.resolve('prettier/bin/prettier.cjs');
+      } catch {
+        // Bundled copy not found
+      }
+
+      try {
+        if (prettierBin) {
+          console.error(` ${prettierBin} \n ${prettierArgs.join('\n' + ' ')}`);
+          childProcess.execFileSync(
+            process.execPath,
+            [prettierBin, ...prettierArgs],
+            {
+              stdio: 'inherit',
+              windowsHide: true,
+              encoding: 'utf-8',
+              cwd: process.cwd(),
+            },
+          );
+        } else {
+          console.error('prettier ' + prettierArgs.join('\n' + ' '));
+          childProcess.execFileSync('prettier', prettierArgs, {
+            stdio: 'inherit',
+            windowsHide: true,
+            encoding: 'utf-8',
+            shell: platform === 'win32',
+            cwd: process.cwd(),
+          });
+        }
+      } catch (err) {
+        if (!fix) {
+          console.error('Prettier check failed.');
+        } else {
+          console.error('Prettier write failed. ' + err);
+        }
+
+        return { hadFailure: true };
+      }
+
+      return { hadFailure: false };
+    },
+  };
+}
+/* eslint-enable no-console */
+
+export { createMarkdownDomainPlugin };

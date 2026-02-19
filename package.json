@@ -10,20 +10,16 @@
   },
   "type": "module",
   "exports": {
+    "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./config": {
-      "types": "./dist/configs/js.d.ts",
-      "import": "./dist/configs/js.js"
     },
     "./*.js": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js"
     },
-    "./*": "./dist/*",
-    "./package.json": "./package.json"
+    "./*": "./dist/*"
   },
   "imports": {
     "#*": "./dist/*"

@@ -85,7 +85,7 @@ export default config;
 
 ```js
 // eslint.config.js
-import matrixai from '@matrixai/lint/config';
+import matrixai from '@matrixai/lint/config.js';
 
 export default matrixai;
 ```
@@ -120,7 +120,7 @@ Supported imports:
 
 - `@matrixai/lint`: named export `config`; types `MatrixAILintCfg`,
   `RawMatrixCfg`, `CLIOptions`.
-- `@matrixai/lint/config`: default export of the Flat Config array (same shape
+- `@matrixai/lint/config.js`: default export of the Flat Config array (same shape
   as `config`).
 
 Internal modules (plugins, rules, utilities, and wildcard passthroughs under

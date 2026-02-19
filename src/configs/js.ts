@@ -7,7 +7,7 @@ import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
-import prettierOptions from './prettier.config.mjs';
+import prettierOptions from './prettier.config.js';
 import matrixaiPlugin from '../plugins/eslint-plugin-matrixai.js';
 import { resolveMatrixConfig } from '../utils.js';
 
