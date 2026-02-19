@@ -4,7 +4,7 @@
 - [MXS-ARCH-ONT-003] Tests MUST mirror exported domains (class/domain-focused) under `tests/` with matching subjects and barrel coverage.
 - [MXS-ARCH-ONT-004] Generated artifacts stay in `dist/`; docs in `docs/`; benches under `benches/` writing to `benches/results/` when present.
 - [MXS-ARCH-ONT-005] Public exports of error/event classes MUST be defined locally (per-domain files or `errors.ts`/`events.ts`) and aggregated via barrels; shared bases MAY be local to the library.
-- [MXS-ARCH-ONT-006] Use path alias `#*` for intra-repo imports (`imports` map to `./dist/*`, TS `paths` to `src/*`) to avoid brittle relatives and keep ESM compatibility.
+- [MXS-ARCH-ONT-006] For repos using profiles `library-js` or `application-js`, `#...` imports are internal-only and MUST be used only under `tests/` (not in `src/` nor scripts). In these profiles, `package.json` `imports` maps `#*` to `./dist/*`, so `#...` resolves to compiled output in `dist/`; build/compile MUST occur before running tests that import via `#...`. This rule does not apply to `worker-js-cloudflare` nor `docusaurus-js-cloudflare`.
 - [MXS-ARCH-ONT-007] Package boundaries MUST declare `type: module`, an `exports` map for `.` plus `./*.js` patterns and wildcard passthrough `./*` to `dist`; deep imports are only allowed where the wildcard is intentionally exposed.
 - [MXS-ARCH-ONT-008] Module ontology SHOULD favor class-per-file domain objects with shared helpers (`utils`, `types`, optional `errors`, optional `events`) and domain submodules when needed.
 - [MXS-ARCH-ONT-009] When a repo uses profile `worker-js-cloudflare`, the Worker deploy surface MUST be treated as architecture (repo boundary / deploy contract): Worker entrypoint [`src/worker.ts`](../profiles/worker-js-cloudflare.md#rules) and Worker module subtree `src/worker/**` define the boundary consumed by Wrangler via `wrangler.toml`; agents MUST route placement/layout decisions for this surface to architecture standards, not coding standards. See also: [`../profiles/worker-js-cloudflare.md`](../profiles/worker-js-cloudflare.md), [`worker-js-cloudflare.md`](worker-js-cloudflare.md).
@@ -46,7 +46,7 @@
     }
   }
   ```
-- Test layout mirroring domain barrels `tests/locks/Barrier.test.ts`:
+- Test layout mirroring domain barrels `tests/locks/Barrier.test.ts` (library-js/application-js: `#...` in tests resolves to `dist/` via package `imports`; build first):
   ```ts
   import { Barrier } from '#locks/Barrier.js';
 

@@ -8,7 +8,7 @@
 - [MXS-PROF-LIBJS-007] Public API MUST be aggregated through `src/index.ts` plus optional `types.ts`, `errors.ts`, `events.ts`; per-domain barrels SHOULD exist when domains are present.
 - [MXS-PROF-LIBJS-008] Directory layout SHOULD keep domain subfolders when domains exist (e.g., handlers, tracer, locks) with matching tests under `tests/`.
 - [MXS-PROF-LIBJS-009] TypeScript config MUST target `ES2022`, `moduleResolution`/`module` `NodeNext`, `strictNullChecks: true`, `noEmit: true` in dev; decorators MAY be enabled when used; build overrides only `rootDir`/`noEmit`.
-- [MXS-PROF-LIBJS-010] Path alias `#*` MUST resolve to `src/*` in TS and `./dist/*` in package `imports`; use aliases in source and tests.
+- [MXS-PROF-LIBJS-010] Path alias `#*` MUST resolve to `src/*` in TS and `./dist/*` in package `imports`.
 - [MXS-PROF-LIBJS-011] Jest config MUST keep SWC transform, module-aware mapper stripping `.js`, Node env, and setup hooks; decorator flag only when decorators are used.
 - [MXS-PROF-LIBJS-012] Default test timeout is 20s; override per test as needed using Jest timeout parameter.
 - [MXS-PROF-LIBJS-013] Shell linting is out of scope for this profile.
@@ -22,6 +22,7 @@
 - Barrel files: `src/index.ts`, optional `src/types.ts`, optional `src/errors.ts`, optional `src/events.ts`, and per-domain `index.ts` that re-export types/utils/errors/events when present.
 - Tests mirror domains under `tests/` with matching subjects (class/domain-focused) and barrel coverage.
 - Build artifacts in `dist/`; docs in `docs/`; optional benches in `benches/` writing to `benches/results/`.
+- Local dev env (when using Nix flakes + direnv): keep `.envrc` committed (loads `use flake` and optional `.envr`), keep `.envr` local-only (gitignored), and never commit `/.direnv`.
 
 ## Golden commands
 - Install: `npm install --package-lock-only --ignore-scripts --silent` (for versioning).

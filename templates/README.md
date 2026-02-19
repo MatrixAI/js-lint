@@ -6,7 +6,8 @@
 
 ## Baseline files (always include)
 - [.editorconfig](.editorconfig.template) - enforce LF, 2-space indent, trim whitespace.
-- [.gitignore](.gitignore.template) - general ignores; extend per language as needed.
+- [.gitignore](.gitignore.template) - general ignores; includes `/.direnv` ignore and `.env*` ignore with `!.envrc` and `!.env.example` so local env files stay uncommitted while examples remain tracked.
+- [.envrc](.envrc.template) - direnv entrypoint; uses `use flake` and optionally loads `.envr` for local-only overrides.
 - [AGENTS.md](AGENTS.md.template) - entrypoint for automation; fill golden commands per repo.
 - [.aider.conf.yml](.aider.conf.yml.template) - aider wiring; points aider at repo-root `AGENTS.md`.
 - [./.matrixai/repo-profile.yml](.matrixai/repo-profile.yml.template) - select profile (`library-js` default; others listed inside template).
@@ -24,7 +25,7 @@ Generated artifacts (do **not** template):
 - Add additional overlays by creating subfolders under `templates/<profile>/` with only the files that differ from baseline.
 
 ## How to apply
-1) Copy baseline files into the new repo root and fill placeholders (golden commands, profile selection).
+1) Copy baseline files into the new repo root and fill placeholders (golden commands, profile selection). When using Nix flakes + direnv, keep `.envrc` committed, use `.envr` for local secrets/overrides (gitignored), and never commit `/.direnv`.
 2) Choose a profile overlay and copy its files; extend [.gitignore](.gitignore.template) if the language/toolchain needs more ignores. For Cloudflare profiles, the overlays include:
    - `worker-js-cloudflare`: TypeScript config (`tsconfig.json.template`) with `types` set to `node` and `@cloudflare/workers-types` (nodejs_compat), plus `@types/node` and `@cloudflare/workers-types` in devDependencies.
    - `docusaurus-js-cloudflare`: TypeScript config with Docusaurus + Worker ambient `types`, optional `global.d.ts` stubs for resource-query imports (`?raw`, `?inline`, `?url`), and Webpack-friendly typing. Remove `global.d.ts` if you do not use those queries.

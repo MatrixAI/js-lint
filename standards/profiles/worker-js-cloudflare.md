@@ -19,6 +19,7 @@
 - Worker entry at `src/worker.ts` with Worker modules under `src/worker/**`.
 - `package.json` with scripts `dev`, `deploy`, `lint`, `lintfix`, and any project-specific tasks.
 - `tsconfig.json` using `moduleResolution: "bundler"`, `noEmit: true`, and `ES2022` libs for IDE tooling only.
+- Local dev env (when using Nix flakes + direnv): keep `.envrc` committed (loads `use flake` and optional `.envr`), keep `.envr` local-only (gitignored), and never commit `/.direnv`.
 
 ## Golden commands
 - Dev server: `npm run dev` (invokes `wrangler dev`, pass-through args supported).
