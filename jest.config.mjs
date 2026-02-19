@@ -1,5 +1,6 @@
 import path from 'node:path';
 import url from 'node:url';
+import os from 'node:os';
 import tsconfigJSON from './tsconfig.json' assert { type: "json" };
 
 const projectPath = path.dirname(url.fileURLToPath(import.meta.url));
@@ -11,6 +12,8 @@ const globals = {
   projectDir: projectPath,
   // Absolute directory to the test root
   testDir: path.join(projectPath, 'tests'),
+  // Absolute directory to os temporary directory
+  tmpDir: os.tmpdir(),
   // Default asynchronous test timeout
   defaultTimeout: 20000,
   // Timeouts rely on setTimeout which takes 32 bit numbers

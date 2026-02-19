@@ -42,7 +42,19 @@ matrixai-lint --fix
 | `--user-config`    | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
 | `--config <path>`  | Explicitly use a custom ESLint config file                                   |
 | `--eslint <paths>` | Glob(s) forwarded to ESLint                                                  |
-| `--shell <paths>`  | Glob(s) forwarded to ShellCheck search roots                                 |
+| `--shell <paths>`  | Glob(s) forwarded to ShellCheck search roots; implies shell domain selection |
+| `--only <domains>` | Run only selected domains (`eslint`, `shell`, `markdown`)                    |
+| `--skip <domains>` | Skip selected domains (`eslint`, `shell`, `markdown`)                        |
+
+Domain selection behavior:
+
+- With no selectors and no domain-specific target flags, all built-in domains run by default.
+- Passing `--eslint` and/or `--shell` implies explicit domain selection from those flags.
+  - `--eslint ...` runs ESLint only.
+  - `--shell ...` runs shell only.
+  - Passing both runs both.
+- `shellcheck` is optional only for default auto-run shell execution.
+  - If shell is explicitly requested (`--shell ...` or `--only shell`), missing `shellcheck` is a failure.
 
 #### Examples
 
@@ -51,6 +63,8 @@ matrixai-lint --fix
 matrixai-lint --user-config
 matrixai-lint --config ./eslint.config.js --fix
 matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
+matrixai-lint --only eslint markdown
+matrixai-lint --skip markdown
 ```
 
 ### ESLint config (ESM / NodeNext)
