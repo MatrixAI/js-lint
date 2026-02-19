@@ -7,11 +7,11 @@
 - [MXS-TOOL-003] Linting MUST surface `matrixai-lint`; auto-fix uses `npm run lintfix`.
 - [MXS-ARCH-001] Source code MUST live under `src/` with domain subfolders where needed and barrels exporting domain surfaces.
 - [MXS-ARCH-002] Tests MUST mirror exported domains under `tests/` with matching subjects (class/domain-focused).
-- [MXS-ARCH-003] Public surface MUST be re-exported via `src/index.ts` plus optional `types.ts`, `errors.ts`, `events.ts` to keep a single import locus.
+- [MXS-ARCH-003] Public surface MUST be re-exported via `src/index.ts` plus optional `types.ts`, `errors.ts`, `events.ts` to keep a single import locus. Barrels SHOULD prefer direct re-exports (`export ... from`).
 - [MXS-ARCH-004] Domain error/event classes MUST be defined in-repo (e.g., `errors.ts` or domain files) and exported through barrels; shared bases may be local to the library.
 - [MXS-TS-001] For NodeNext-based profiles (e.g. `library-js`, `application-js`), TypeScript MUST target `ES2022` with `module` + `moduleResolution` `NodeNext`.
 - [MXS-TS-002] `strictNullChecks` MUST remain true. Emit behavior is profile-specific (e.g. NodeNext profiles compile to `dist/`; Cloudflare Worker profiles are IDE-only).
-- [MXS-TS-003] For NodeNext-based profiles, path alias `#*` MUST resolve to `./dist/*` via package `imports` and TS `paths` to `src/*`; preserve aliases in imports.
+- [MXS-TS-003] For `library-js` and `application-js`, internal import specifiers `#*` MUST resolve to `./dist/*` via package `imports`; therefore `#*` MUST be used only by code under `tests/` and those tests MUST run after a build step. TypeScript `paths` MAY map `#*` to `./src/*` for typechecking. This does not apply to `worker-js-cloudflare` or `docusaurus-js-cloudflare`.
 - [MXS-TS-004] Decorators MAY be enabled when the library uses them; when enabled keep `experimentalDecorators: true` across TS and Jest/SWC.
 - [MXS-TEST-001] Jest config MUST retain SWC transform with module-aware mapper stripping `.js` extensions and setup hooks.
 - [MXS-TEST-002] Default test timeout is 20s and should be overridden per slow test via Jest timeouts.

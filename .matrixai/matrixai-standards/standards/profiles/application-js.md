@@ -19,6 +19,7 @@
 - `src/` domain folders: `agent/`, `bootstrap/`, `identities/`, `keys/`, `nodes/`, `notifications/`, `secrets/`, `vaults/`, `utils/`, plus supporting `audit/`, `auth/`, `Command*.ts`, `polykey.ts`, `errors.ts`, `types.ts`, any worker manifest files, and a barrel at `src/index.ts` exporting per-domain entrypoints.
 - Tests mirror domains under `tests/` with global harness files (`globalSetup.ts`, `setup.ts`, `setupAfterEnv.ts`, `globalTeardown.ts`) and integration suites under `tests/integration/docker/` (or equivalent integration roots).
 - Build artifacts in `dist/`; docs in `docs/`; tmp outputs under `tmp/jest` and `tmp/junit` as per Jest config.
+- Local dev env (when using Nix flakes + direnv): keep `.envrc` committed (loads `use flake` and optional `.envr`), keep `.envr` local-only (gitignored), and never commit `/.direnv`.
 
 ## Golden commands
 - Install deps: `npm install` (within `nix develop` when applicable).
