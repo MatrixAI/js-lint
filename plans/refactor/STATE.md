@@ -24,6 +24,20 @@
   - removed permissive unknown-option behavior so unknown flags are rejected by the CLI parser
 - Added tests for this slice in [`tests/bin/lint.test.ts`](../../tests/bin/lint.test.ts).
 
+## Implemented in follow-up cleanup slice
+
+- Removed shell-domain dependence on external `find`:
+  - shell discovery now walks filesystem roots in Node and collects `*.sh` files before invoking `shellcheck`
+  - non-existent shell roots are still ignored
+  - explicit shell requests (`--shell ...` or `--only shell`) still fail if `shellcheck` is missing
+  - default shell auto-run still warns/skips when `shellcheck` is missing
+- Removed runtime dependency-injection indirection from CLI entry:
+  - removed `MainDeps`, `defaultMainDeps`, and `mainWithDeps` from `src/bin/lint.ts`
+  - retained `main` as the runtime/default export entrypoint
+- Refactored CLI tests to use Jest spies/mocks instead of `mainWithDeps`:
+  - tests now mock dependency behavior through module spies (for example `utils.commandExists`)
+  - shell assertions updated to verify direct `shellcheck` invocation behavior
+
 ## Current pain points (observed in current implementation)
 
 - Domains run in a fixed sequence and cannot be cleanly targeted.
@@ -43,7 +57,6 @@
 
 - Final naming for the new flags (for example `--domain` vs `--only`, `--skip` vs `--exclude-domain`).
 - Config schema evolution strategy: extend `matrixai-lint-config.json` in place vs introduce a v2 file name.
-- Whether to keep using external `find` for shell file enumeration or replace with Node-based discovery for portability.
 
 ## Next actions
 

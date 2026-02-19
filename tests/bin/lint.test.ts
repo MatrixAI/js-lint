@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
 import { jest } from '@jest/globals';
-import main, { mainWithDeps } from '#bin/lint.js';
+import main from '#bin/lint.js';
 
 describe('matrixai-lint CLI domain semantics', () => {
   let capturedExecCalls: Array<{
@@ -85,7 +85,7 @@ describe('matrixai-lint CLI domain semantics', () => {
       ]),
     ).rejects.toBeDefined();
 
-    const shellCalls = capturedExecCalls.filter((c) => c.file === 'find');
+    const shellCalls = capturedExecCalls.filter((c) => c.file === 'shellcheck');
     expect(shellCalls).toHaveLength(0);
 
     const prettierCalls = capturedExecCalls.filter(
@@ -97,16 +97,34 @@ describe('matrixai-lint CLI domain semantics', () => {
   });
 
   test('explicit shell request + missing shellcheck fails', async () => {
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'shellcheck'
+            ? 1
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
     await expect(
-      mainWithDeps(['node', 'matrixai-lint', '--shell', 'scripts'], {
-        commandExists: (cmd: string) => cmd === 'find',
-      }),
+      main(['node', 'matrixai-lint', '--shell', 'scripts']),
     ).rejects.toBeDefined();
 
-    const shellcheckFindCall = capturedExecCalls.find(
-      (c) => c.file === 'find' && c.args.includes('shellcheck'),
+    const shellcheckCall = capturedExecCalls.find(
+      (c) => c.file === 'shellcheck',
     );
-    expect(shellcheckFindCall).toBeUndefined();
+    expect(shellcheckCall).toBeUndefined();
   });
 
   test('default shell missing shellcheck warns/skips (non-fatal unless other failures)', async () => {
@@ -122,14 +140,32 @@ describe('matrixai-lint CLI domain semantics', () => {
       'utf8',
     );
 
-    await mainWithDeps(['node', 'matrixai-lint'], {
-      commandExists: (cmd: string) => cmd === 'find',
-    });
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'shellcheck'
+            ? 1
+            : 0;
 
-    const shellcheckFindCall = capturedExecCalls.find(
-      (c) => c.file === 'find' && c.args.includes('shellcheck'),
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await main(['node', 'matrixai-lint']);
+
+    const shellcheckCall = capturedExecCalls.find(
+      (c) => c.file === 'shellcheck',
     );
-    expect(shellcheckFindCall).toBeUndefined();
+    expect(shellcheckCall).toBeUndefined();
 
     const prettierCalls = capturedExecCalls.filter(
       (c) =>

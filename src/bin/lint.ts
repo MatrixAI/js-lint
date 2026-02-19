@@ -83,39 +83,58 @@ function resolveDomainSelection(options: CLIOptions): {
   return { selectedDomains, shellDomainExplicitlyRequested };
 }
 
-type MainDeps = {
-  runESLint: typeof utils.runESLint;
-  findUserESLintConfig: typeof utils.findUserESLintConfig;
-  collectMarkdown: typeof utils.collectMarkdown;
-  commandExists: typeof utils.commandExists;
-  execFileSync: typeof childProcess.execFileSync;
-  fileExists: typeof fs.existsSync;
-  parseAsync: (argv: string[]) => Promise<void>;
-  opts: () => CLIOptions;
-};
+const SHELL_FILE_PATTERN = /\.sh$/i;
 
-const defaultMainDeps: MainDeps = {
-  runESLint: utils.runESLint,
-  findUserESLintConfig: utils.findUserESLintConfig,
-  collectMarkdown: utils.collectMarkdown,
-  commandExists: utils.commandExists,
-  execFileSync: ((...args: unknown[]) =>
-    childProcess.execFileSync(
-      args[0] as string,
-      args[1] as ReadonlyArray<string> | undefined,
-      args[2] as childProcess.ExecFileSyncOptions,
-    )) as typeof childProcess.execFileSync,
-  fileExists: fs.existsSync,
-  parseAsync: async (argv) => {
-    await program.parseAsync(argv);
-  },
-  opts: () => program.opts<CLIOptions>(),
-};
+function collectShellFiles(searchRoots: string[]): string[] {
+  const shellFiles = new Set<string>();
+
+  const visitPath = (entryPath: string): void => {
+    let entryStats: fs.Stats;
+    try {
+      entryStats = fs.statSync(entryPath);
+    } catch {
+      return;
+    }
+
+    if (entryStats.isFile()) {
+      if (SHELL_FILE_PATTERN.test(entryPath)) {
+        shellFiles.add(entryPath);
+      }
+      return;
+    }
+
+    if (!entryStats.isDirectory()) {
+      return;
+    }
+
+    let dirEntries: fs.Dirent[];
+    try {
+      dirEntries = fs.readdirSync(entryPath, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const dirEntry of dirEntries) {
+      const childPath = path.join(entryPath, dirEntry.name);
+      if (dirEntry.isDirectory()) {
+        visitPath(childPath);
+      } else if (dirEntry.isFile() && SHELL_FILE_PATTERN.test(dirEntry.name)) {
+        shellFiles.add(childPath);
+      }
+    }
+  };
+
+  for (const searchRoot of searchRoots) {
+    visitPath(searchRoot);
+  }
+
+  return [...shellFiles].sort();
+}
 
 /* eslint-disable no-console */
 async function main(argv = process.argv) {
-  await defaultMainDeps.parseAsync(argv);
-  const options = defaultMainDeps.opts();
+  await program.parseAsync(argv);
+  const options = program.opts<CLIOptions>();
 
   const fix = Boolean(options.fix);
   const useUserConfig = Boolean(options.userConfig);
@@ -135,7 +154,7 @@ async function main(argv = process.argv) {
   if (explicitConfigPath !== undefined) {
     const absolutePath = path.resolve(explicitConfigPath);
 
-    if (!defaultMainDeps.fileExists(absolutePath)) {
+    if (!fs.existsSync(absolutePath)) {
       console.error(
         `--config points to "${explicitConfigPath}", but that file does not exist.`,
       );
@@ -145,7 +164,7 @@ async function main(argv = process.argv) {
       chosenConfig = absolutePath;
     }
   } else if (useUserConfig) {
-    chosenConfig = defaultMainDeps.findUserESLintConfig();
+    chosenConfig = utils.findUserESLintConfig();
     if (chosenConfig === undefined) {
       console.error(
         '--user-config given but no local ESLint config was found. Falling back to built-in config.',
@@ -159,7 +178,7 @@ async function main(argv = process.argv) {
       hadFailure = true;
     } else {
       try {
-        const hadLintingErrors = await defaultMainDeps.runESLint({
+        const hadLintingErrors = await utils.runESLint({
           fix,
           configPath: chosenConfig,
           explicitGlobs: eslintPatterns,
@@ -176,18 +195,17 @@ async function main(argv = process.argv) {
   }
 
   if (selectedDomains.has('shell')) {
-    const hasFind = defaultMainDeps.commandExists('find');
-    const hasShellcheck = defaultMainDeps.commandExists('shellcheck');
+    const hasShellcheck = utils.commandExists('shellcheck');
 
-    if (!(hasFind && hasShellcheck)) {
+    if (!hasShellcheck) {
       if (shellDomainExplicitlyRequested) {
         console.error(
-          'Shell domain requested explicitly, but find or shellcheck was not found in environment.',
+          'Shell domain requested explicitly, but shellcheck was not found in environment.',
         );
         hadFailure = true;
       } else {
         console.warn(
-          'Skipping shellcheck: find or shellcheck not found in environment.',
+          'Skipping shellcheck: shellcheck not found in environment.',
         );
       }
     } else {
@@ -195,22 +213,7 @@ async function main(argv = process.argv) {
         shellPatterns?.length ? shellPatterns : DEFAULT_SHELLCHECK_SEARCH_ROOTS
       )
         .map((p) => path.resolve(process.cwd(), p))
-        .filter((p) => defaultMainDeps.fileExists(p));
-
-      // Linting shell scripts (this does not have auto-fixing)
-      const shellCheckArgs = [
-        ...searchRoots,
-        '-type',
-        'f',
-        '-regextype',
-        'posix-extended',
-        '-regex',
-        '.*\\.(sh)',
-        '-exec',
-        'shellcheck',
-        '{}',
-        '+',
-      ];
+        .filter((p) => fs.existsSync(p));
 
       console.error('Running shellcheck:');
       if (searchRoots.length === 0) {
@@ -218,18 +221,25 @@ async function main(argv = process.argv) {
           'No search roots found for shellcheck. Skipping shellcheck.',
         );
       } else {
-        console.error(' ' + ['find', ...shellCheckArgs].join(' '));
-        try {
-          defaultMainDeps.execFileSync('find', shellCheckArgs, {
-            stdio: ['inherit', 'inherit', 'inherit'],
-            windowsHide: true,
-            encoding: 'utf-8',
-            shell: platform === 'win32' ? true : false,
-            cwd: process.cwd(),
-          });
-        } catch (err) {
-          console.error('Shellcheck failed. ' + err);
-          hadFailure = true;
+        const shellFiles = collectShellFiles(searchRoots);
+        if (shellFiles.length === 0) {
+          console.warn(
+            'No shell script files found for shellcheck. Skipping shellcheck.',
+          );
+        } else {
+          console.error(' ' + ['shellcheck', ...shellFiles].join(' '));
+          try {
+            childProcess.execFileSync('shellcheck', shellFiles, {
+              stdio: ['inherit', 'inherit', 'inherit'],
+              windowsHide: true,
+              encoding: 'utf-8',
+              shell: platform === 'win32',
+              cwd: process.cwd(),
+            });
+          } catch (err) {
+            console.error('Shellcheck failed. ' + err);
+            hadFailure = true;
+          }
         }
       }
     }
@@ -239,12 +249,12 @@ async function main(argv = process.argv) {
     // Linting markdown files
     // Always include README if it exists
     const markdownFiles: string[] = [];
-    if (defaultMainDeps.fileExists('README.md')) {
+    if (fs.existsSync('README.md')) {
       markdownFiles.push('README.md');
     }
     for (const dir of ['pages', 'blog', 'docs']) {
-      if (defaultMainDeps.fileExists(dir)) {
-        markdownFiles.push(...defaultMainDeps.collectMarkdown(dir));
+      if (fs.existsSync(dir)) {
+        markdownFiles.push(...utils.collectMarkdown(dir));
       }
     }
     if (markdownFiles.length === 0) {
@@ -274,7 +284,7 @@ async function main(argv = process.argv) {
       try {
         if (prettierBin) {
           console.error(` ${prettierBin} \n ${prettierArgs.join('\n' + ' ')}`);
-          defaultMainDeps.execFileSync(
+          childProcess.execFileSync(
             process.execPath,
             [prettierBin, ...prettierArgs],
             {
@@ -286,7 +296,7 @@ async function main(argv = process.argv) {
           );
         } else {
           console.error('prettier' + prettierArgs.join('\n' + ' '));
-          defaultMainDeps.execFileSync('prettier', prettierArgs, {
+          childProcess.execFileSync('prettier', prettierArgs, {
             stdio: 'inherit',
             windowsHide: true,
             encoding: 'utf-8',
@@ -314,21 +324,6 @@ async function main(argv = process.argv) {
 }
 /* eslint-enable no-console */
 
-async function mainWithDeps(
-  argv: string[],
-  deps: Partial<MainDeps>,
-): Promise<void> {
-  const previousDeps = {
-    ...defaultMainDeps,
-  };
-  Object.assign(defaultMainDeps, deps);
-  try {
-    await main(argv);
-  } finally {
-    Object.assign(defaultMainDeps, previousDeps);
-  }
-}
-
 if (import.meta.url.startsWith('file:')) {
   const modulePath = url.fileURLToPath(import.meta.url);
   if (process.argv[1] === modulePath) {
@@ -337,4 +332,3 @@ if (import.meta.url.startsWith('file:')) {
 }
 
 export default main;
-export { mainWithDeps };
