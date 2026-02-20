@@ -1,3 +1,5 @@
+import path from 'node:path';
+import fs from 'node:fs';
 import Logger, { LogLevel } from '@matrixai/logger';
 import {
   createLintDomainRegistry,
@@ -5,8 +7,10 @@ import {
   evaluateLintDomains,
   listLintDomains,
   resolveDomainSelection,
+  createBuiltInDomainRegistry,
   type LintDomainPlugin,
 } from '#domains/index.js';
+import * as utils from '#utils.js';
 
 const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
 
@@ -325,6 +329,96 @@ describe('domain engine', () => {
       { domain: 'markdown', description: 'markdown test plugin' },
     ]);
   });
+
+  test('eslint detection derives scope from canonical multi-tsconfig union', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-eslint-union-'),
+    );
+
+    const previousCwd = process.cwd();
+
+    try {
+      process.chdir(tmpRoot);
+
+      await fs.promises.mkdir(path.join(tmpRoot, 'pkg-a', 'src'), {
+        recursive: true,
+      });
+      await fs.promises.mkdir(path.join(tmpRoot, 'pkg-b', 'src'), {
+        recursive: true,
+      });
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'pkg-a', 'src', 'a.ts'),
+        'export const a = 1;\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'pkg-b', 'src', 'b.ts'),
+        'export const b = 1;\n',
+        'utf8',
+      );
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'pkg-a', 'tsconfig.json'),
+        JSON.stringify({ include: ['./src/**/*'] }, null, 2) + '\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'pkg-b', 'tsconfig.json'),
+        JSON.stringify({ include: ['./src/**/*'] }, null, 2) + '\n',
+        'utf8',
+      );
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'matrixai-lint-config.json'),
+        JSON.stringify(
+          {
+            version: 2,
+            root: '.',
+            domains: {
+              eslint: {
+                tsconfigPaths: [
+                  './pkg-a/tsconfig.json',
+                  './pkg-b/tsconfig.json',
+                ],
+              },
+            },
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf8',
+      );
+
+      const registry = createBuiltInDomainRegistry({
+        prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
+      });
+
+      const decisions = await evaluateLintDomains({
+        registry,
+        selectedDomains: new Set(['eslint']),
+        explicitlyRequestedDomains: new Set(['eslint']),
+        selectionSources: new Map([['eslint', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown'],
+        context: {
+          fix: false,
+          logger: testLogger,
+          isConfigValid: true,
+        },
+      });
+
+      const eslintDecision = decisions.find(
+        (decision) => decision.domain === 'eslint',
+      );
+      expect(eslintDecision?.detection?.matchedFiles).toEqual(
+        expect.arrayContaining(['pkg-a/src/a.ts', 'pkg-b/src/b.ts']),
+      );
+      expect(eslintDecision?.plannedAction).toBe('run');
+    } finally {
+      process.chdir(previousCwd);
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('domain selection', () => {
@@ -372,5 +466,111 @@ describe('domain selection', () => {
     expect([...explicitlyRequestedDomains]).toStrictEqual(['eslint']);
     expect(selectionSources.get('eslint')).toBe('domain-flag');
     expect(selectionSources.has('shell')).toBe(false);
+  });
+});
+
+describe('eslint target derivation', () => {
+  test('preserves extension-bearing include entries while expanding extensionless entries', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-eslint-patterns-'),
+    );
+
+    try {
+      const pkgOne = path.join(tmpRoot, 'pkg-one');
+      const pkgTwo = path.join(tmpRoot, 'pkg-two');
+
+      await fs.promises.mkdir(pkgOne, { recursive: true });
+      await fs.promises.mkdir(pkgTwo, { recursive: true });
+
+      const pkgOneTsconfig = path.join(pkgOne, 'tsconfig.json');
+      const pkgTwoTsconfig = path.join(pkgTwo, 'tsconfig.json');
+
+      await fs.promises.writeFile(
+        pkgOneTsconfig,
+        JSON.stringify({ include: ['./src/**/*.tsx'] }, null, 2) + '\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        pkgTwoTsconfig,
+        JSON.stringify({ include: ['./src/**/*'] }, null, 2) + '\n',
+        'utf8',
+      );
+
+      const patterns = utils.buildPatterns(
+        [pkgOneTsconfig, pkgTwoTsconfig],
+        [],
+        tmpRoot,
+        tmpRoot,
+      );
+
+      expect(patterns.files).toContain('pkg-one/src/**/*.tsx');
+      expect(patterns.files).toContain(
+        'pkg-two/src/**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,json}',
+      );
+      expect(patterns.files).not.toContain(
+        'pkg-one/src/**/*.tsx.{js,mjs,cjs,jsx,ts,tsx,mts,cts,json}',
+      );
+    } finally {
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('exclude and forceInclude interactions are stable across multiple tsconfigs', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-eslint-exclude-force-'),
+    );
+
+    try {
+      const pkgOne = path.join(tmpRoot, 'pkg-one');
+      const pkgTwo = path.join(tmpRoot, 'pkg-two');
+
+      await fs.promises.mkdir(pkgOne, { recursive: true });
+      await fs.promises.mkdir(pkgTwo, { recursive: true });
+
+      const pkgOneTsconfig = path.join(pkgOne, 'tsconfig.json');
+      const pkgTwoTsconfig = path.join(pkgTwo, 'tsconfig.json');
+
+      await fs.promises.writeFile(
+        pkgOneTsconfig,
+        JSON.stringify(
+          {
+            include: ['./src/**/*'],
+            exclude: ['./scripts/**'],
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        pkgTwoTsconfig,
+        JSON.stringify(
+          {
+            include: ['./src/**/*'],
+            exclude: ['./generated/**'],
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf8',
+      );
+
+      const patterns = utils.buildPatterns(
+        [pkgOneTsconfig, pkgTwoTsconfig],
+        ['pkg-one/scripts'],
+        tmpRoot,
+        tmpRoot,
+      );
+
+      expect(patterns.files).toEqual(
+        expect.arrayContaining([
+          'pkg-one/scripts/**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,json}',
+        ]),
+      );
+      expect(patterns.ignore).not.toContain('pkg-one/scripts/**');
+      expect(patterns.ignore).toContain('pkg-two/generated/**');
+    } finally {
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
   });
 });

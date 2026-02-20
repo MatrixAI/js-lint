@@ -5,6 +5,31 @@
 - First implementation slice for CLI execution semantics has been delivered.
 - The target architecture is described in [`PLAN.md`](PLAN.md).
 
+## Implemented in full multi-tsconfig targeting alignment slice
+
+- Completed canonical tsconfig normalization in [`src/config.ts`](../../src/config.ts):
+  - all configured `domains.eslint.tsconfigPaths` are resolved to absolute paths
+  - unreadable or missing tsconfig files are filtered out
+  - resulting tsconfig list is deduplicated and deterministically sorted
+  - fallback to root `tsconfig.json` remains when available and readable
+- Completed union-based ESLint target derivation in [`src/utils.ts`](../../src/utils.ts):
+  - target files are now derived from the union of all configured tsconfig includes
+  - excludes are merged with cross-tsconfig overlap handling
+  - `forceInclude` is merged on top and can suppress matching ignore entries
+  - file and ignore output is deduplicated and deterministically sorted
+- Completed include normalization correctness in [`src/utils.ts`](../../src/utils.ts):
+  - include entries that already carry an extension/glob extension are preserved as-is
+  - only extensionless include entries are expanded with supported ESLint extensions
+  - malformed glob synthesis paths from blanket suffixing are eliminated
+- Completed parser-project/target alignment across ESLint runtime paths:
+  - [`src/configs/js.ts`](../../src/configs/js.ts) continues to source parser project from resolved tsconfig list
+  - [`src/utils.ts`](../../src/utils.ts) now injects parser `project` override from the same resolved config used for target derivation
+  - [`src/domains/eslint.ts`](../../src/domains/eslint.ts) detection now derives default scope from the same multi-tsconfig union logic
+- Added regression coverage for multi-tsconfig alignment:
+  - config normalization and missing/unreadable filtering in [`tests/config.test.ts`](../../tests/config.test.ts)
+  - multi-tsconfig detection and include/exclude/forceInclude behaviors in [`tests/domains/index.test.ts`](../../tests/domains/index.test.ts)
+  - user-visible stability with missing configured tsconfig path in [`tests/bin/lint.test.ts`](../../tests/bin/lint.test.ts)
+
 ## Implemented in config-schema cleanup + API-boundary slice
 
 - Completed lint runtime config loading/normalization using a single explicit schema:

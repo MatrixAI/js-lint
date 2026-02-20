@@ -6,6 +6,7 @@ import type {
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import ts from 'typescript';
 
 const MATRIXAI_LINT_CONFIG_FILENAME = 'matrixai-lint-config.json';
 
@@ -29,14 +30,40 @@ function stripLeadingDotSlash(value: string): string {
   return value.replace(/^\.\//, '');
 }
 
+function dedupeAndSort(values: readonly string[]): string[] {
+  return [...new Set(values)].sort();
+}
+
+function isReadableTsconfigPath(tsconfigPath: string): boolean {
+  let stats: fs.Stats;
+  try {
+    stats = fs.statSync(tsconfigPath);
+  } catch {
+    return false;
+  }
+
+  if (!stats.isFile()) {
+    return false;
+  }
+
+  const readResult = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
+  return readResult.error == null;
+}
+
 function sanitizeTsconfigPaths(rawValue: unknown, root: string): string[] {
-  return toStringArray(rawValue)
-    .map((tsconfigPath) => path.resolve(root, tsconfigPath))
-    .filter((tsconfigPath) => fs.existsSync(tsconfigPath));
+  return dedupeAndSort(
+    toStringArray(rawValue)
+      .map((tsconfigPath) => path.resolve(root, tsconfigPath))
+      .filter((tsconfigPath) => isReadableTsconfigPath(tsconfigPath)),
+  );
 }
 
 function sanitizeForceInclude(rawValue: unknown): string[] {
-  return toStringArray(rawValue).map((glob) => stripLeadingDotSlash(glob));
+  return dedupeAndSort(
+    toStringArray(rawValue)
+      .map((glob) => stripLeadingDotSlash(glob))
+      .filter((glob) => glob.length > 0),
+  );
 }
 
 function normalizeLintConfig({
@@ -63,7 +90,7 @@ function normalizeLintConfig({
     ? rawDomains.eslint
     : ({} as Record<string, unknown>);
 
-  const tsconfigPaths = sanitizeTsconfigPaths(
+  let tsconfigPaths = sanitizeTsconfigPaths(
     rawEslintDomain.tsconfigPaths,
     resolvedRoot,
   );
@@ -71,10 +98,12 @@ function normalizeLintConfig({
 
   if (tsconfigPaths.length === 0) {
     const rootTsconfigPath = path.join(resolvedRoot, 'tsconfig.json');
-    if (fs.existsSync(rootTsconfigPath)) {
+    if (isReadableTsconfigPath(rootTsconfigPath)) {
       tsconfigPaths.push(rootTsconfigPath);
     }
   }
+
+  tsconfigPaths = dedupeAndSort(tsconfigPaths);
 
   return {
     version: 2,

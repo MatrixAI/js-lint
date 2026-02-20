@@ -5,6 +5,7 @@ import {
   resolveSearchRootsFromPatterns,
 } from './files.js';
 import * as utils from '../utils.js';
+import { resolveLintConfig } from '../config.js';
 
 const ESLINT_FILE_EXTENSIONS = [
   '.js',
@@ -20,15 +21,39 @@ const ESLINT_FILE_EXTENSIONS = [
 
 const DEFAULT_ESLINT_SEARCH_ROOTS = ['./src', './scripts', './tests'];
 
+function resolveESLintDetectionPatterns(
+  eslintPatterns: readonly string[] | undefined,
+): string[] {
+  if (eslintPatterns != null && eslintPatterns.length > 0) {
+    return [...eslintPatterns];
+  }
+
+  const resolvedConfig = resolveLintConfig();
+  const { tsconfigPaths, forceInclude } = resolvedConfig.domains.eslint;
+
+  if (tsconfigPaths.length === 0) {
+    return DEFAULT_ESLINT_SEARCH_ROOTS;
+  }
+
+  const { files } = utils.buildPatterns(
+    tsconfigPaths,
+    forceInclude,
+    process.cwd(),
+    resolvedConfig.root,
+  );
+  if (files.length === 0) {
+    return DEFAULT_ESLINT_SEARCH_ROOTS;
+  }
+
+  return files;
+}
+
 function createESLintDomainPlugin(): LintDomainPlugin {
   return {
     domain: 'eslint',
     description: 'Lint JavaScript/TypeScript/JSON files with ESLint.',
     detect: ({ eslintPatterns }) => {
-      const patterns =
-        eslintPatterns != null && eslintPatterns.length > 0
-          ? eslintPatterns
-          : DEFAULT_ESLINT_SEARCH_ROOTS;
+      const patterns = resolveESLintDetectionPatterns(eslintPatterns);
       const searchRoots = resolveSearchRootsFromPatterns(patterns);
       const matchedFiles = collectFilesByExtensions(
         searchRoots,

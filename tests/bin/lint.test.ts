@@ -246,7 +246,7 @@ describe('matrixai-lint CLI domain semantics', () => {
         'scripts',
         'tests',
       ]),
-    ).rejects.toBeDefined();
+    ).resolves.toBeUndefined();
   });
 
   test('unknown option handling rejects typoed flags', async () => {
@@ -258,6 +258,29 @@ describe('matrixai-lint CLI domain semantics', () => {
   test('verbose flag is accepted and stacks', async () => {
     await expect(
       main(['node', 'matrixai-lint', '-v', '-v', '--domain', 'markdown']),
+    ).resolves.toBeUndefined();
+  });
+
+  test('default run tolerates missing configured tsconfig paths', async () => {
+    await fs.promises.writeFile(
+      path.join(dataDir, 'matrixai-lint-config.json'),
+      JSON.stringify(
+        {
+          version: 2,
+          domains: {
+            eslint: {
+              tsconfigPaths: ['./tsconfig.json', './missing/tsconfig.json'],
+            },
+          },
+        },
+        null,
+        2,
+      ) + '\n',
+      'utf8',
+    );
+
+    await expect(
+      main(['node', 'matrixai-lint', '--domain', 'eslint']),
     ).resolves.toBeUndefined();
   });
 });
