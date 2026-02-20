@@ -80,7 +80,7 @@ describe('matrixai-lint CLI domain semantics', () => {
         'matrixai-lint',
         '--eslint',
         'src/**/*.{ts,tsx}',
-        '--config',
+        '--eslint-config',
         './missing-eslint-config.mjs',
       ]),
     ).rejects.toBeDefined();
@@ -118,7 +118,14 @@ describe('matrixai-lint CLI domain semantics', () => {
       });
 
     await expect(
-      main(['node', 'matrixai-lint', '--shell', 'scripts']),
+      main([
+        'node',
+        'matrixai-lint',
+        '--domain',
+        'shell',
+        '--shell',
+        'scripts',
+      ]),
     ).rejects.toBeDefined();
 
     const shellcheckCall = capturedExecCalls.find(
@@ -180,10 +187,64 @@ describe('matrixai-lint CLI domain semantics', () => {
       main([
         'node',
         'matrixai-lint',
-        '--config',
+        '--eslint-config',
         './missing-eslint-config.mjs',
-        '--skip',
+        '--skip-domain',
         'shell',
+      ]),
+    ).rejects.toBeDefined();
+  });
+
+  test('--list-domains exits early without lint execution', async () => {
+    const stderrWriteSpy = jest
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+
+    await main(['node', 'matrixai-lint', '--list-domains']);
+
+    expect(capturedExecCalls).toHaveLength(0);
+    expect(stderrWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('INFO:matrixai-lint:Available lint domains:'),
+    );
+  });
+
+  test('--explain prints per-domain decision data', async () => {
+    const stderrWriteSpy = jest
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+
+    await main(['node', 'matrixai-lint', '--explain', '--domain', 'markdown']);
+
+    expect(stderrWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'INFO:matrixai-lint:[matrixai-lint] Domain execution plan:',
+      ),
+    );
+    expect(stderrWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'INFO:matrixai-lint:[matrixai-lint]  -  domain: markdown',
+      ),
+    );
+    expect(stderrWriteSpy).toHaveBeenCalledWith(
+      expect.stringContaining('planned-action'),
+    );
+  });
+
+  test('canonical lint script flags are accepted by main', async () => {
+    await expect(
+      main([
+        'node',
+        'matrixai-lint',
+        '--domain',
+        'eslint',
+        'shell',
+        'markdown',
+        '--eslint',
+        '{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}',
+        '--shell',
+        'src',
+        'scripts',
+        'tests',
       ]),
     ).rejects.toBeDefined();
   });
@@ -192,5 +253,11 @@ describe('matrixai-lint CLI domain semantics', () => {
     await expect(
       main(['node', 'matrixai-lint', '--eslnt']),
     ).rejects.toBeDefined();
+  });
+
+  test('verbose flag is accepted and stacks', async () => {
+    await expect(
+      main(['node', 'matrixai-lint', '-v', '-v', '--domain', 'markdown']),
+    ).resolves.toBeUndefined();
   });
 });

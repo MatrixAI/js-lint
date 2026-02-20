@@ -20,10 +20,10 @@ const ESLINT_FILE_EXTENSIONS = [
 
 const DEFAULT_ESLINT_SEARCH_ROOTS = ['./src', './scripts', './tests'];
 
-/* eslint-disable no-console */
 function createESLintDomainPlugin(): LintDomainPlugin {
   return {
     domain: 'eslint',
+    description: 'Lint JavaScript/TypeScript/JSON files with ESLint.',
     detect: ({ eslintPatterns }) => {
       const patterns =
         eslintPatterns != null && eslintPatterns.length > 0
@@ -47,27 +47,33 @@ function createESLintDomainPlugin(): LintDomainPlugin {
         matchedFiles: matchedRelativeFiles,
       };
     },
-    run: async ({ fix, chosenConfig, isConfigValid, eslintPatterns }) => {
+    run: async ({
+      fix,
+      logger,
+      chosenConfig,
+      isConfigValid,
+      eslintPatterns,
+    }) => {
       if (!isConfigValid) {
-        console.error('Skipping ESLint due to invalid --config path.');
+        logger.error('Skipping ESLint due to invalid --eslint-config path.');
         return { hadFailure: true };
       }
 
       try {
         const hadLintingErrors = await utils.runESLint({
           fix,
+          logger,
           configPath: chosenConfig,
           explicitGlobs: eslintPatterns,
         });
 
         return { hadFailure: hadLintingErrors };
       } catch (err) {
-        console.error(`ESLint failed: \n${err}`);
+        logger.error(`ESLint failed: \n${err}`);
         return { hadFailure: true };
       }
     },
   };
 }
-/* eslint-enable no-console */
 
 export { createESLintDomainPlugin };

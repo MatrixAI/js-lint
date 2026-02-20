@@ -13,7 +13,6 @@ const platform = os.platform();
 
 const SHELL_FILE_EXTENSIONS = ['.sh'] as const;
 
-/* eslint-disable no-console */
 function createShellDomainPlugin({
   defaultSearchRoots,
 }: {
@@ -21,6 +20,7 @@ function createShellDomainPlugin({
 }): LintDomainPlugin {
   return {
     domain: 'shell',
+    description: 'Lint shell scripts with shellcheck when available.',
     detect: ({ shellPatterns }) => {
       const patterns =
         shellPatterns != null && shellPatterns.length > 0
@@ -48,14 +48,14 @@ function createShellDomainPlugin({
         matchedFiles: matchedRelativeFiles,
       };
     },
-    run: (_context, detection) => {
+    run: ({ logger }, detection) => {
       const matchedFiles = detection.matchedFiles ?? [];
       if (matchedFiles.length === 0) {
         return { hadFailure: false };
       }
 
-      console.error('Running shellcheck:');
-      console.error(' ' + ['shellcheck', ...matchedFiles].join(' '));
+      logger.info('Running shellcheck:');
+      logger.info(' ' + ['shellcheck', ...matchedFiles].join(' '));
 
       try {
         childProcess.execFileSync('shellcheck', matchedFiles, {
@@ -68,12 +68,11 @@ function createShellDomainPlugin({
 
         return { hadFailure: false };
       } catch (err) {
-        console.error('Shellcheck failed. ' + err);
+        logger.error('Shellcheck failed. ' + err);
         return { hadFailure: true };
       }
     },
   };
 }
-/* eslint-enable no-console */
 
 export { createShellDomainPlugin };

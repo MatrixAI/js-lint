@@ -38,7 +38,6 @@ function collectMarkdownFilesFromScope(
   return matchedRelativeFiles;
 }
 
-/* eslint-disable no-console */
 function createMarkdownDomainPlugin({
   prettierConfigPath,
 }: {
@@ -46,6 +45,7 @@ function createMarkdownDomainPlugin({
 }): LintDomainPlugin {
   return {
     domain: 'markdown',
+    description: 'Format and check Markdown/MDX files with Prettier.',
     detect: () => {
       const searchPatterns = DEFAULT_MARKDOWN_SEARCH_ROOTS;
       const searchRoots = resolveSearchRootsFromPatterns(searchPatterns);
@@ -62,7 +62,7 @@ function createMarkdownDomainPlugin({
         matchedFiles,
       };
     },
-    run: ({ fix }, detection) => {
+    run: ({ fix, logger }, detection) => {
       const markdownFiles = detection.matchedFiles ?? [];
       if (markdownFiles.length === 0) {
         return { hadFailure: false };
@@ -78,7 +78,7 @@ function createMarkdownDomainPlugin({
         ...markdownFiles,
       ];
 
-      console.error('Running prettier:');
+      logger.info('Running prettier:');
 
       const require = createRequire(import.meta.url);
       let prettierBin: string | null = null;
@@ -91,7 +91,7 @@ function createMarkdownDomainPlugin({
 
       try {
         if (prettierBin) {
-          console.error(` ${prettierBin} \n ${prettierArgs.join('\n' + ' ')}`);
+          logger.info(` ${prettierBin} \n ${prettierArgs.join('\n' + ' ')}`);
           childProcess.execFileSync(
             process.execPath,
             [prettierBin, ...prettierArgs],
@@ -103,7 +103,7 @@ function createMarkdownDomainPlugin({
             },
           );
         } else {
-          console.error('prettier ' + prettierArgs.join('\n' + ' '));
+          logger.info('prettier ' + prettierArgs.join('\n' + ' '));
           childProcess.execFileSync('prettier', prettierArgs, {
             stdio: 'inherit',
             windowsHide: true,
@@ -114,9 +114,9 @@ function createMarkdownDomainPlugin({
         }
       } catch (err) {
         if (!fix) {
-          console.error('Prettier check failed.');
+          logger.error('Prettier check failed.');
         } else {
-          console.error('Prettier write failed. ' + err);
+          logger.error('Prettier write failed. ' + err);
         }
 
         return { hadFailure: true };
@@ -126,6 +126,5 @@ function createMarkdownDomainPlugin({
     },
   };
 }
-/* eslint-enable no-console */
 
 export { createMarkdownDomainPlugin };

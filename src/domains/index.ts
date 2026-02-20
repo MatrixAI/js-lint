@@ -1,10 +1,15 @@
 import type { LintDomain, CLIOptions } from '../types.js';
 import {
   createLintDomainRegistry,
+  listLintDomains,
+  evaluateLintDomains,
+  runLintDomainDecisions,
   runLintDomains,
   type LintDomainPlugin,
   type LintDomainPluginResult,
+  type LintDomainDecision,
   type LintDomainEngineContext,
+  type LintDomainSelectionSource,
 } from './engine.js';
 import { createESLintDomainPlugin } from './eslint.js';
 import { createShellDomainPlugin } from './shell.js';
@@ -17,13 +22,16 @@ const DEFAULT_SHELLCHECK_SEARCH_ROOTS = ['./src', './scripts', './tests'];
 function resolveDomainSelection(options: CLIOptions): {
   selectedDomains: Set<LintDomain>;
   explicitlyRequestedDomains: Set<LintDomain>;
+  selectionSources: Map<LintDomain, LintDomainSelectionSource>;
 } {
-  const onlyDomains = options.only ?? [];
-  const skipDomains = new Set(options.skip ?? []);
-  const hasDomainSelectors = onlyDomains.length > 0 || skipDomains.size > 0;
+  const domainFlags = options.domain ?? [];
+  const skipDomains = new Set<LintDomain>(options.skipDomain ?? []);
+  const hasDomainSelectors = domainFlags.length > 0 || skipDomains.size > 0;
   const hasExplicitESLintTargets = (options.eslint?.length ?? 0) > 0;
   const hasExplicitShellTargets = (options.shell?.length ?? 0) > 0;
-  const explicitlyRequestedDomains = new Set<LintDomain>(onlyDomains);
+  const explicitlyRequestedDomains = new Set<LintDomain>(domainFlags);
+  const selectionSources = new Map<LintDomain, LintDomainSelectionSource>();
+
   if (hasExplicitESLintTargets) {
     explicitlyRequestedDomains.add('eslint');
   }
@@ -33,21 +41,34 @@ function resolveDomainSelection(options: CLIOptions): {
 
   let selectedDomains: Set<LintDomain>;
 
-  if (onlyDomains.length > 0) {
-    selectedDomains = new Set<LintDomain>(onlyDomains);
+  if (domainFlags.length > 0) {
+    selectedDomains = new Set<LintDomain>(domainFlags);
+    for (const domain of domainFlags) {
+      selectionSources.set(domain, 'domain-flag');
+    }
   } else if (
     !hasDomainSelectors &&
     (hasExplicitESLintTargets || hasExplicitShellTargets)
   ) {
     selectedDomains = new Set<LintDomain>();
-    if (hasExplicitESLintTargets) selectedDomains.add('eslint');
-    if (hasExplicitShellTargets) selectedDomains.add('shell');
+    if (hasExplicitESLintTargets) {
+      selectedDomains.add('eslint');
+      selectionSources.set('eslint', 'target-flag');
+    }
+    if (hasExplicitShellTargets) {
+      selectedDomains.add('shell');
+      selectionSources.set('shell', 'target-flag');
+    }
   } else {
     selectedDomains = new Set<LintDomain>(LINT_DOMAINS);
+    for (const domain of LINT_DOMAINS) {
+      selectionSources.set(domain, 'default');
+    }
   }
 
   for (const domain of skipDomains) {
     selectedDomains.delete(domain);
+    selectionSources.delete(domain);
   }
 
   for (const domain of [...explicitlyRequestedDomains]) {
@@ -56,7 +77,11 @@ function resolveDomainSelection(options: CLIOptions): {
     }
   }
 
-  return { selectedDomains, explicitlyRequestedDomains };
+  return {
+    selectedDomains,
+    explicitlyRequestedDomains,
+    selectionSources,
+  };
 }
 
 function createBuiltInDomainRegistry({
@@ -76,9 +101,11 @@ function createBuiltInDomainRegistry({
 }
 
 export type {
+  LintDomainDecision,
   LintDomainEngineContext,
   LintDomainPlugin,
   LintDomainPluginResult,
+  LintDomainSelectionSource,
 };
 export {
   LINT_DOMAINS,
@@ -86,5 +113,8 @@ export {
   resolveDomainSelection,
   createBuiltInDomainRegistry,
   createLintDomainRegistry,
+  listLintDomains,
+  evaluateLintDomains,
+  runLintDomainDecisions,
   runLintDomains,
 };

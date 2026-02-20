@@ -7,22 +7,26 @@
 
 ## Implemented in this slice
 
-- Added domain selection controls in the CLI:
-  - `--only <domains...>`
-  - `--skip <domains...>`
-  - supported values: `eslint`, `shell`, `markdown`
-- Updated targeting semantics for backward-compatible flags:
-  - If no selectors and no domain-target flags are provided, default behavior runs all built-in domains.
-  - If `--eslint` and/or `--shell` are provided, selected domains are inferred from those flags so unrelated domains do not run by default.
-- Implemented shellcheck optional-vs-explicit behavior:
-  - default auto-run shell domain with missing tool => warn and skip
-  - explicit shell selection (`--shell ...` or `--only shell`) with missing tool => deterministic failure
-- Fixed aggregate outcome control flow:
-  - removed early markdown return path that could mask prior failures
-  - `main` now makes one final pass/fail decision from aggregate outcomes
-- Tightened option correctness:
-  - removed permissive unknown-option behavior so unknown flags are rejected by the CLI parser
-- Added tests for this slice in [`tests/bin/lint.test.ts`](../../tests/bin/lint.test.ts).
+- Finalized canonical long-term CLI surface:
+  - `--domain <id...>` and `--skip-domain <id...>` for explicit inclusion/exclusion
+  - `--list-domains` prints available domains with descriptions and exits without lint execution
+  - `--explain` prints per-domain decision details (selection source, relevance, availability, planned action)
+  - `--eslint-config <path>` as the canonical explicit ESLint config override
+  - domain ids remain: `eslint`, `shell`, `markdown`
+- Integrated explain/list output with the domain engine (no duplicate decision logic in CLI):
+  - added decision evaluation and domain-list helpers in [`src/domains/engine.ts`](../../src/domains/engine.ts)
+  - CLI now consumes those helpers in [`src/bin/lint.ts`](../../src/bin/lint.ts)
+- Clarified shell target semantics in CLI help and docs:
+  - `--shell` now documented as targets (files, roots, or globs), not only globs
+  - effective behavior remains root-derivation + recursive `*.sh` discovery
+- Removed legacy flag surface from docs/CLI path:
+  - canonical path uses `--domain`, `--skip-domain`, `--eslint-config`
+  - no backward-compat requirement maintained for `--only`, `--skip`, `--config` in this slice
+- Preserved script-level workflow compatibility by updating package scripts to canonical flags:
+  - `npm run lint` and `npm run lintfix` remain functional workflows and now invoke canonical domain flags
+- Added/updated tests for canonical behavior:
+  - domain selection + explain/list integration in [`tests/domains/index.test.ts`](../../tests/domains/index.test.ts)
+  - CLI canonical flags, explain output path, list-domains early exit, and script-shape coverage in [`tests/bin/lint.test.ts`](../../tests/bin/lint.test.ts)
 
 ## Implemented in smart-detection completion slice
 

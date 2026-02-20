@@ -12,12 +12,15 @@ type LintDomain = 'eslint' | 'shell' | 'markdown';
 
 type CLIOptions = {
   fix: boolean;
+  verbose?: number;
   userConfig: boolean;
-  config?: string;
+  eslintConfig?: string;
   eslint?: string[];
   shell?: string[];
-  only?: LintDomain[];
-  skip?: LintDomain[];
+  domain?: LintDomain[];
+  skipDomain?: LintDomain[];
+  listDomains?: boolean;
+  explain?: boolean;
 };
 
 export type { MatrixAILintCfg, RawMatrixCfg, CLIOptions, LintDomain };

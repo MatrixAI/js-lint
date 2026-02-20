@@ -1,4 +1,5 @@
 import type { MatrixAILintCfg, RawMatrixCfg } from './types.js';
+import type Logger from '@matrixai/logger';
 import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
@@ -6,24 +7,39 @@ import fs from 'node:fs';
 import url from 'node:url';
 import ts from 'typescript';
 import { ESLint } from 'eslint';
+import { LogLevel } from '@matrixai/logger';
 
-/* eslint-disable no-console */
+/**
+ * Convert verbosity count to logger level.
+ */
+function verboseToLogLevel(c: number = 0): LogLevel {
+  let logLevel = LogLevel.INFO;
+  if (c === 1) {
+    logLevel = LogLevel.DEBUG;
+  } else if (c >= 2) {
+    logLevel = LogLevel.NOTSET;
+  }
+  return logLevel;
+}
+
 async function runESLint({
   fix,
   configPath,
   explicitGlobs,
+  logger,
 }: {
   fix: boolean;
   configPath?: string;
   explicitGlobs?: string[];
+  logger: Logger;
 }): Promise<boolean> {
   const dirname = path.dirname(url.fileURLToPath(import.meta.url));
   const defaultConfigPath = path.resolve(dirname, './configs/js.js');
 
   // PATH A – user supplied explicit globs
   if (explicitGlobs?.length) {
-    console.log('Linting with explicit patterns:');
-    explicitGlobs.forEach((g) => console.log('  ' + g));
+    logger.info('Linting with explicit patterns:');
+    explicitGlobs.forEach((g) => logger.info('  ' + g));
 
     const eslint = new ESLint({
       overrideConfigFile: configPath || defaultConfigPath,
@@ -33,26 +49,26 @@ async function runESLint({
       ignorePatterns: [], // Trust caller entirely
     });
 
-    return await lintAndReport(eslint, explicitGlobs, fix);
+    return await lintAndReport(eslint, explicitGlobs, fix, logger);
   }
 
   // PATH B – default behaviour (tsconfig + matrix config)
   const { forceInclude, tsconfigPaths } = resolveMatrixConfig();
 
   if (tsconfigPaths.length === 0) {
-    console.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
+    logger.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
   }
 
-  console.log(`Found ${tsconfigPaths.length} tsconfig.json files:`);
-  tsconfigPaths.forEach((p) => console.log('  ' + p));
+  logger.info(`Found ${tsconfigPaths.length} tsconfig.json files:`);
+  tsconfigPaths.forEach((p) => logger.info('  ' + p));
 
   const { files: patterns, ignore: ignorePats } = buildPatterns(
     tsconfigPaths[0],
     forceInclude,
   );
 
-  console.log('Linting files:');
-  patterns.forEach((p) => console.log('  ' + p));
+  logger.info('Linting files:');
+  patterns.forEach((p) => logger.info('  ' + p));
 
   const eslint = new ESLint({
     overrideConfigFile: configPath || defaultConfigPath,
@@ -62,13 +78,14 @@ async function runESLint({
     ignorePatterns: ignorePats,
   });
 
-  return await lintAndReport(eslint, patterns, fix);
+  return await lintAndReport(eslint, patterns, fix, logger);
 }
 
 async function lintAndReport(
   eslint: ESLint,
   patterns: string[],
   fix: boolean,
+  logger: Logger,
 ): Promise<boolean> {
   const results = await eslint.lintFiles(patterns);
 
@@ -77,12 +94,11 @@ async function lintAndReport(
   }
 
   const formatter = await eslint.loadFormatter('stylish');
-  console.log(formatter.format(results));
+  logger.info(formatter.format(results));
   const hasErrors = results.some((r) => r.errorCount > 0);
 
   return hasErrors;
 }
-/* eslint-enable no-console */
 
 /**
  * Find the user's ESLint config file in the current working directory.
@@ -260,6 +276,7 @@ function buildPatterns(
 }
 
 export {
+  verboseToLogLevel,
   runESLint,
   findUserESLintConfig,
   collectMarkdown,

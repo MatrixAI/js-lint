@@ -35,36 +35,49 @@ matrixai-lint --fix
 
 ### CLI Options
 
-| Flag               | Description                                                                  |
-| ------------------ | ---------------------------------------------------------------------------- |
-| _(no flag)_        | Uses built-in Matrix AI ESLint config                                        |
-| `--fix`            | Enables auto-fixing via ESLint and Prettier                                  |
-| `--user-config`    | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
-| `--config <path>`  | Explicitly use a custom ESLint config file                                   |
-| `--eslint <paths>` | Glob(s) forwarded to ESLint                                                  |
-| `--shell <paths>`  | Glob(s) forwarded to ShellCheck search roots; implies shell domain selection |
-| `--only <domains>` | Run only selected domains (`eslint`, `shell`, `markdown`)                    |
-| `--skip <domains>` | Skip selected domains (`eslint`, `shell`, `markdown`)                        |
+| Flag                     | Description                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| _(no flag)_              | Uses built-in Matrix AI ESLint config                                        |
+| `--fix`                  | Enables auto-fixing via ESLint and Prettier                                  |
+| `--user-config`          | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
+| `--eslint-config <path>` | Explicitly use a custom ESLint config file                                   |
+| `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection     |
+| `--shell <targets>`      | Shell targets (files, roots, or globs) used to derive shell search roots     |
+| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`)                    |
+| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`)                        |
+| `--list-domains`         | Print available domains and short descriptions, then exit 0                  |
+| `--explain`              | Print per-domain decision details before execution                           |
+| `-v, --verbose`          | Increase log verbosity (repeat for more detail)                              |
 
 Domain selection behavior:
 
-- With no selectors and no domain-specific target flags, all built-in domains run by default.
-- Passing `--eslint` and/or `--shell` implies explicit domain selection from those flags.
+- With no selectors and no domain-specific target flags, all built-in domains
+  run by default.
+- Passing `--eslint` and/or `--shell` implies explicit domain selection from
+  those flags.
   - `--eslint ...` runs ESLint only.
   - `--shell ...` runs shell only.
   - Passing both runs both.
 - `shellcheck` is optional only for default auto-run shell execution.
-  - If shell is explicitly requested (`--shell ...` or `--only shell`), missing `shellcheck` is a failure.
+  - If shell is explicitly requested (`--shell ...` or `--domain shell`),
+    missing `shellcheck` is a failure.
+- `--shell` accepts target paths and glob patterns.
+  - Directories are used as roots.
+  - File paths and glob patterns are reduced to search roots, then `*.sh` files
+    are discovered under those roots.
 
 #### Examples
 
 ```sh
 matrixai-lint --fix
 matrixai-lint --user-config
-matrixai-lint --config ./eslint.config.js --fix
+matrixai-lint --eslint-config ./eslint.config.js --fix
 matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
-matrixai-lint --only eslint markdown
-matrixai-lint --skip markdown
+matrixai-lint --domain eslint markdown
+matrixai-lint --skip-domain markdown
+matrixai-lint --list-domains
+matrixai-lint --explain --domain eslint
+matrixai-lint -v -v --domain markdown
 ```
 
 ### ESLint config (ESM / NodeNext)
@@ -120,11 +133,17 @@ Supported imports:
 
 - `@matrixai/lint`: named export `config`; types `MatrixAILintCfg`,
   `RawMatrixCfg`, `CLIOptions`.
-- `@matrixai/lint/config.js`: default export of the Flat Config array (same shape
-  as `config`).
+- `@matrixai/lint/config.js`: default export of the Flat Config array (same
+  shape as `config`).
 
-Internal modules (plugins, rules, utilities, and wildcard passthroughs under
-`@matrixai/lint/*`) are for tooling and are not a stable public API.
+The exported `config` is intended as a composable base preset for downstream
+`eslint.config.js` files, not as an internal-only implementation detail.
+
+`src/configs/prettier.config.js` is used internally by the markdown domain
+runner and is not part of the public package API.
+
+Any package import path not listed above is internal and not a stable public
+API.
 
 ## Contributing
 

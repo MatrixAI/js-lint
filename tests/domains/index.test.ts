@@ -1,9 +1,14 @@
+import Logger, { LogLevel } from '@matrixai/logger';
 import {
   createLintDomainRegistry,
   runLintDomains,
+  evaluateLintDomains,
+  listLintDomains,
   resolveDomainSelection,
   type LintDomainPlugin,
 } from '#domains/index.js';
+
+const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
 
 describe('domain engine', () => {
   test('runs selected domains in declared order and aggregates failures', async () => {
@@ -11,6 +16,7 @@ describe('domain engine', () => {
     const registry = createLintDomainRegistry([
       {
         domain: 'shell',
+        description: 'shell test plugin',
         detect: () => ({
           relevant: true,
           available: true,
@@ -23,6 +29,7 @@ describe('domain engine', () => {
       },
       {
         domain: 'eslint',
+        description: 'eslint test plugin',
         detect: () => ({
           relevant: true,
           available: true,
@@ -35,6 +42,7 @@ describe('domain engine', () => {
       },
       {
         domain: 'markdown',
+        description: 'markdown test plugin',
         detect: () => ({
           relevant: true,
           available: true,
@@ -54,6 +62,7 @@ describe('domain engine', () => {
       executionOrder: ['eslint', 'shell', 'markdown'],
       context: {
         fix: false,
+        logger: testLogger,
         isConfigValid: true,
       },
     });
@@ -67,6 +76,7 @@ describe('domain engine', () => {
       createLintDomainRegistry([
         {
           domain: 'eslint',
+          description: 'eslint test plugin',
           detect: () => ({
             relevant: true,
             available: true,
@@ -76,6 +86,7 @@ describe('domain engine', () => {
         },
         {
           domain: 'eslint',
+          description: 'eslint duplicate test plugin',
           detect: () => ({
             relevant: true,
             available: true,
@@ -91,6 +102,7 @@ describe('domain engine', () => {
     const registry = createLintDomainRegistry([
       {
         domain: 'shell',
+        description: 'shell test plugin',
         detect: () => ({
           relevant: true,
           available: false,
@@ -108,6 +120,7 @@ describe('domain engine', () => {
       executionOrder: ['shell'],
       context: {
         fix: false,
+        logger: testLogger,
         isConfigValid: true,
       },
     });
@@ -119,6 +132,7 @@ describe('domain engine', () => {
     const registry = createLintDomainRegistry([
       {
         domain: 'shell',
+        description: 'shell test plugin',
         detect: () => ({
           relevant: true,
           available: false,
@@ -136,6 +150,7 @@ describe('domain engine', () => {
       executionOrder: ['shell'],
       context: {
         fix: false,
+        logger: testLogger,
         isConfigValid: true,
       },
     });
@@ -147,6 +162,7 @@ describe('domain engine', () => {
     const registry = createLintDomainRegistry([
       {
         domain: 'shell',
+        description: 'shell test plugin',
         detect: () => ({
           relevant: false,
           available: true,
@@ -164,6 +180,7 @@ describe('domain engine', () => {
       executionOrder: ['shell'],
       context: {
         fix: false,
+        logger: testLogger,
         isConfigValid: true,
       },
     });
@@ -175,6 +192,7 @@ describe('domain engine', () => {
     const registry = createLintDomainRegistry([
       {
         domain: 'eslint',
+        description: 'eslint test plugin',
         detect: () => ({
           relevant: true,
           available: false,
@@ -192,17 +210,126 @@ describe('domain engine', () => {
       executionOrder: ['eslint'],
       context: {
         fix: false,
+        logger: testLogger,
         isConfigValid: true,
       },
     });
 
     expect(hadFailure).toBe(true);
   });
+
+  test('evaluate produces explainable decisions without duplicate detection logic', async () => {
+    const registry = createLintDomainRegistry([
+      {
+        domain: 'eslint',
+        description: 'eslint test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'required',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+      {
+        domain: 'shell',
+        description: 'shell test plugin',
+        detect: () => ({
+          relevant: true,
+          available: false,
+          availabilityKind: 'optional',
+          unavailableReason: 'shellcheck not found in environment.',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+      {
+        domain: 'markdown',
+        description: 'markdown test plugin',
+        detect: () => ({
+          relevant: false,
+          available: true,
+          availabilityKind: 'required',
+          relevanceReason: 'No Markdown files matched in effective scope.',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+    ] satisfies readonly LintDomainPlugin[]);
+
+    const decisions = await evaluateLintDomains({
+      registry,
+      selectedDomains: new Set(['eslint', 'shell']),
+      explicitlyRequestedDomains: new Set(['shell']),
+      selectionSources: new Map([
+        ['eslint', 'default'],
+        ['shell', 'domain-flag'],
+      ]),
+      executionOrder: ['eslint', 'shell', 'markdown'],
+      context: {
+        fix: false,
+        logger: testLogger,
+        isConfigValid: true,
+      },
+    });
+
+    expect(decisions).toHaveLength(3);
+    expect(decisions[0]?.domain).toBe('eslint');
+    expect(decisions[0]?.plannedAction).toBe('run');
+    expect(decisions[1]?.domain).toBe('shell');
+    expect(decisions[1]?.plannedAction).toBe('fail-unavailable');
+    expect(decisions[1]?.selectionSource).toBe('domain-flag');
+    expect(decisions[2]?.domain).toBe('markdown');
+    expect(decisions[2]?.plannedAction).toBe('skip-unselected');
+  });
+
+  test('list-domains reflects registry metadata in execution order', () => {
+    const registry = createLintDomainRegistry([
+      {
+        domain: 'eslint',
+        description: 'eslint test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'required',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+      {
+        domain: 'shell',
+        description: 'shell test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'optional',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+      {
+        domain: 'markdown',
+        description: 'markdown test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'required',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+    ] satisfies readonly LintDomainPlugin[]);
+
+    const listed = listLintDomains({
+      registry,
+      executionOrder: ['eslint', 'shell', 'markdown'],
+    });
+
+    expect(listed).toStrictEqual([
+      { domain: 'eslint', description: 'eslint test plugin' },
+      { domain: 'shell', description: 'shell test plugin' },
+      { domain: 'markdown', description: 'markdown test plugin' },
+    ]);
+  });
 });
 
 describe('domain selection', () => {
   test('auto mode with no explicit domain requests selects all domains', () => {
-    const { selectedDomains, explicitlyRequestedDomains } =
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
       resolveDomainSelection({
         fix: false,
         userConfig: false,
@@ -214,10 +341,13 @@ describe('domain selection', () => {
       'shell',
     ]);
     expect([...explicitlyRequestedDomains]).toStrictEqual([]);
+    expect(selectionSources.get('eslint')).toBe('default');
+    expect(selectionSources.get('shell')).toBe('default');
+    expect(selectionSources.get('markdown')).toBe('default');
   });
 
   test('domain specific target flags imply explicit domain request', () => {
-    const { selectedDomains, explicitlyRequestedDomains } =
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
       resolveDomainSelection({
         fix: false,
         userConfig: false,
@@ -226,18 +356,21 @@ describe('domain selection', () => {
 
     expect([...selectedDomains]).toStrictEqual(['eslint']);
     expect([...explicitlyRequestedDomains]).toStrictEqual(['eslint']);
+    expect(selectionSources.get('eslint')).toBe('target-flag');
   });
 
-  test('--only keeps explicit domains and --skip removes them', () => {
-    const { selectedDomains, explicitlyRequestedDomains } =
+  test('--domain keeps explicit domains and --skip-domain removes them', () => {
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
       resolveDomainSelection({
         fix: false,
         userConfig: false,
-        only: ['eslint', 'shell'],
-        skip: ['shell'],
+        domain: ['eslint', 'shell'],
+        skipDomain: ['shell'],
       });
 
     expect([...selectedDomains]).toStrictEqual(['eslint']);
     expect([...explicitlyRequestedDomains]).toStrictEqual(['eslint']);
+    expect(selectionSources.get('eslint')).toBe('domain-flag');
+    expect(selectionSources.has('shell')).toBe(false);
   });
 });
