@@ -5,6 +5,24 @@
 - First implementation slice for CLI execution semantics has been delivered.
 - The target architecture is described in [`PLAN.md`](PLAN.md).
 
+## Implemented in config-schema cleanup + API-boundary slice
+
+- Completed lint runtime config loading/normalization using a single explicit schema:
+  - added [`src/config.ts`](../../src/config.ts)
+  - supports `matrixai-lint-config.json` with explicit `"version": 2`
+  - normalized output provides a single resolved shape for CLI/engine consumers
+- Updated runtime consumers to use the dedicated config module:
+  - [`src/utils.ts`](../../src/utils.ts)
+  - [`src/configs/js.ts`](../../src/configs/js.ts)
+- Expanded public exports for coherent extensibility:
+  - [`package.json`](../../package.json) includes `./configs/*.js` typed/import exports
+  - canonical downstream preset import is `@matrixai/lint/configs/js.js`
+  - reusable downstream config import path available for `@matrixai/lint/configs/prettier.config.js`
+- Updated tests and docs for the new boundary:
+  - adjusted programmatic export test in [`tests/index.test.ts`](../../tests/index.test.ts)
+  - added config loader tests in [`tests/config.test.ts`](../../tests/config.test.ts)
+  - updated user docs in [`README.md`](../../README.md) for schema + `configs/*` imports
+
 ## Implemented in this slice
 
 - Finalized canonical long-term CLI surface:

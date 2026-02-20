@@ -98,7 +98,7 @@ export default config;
 
 ```js
 // eslint.config.js
-import matrixai from '@matrixai/lint/config.js';
+import matrixai from '@matrixai/lint/configs/js.js';
 
 export default matrixai;
 ```
@@ -110,19 +110,32 @@ files to lint and how to parse them. By default it looks for `tsconfig.json` in
 the project root and uses the `include`/`exclude` entries.
 
 If your project uses more than one `tsconfig.json` or does not have one at the
-root, configure the linter using a `matrixai-lint-config.json` file at the root:
+root, configure the linter using a `matrixai-lint-config.json` file at the root.
+
+This config uses a versioned schema and must explicitly declare `"version": 2`:
 
 ```json
 {
-  "tsconfigPaths": ["./tsconfig.base.json", "./packages/core/tsconfig.json"],
-  "forceInclude": ["scripts", "src/overrides"]
+  "version": 2,
+  "root": ".",
+  "domains": {
+    "eslint": {
+      "tsconfigPaths": [
+        "./tsconfig.base.json",
+        "./packages/core/tsconfig.json"
+      ],
+      "forceInclude": ["scripts", "src/overrides"]
+    }
+  }
 }
 ```
 
-| Field           | Type       | Description                                                                              |
-| --------------- | ---------- | ---------------------------------------------------------------------------------------- |
-| `tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                               |
-| `forceInclude`  | `string[]` | Paths to always include, even if excluded by tsconfig (must be included by at least one) |
+| Field                          | Type       | Description                                                                               |
+| ------------------------------ | ---------- | ----------------------------------------------------------------------------------------- |
+| `version`                      | `2`        | Required schema version marker                                                            |
+| `root`                         | `string`   | Optional lint root (defaults to `.`). `tsconfigPaths` are resolved relative to this root. |
+| `domains.eslint.tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                                |
+| `domains.eslint.forceInclude`  | `string[]` | Paths to always include, even if excluded by tsconfig (must be included by at least one)  |
 
 Note: If a path in `forceInclude` is not included in any of the `tsconfigPaths`,
 TypeScript will throw a parsing error.
@@ -133,14 +146,12 @@ Supported imports:
 
 - `@matrixai/lint`: named export `config`; types `MatrixAILintCfg`,
   `RawMatrixCfg`, `CLIOptions`.
-- `@matrixai/lint/config.js`: default export of the Flat Config array (same
-  shape as `config`).
+- `@matrixai/lint/configs/js.js`: default export of the ESLint Flat Config array
+  (same shape as `config`).
+- `@matrixai/lint/configs/prettier.config.js`: reusable Prettier options object.
 
 The exported `config` is intended as a composable base preset for downstream
 `eslint.config.js` files, not as an internal-only implementation detail.
-
-`src/configs/prettier.config.js` is used internally by the markdown domain
-runner and is not part of the public package API.
 
 Any package import path not listed above is internal and not a stable public
 API.

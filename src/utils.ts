@@ -1,4 +1,4 @@
-import type { MatrixAILintCfg, RawMatrixCfg } from './types.js';
+import type { MatrixAILintCfgResolved } from './types.js';
 import type Logger from '@matrixai/logger';
 import path from 'node:path';
 import process from 'node:process';
@@ -8,6 +8,7 @@ import url from 'node:url';
 import ts from 'typescript';
 import { ESLint } from 'eslint';
 import { LogLevel } from '@matrixai/logger';
+import { resolveLintConfig } from './config.js';
 
 /**
  * Convert verbosity count to logger level.
@@ -26,11 +27,13 @@ async function runESLint({
   fix,
   configPath,
   explicitGlobs,
+  resolvedConfig,
   logger,
 }: {
   fix: boolean;
   configPath?: string;
   explicitGlobs?: string[];
+  resolvedConfig?: MatrixAILintCfgResolved;
   logger: Logger;
 }): Promise<boolean> {
   const dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -53,10 +56,12 @@ async function runESLint({
   }
 
   // PATH B – default behaviour (tsconfig + matrix config)
-  const { forceInclude, tsconfigPaths } = resolveMatrixConfig();
+  const lintConfig = resolvedConfig ?? resolveLintConfig();
+  const { forceInclude, tsconfigPaths } = lintConfig.domains.eslint;
 
   if (tsconfigPaths.length === 0) {
     logger.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
+    return true;
   }
 
   logger.info(`Found ${tsconfigPaths.length} tsconfig.json files:`);
@@ -151,84 +156,6 @@ function commandExists(cmd: string): boolean {
   return result.status === 0;
 }
 
-// Checks if the value is an object and not null
-// and then casts it to RawMatrixCfg. If the value is not an object or is null,
-// it returns undefined.
-function asRawMatrixCfg(v: unknown): RawMatrixCfg | undefined {
-  return typeof v === 'object' && v !== null ? (v as RawMatrixCfg) : undefined;
-}
-
-/**
- * Loads and sanitises MatrixAI‑linter config for a repo.
- *
- * - Reads `matrixai-lint-config.json` in `repoRoot` (if present).
- *   - Throws if the JSON is invalid.
- * - Extracts `tsconfigPaths` & `forceInclude`, coercing each to `string[]`.
- * - Resolves `tsconfigPaths` to absolute paths and keeps only files that exist.
- *   - If none remain, falls back to `repoRoot/tsconfig.json` when available.
- * - Strips leading “./” from every `forceInclude` glob.
- *
- * Returns a normalised `{ tsconfigPaths, forceInclude }`.
- */
-function resolveMatrixConfig(repoRoot = process.cwd()): MatrixAILintCfg {
-  const cfgPath = path.join(repoRoot, 'matrixai-lint-config.json');
-
-  let rawCfg: unknown = {};
-
-  if (fs.existsSync(cfgPath)) {
-    try {
-      const text = fs.readFileSync(cfgPath, 'utf8').trim();
-      rawCfg = text.length > 0 ? JSON.parse(text) : {};
-    } catch (e) {
-      throw new Error(
-        `[matrixai-lint]  ✖  matrixai-lint-config.json has been provided but it is not valid JSON.\n ${e}`,
-      );
-    }
-  }
-
-  const cfg = asRawMatrixCfg(rawCfg);
-
-  const tsconfigPaths = toStringArray(cfg?.tsconfigPaths ?? [])
-    .map((p) => path.resolve(repoRoot, p))
-    .filter((p) => {
-      if (fs.existsSync(p)) return true;
-      return false;
-    });
-
-  const forceInclude = toStringArray(cfg?.forceInclude ?? []).map((g) =>
-    g.replace(/^\.\//, ''),
-  );
-
-  // Fallback to root tsconfig if no tsconfigPaths are provided
-  // and the root tsconfig exists
-  if (tsconfigPaths.length === 0) {
-    const rootTs = path.join(repoRoot, 'tsconfig.json');
-    if (fs.existsSync(rootTs)) tsconfigPaths.push(rootTs);
-  }
-
-  return { tsconfigPaths, forceInclude };
-}
-
-/**
- * Converts a value into an array of strings.
- *
- * - If the value is a string, it returns an array containing that string.
- * - If the value is an array, it filters the array to include only strings.
- * - For any other type, it returns an empty array.
- *
- * @param value The value to convert.
- * @returns An array of strings.
- */
-function toStringArray(value: unknown): string[] {
-  if (typeof value === 'string') {
-    return [value];
-  }
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string');
-  }
-  return [];
-}
-
 /**
  * Builds file and ignore patterns based on a given TypeScript configuration file path,
  * with optional forced inclusion of specific paths.
@@ -281,6 +208,5 @@ export {
   findUserESLintConfig,
   collectMarkdown,
   commandExists,
-  resolveMatrixConfig,
   buildPatterns,
 };

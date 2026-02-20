@@ -1,12 +1,30 @@
-type MatrixAILintCfg = {
-  tsconfigPaths: string[];
-  forceInclude: string[];
+type MatrixAILintCfgSource = 'default' | 'config';
+
+type RawMatrixCfg = {
+  version: 2;
+  root?: unknown;
+  domains?: {
+    eslint?: {
+      tsconfigPaths?: unknown;
+      forceInclude?: unknown;
+    };
+  };
 };
 
-type RawMatrixCfg = Partial<{
-  tsconfigPaths: unknown;
-  forceInclude: unknown;
-}>; // “might have these two keys, values are unknown”
+type MatrixAILintCfg = {
+  version: 2;
+  root: string;
+  source: MatrixAILintCfgSource;
+  configFilePath: string;
+  domains: {
+    eslint: {
+      tsconfigPaths: string[];
+      forceInclude: string[];
+    };
+  };
+};
+
+type MatrixAILintCfgResolved = MatrixAILintCfg;
 
 type LintDomain = 'eslint' | 'shell' | 'markdown';
 
@@ -23,4 +41,11 @@ type CLIOptions = {
   explain?: boolean;
 };
 
-export type { MatrixAILintCfg, RawMatrixCfg, CLIOptions, LintDomain };
+export type {
+  MatrixAILintCfg,
+  MatrixAILintCfgSource,
+  MatrixAILintCfgResolved,
+  RawMatrixCfg,
+  CLIOptions,
+  LintDomain,
+};

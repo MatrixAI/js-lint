@@ -1,6 +1,4 @@
-import config from './configs/js.js';
-
-export { config };
+export { default as config } from './configs/js.js';
 export type {
   CLIOptions,
   LintDomain,

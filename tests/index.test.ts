@@ -1,4 +1,4 @@
-import configDefault from '#config.js';
+import eslintConfigDefault from '#configs/js.js';
 import { config } from '#index.js';
 
 describe('index exports', () => {
@@ -7,7 +7,7 @@ describe('index exports', () => {
     expect(Array.isArray(config)).toBe(true);
   });
 
-  test('default config subpath export matches index named export', () => {
-    expect(configDefault).toBe(config);
+  test('default eslint config subpath export matches index named export', () => {
+    expect(eslintConfigDefault).toBe(config);
   });
 });

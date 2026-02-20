@@ -9,7 +9,9 @@ import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
 import prettierOptions from './prettier.config.js';
 import matrixaiPlugin from '../plugins/eslint-plugin-matrixai.js';
-import { resolveMatrixConfig } from '../utils.js';
+import { resolveLintConfig } from '../config.js';
+
+const resolvedLintConfig = resolveLintConfig();
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -53,7 +55,7 @@ const config = [
       ecmaVersion: 5 as EcmaVersion,
       sourceType: 'module',
       parserOptions: {
-        project: resolveMatrixConfig().tsconfigPaths,
+        project: resolvedLintConfig.domains.eslint.tsconfigPaths,
       },
     },
     rules: {
