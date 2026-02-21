@@ -410,7 +410,11 @@ describe('domain engine', () => {
       const eslintDecision = decisions.find(
         (decision) => decision.domain === 'eslint',
       );
-      expect(eslintDecision?.detection?.matchedFiles).toEqual(
+      const matchedFiles = (eslintDecision?.detection?.matchedFiles ?? []).map(
+        (p) => p.split(path.sep).join(path.posix.sep),
+      );
+
+      expect(matchedFiles).toEqual(
         expect.arrayContaining(['pkg-a/src/a.ts', 'pkg-b/src/b.ts']),
       );
       expect(eslintDecision?.plannedAction).toBe('run');

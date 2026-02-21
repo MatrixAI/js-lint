@@ -139,10 +139,16 @@ describe('lint config schema', () => {
         configFilePath,
       });
 
-      expect(resolved.domains.eslint.tsconfigPaths).toStrictEqual([
+      const expected = [
         path.resolve(repoRoot, 'workspace', 'a', 'tsconfig.json'),
         path.resolve(repoRoot, 'workspace', 'b', 'tsconfig.json'),
-      ]);
+      ].map((p) => p.split(path.sep).join(path.posix.sep));
+
+      const actual = resolved.domains.eslint.tsconfigPaths.map((p) =>
+        p.split(path.sep).join(path.posix.sep),
+      );
+
+      expect(actual).toStrictEqual(expected);
     } finally {
       await fs.promises.rm(repoRoot, { recursive: true, force: true });
     }

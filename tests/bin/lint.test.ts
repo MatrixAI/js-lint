@@ -231,6 +231,24 @@ describe('matrixai-lint CLI domain semantics', () => {
   });
 
   test('canonical lint script flags are accepted by main', async () => {
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const isShellcheckProbe =
+          (file === 'which' || file === 'where') && commandName === 'shellcheck';
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status: isShellcheckProbe ? 0 : 0,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
     await expect(
       main([
         'node',
