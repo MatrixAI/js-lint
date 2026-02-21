@@ -236,7 +236,8 @@ describe('matrixai-lint CLI domain semantics', () => {
       .mockImplementation((file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const isShellcheckProbe =
-          (file === 'which' || file === 'where') && commandName === 'shellcheck';
+          (file === 'which' || file === 'where') &&
+          commandName === 'shellcheck';
 
         return {
           pid: 0,
