@@ -1,4 +1,4 @@
-import eslintConfigDefault from '#configs/js.js';
+import eslintConfigDefault from '#configs/eslint.js';
 import { config } from '#index.js';
 
 describe('index exports', () => {

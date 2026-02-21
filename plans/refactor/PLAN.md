@@ -5,15 +5,15 @@
 Refactor `matrixai-lint` into a domain-oriented lint engine that:
 
 - Performs smart auto-discovery (project relevance) independently from tool availability.
-- Distinguishes built-in npm-based capabilities (for example ESLint/Prettier) from optional external tools (for example ShellCheck, nixfmt).
+- Distinguishes built-in npm-based capabilities (for example ESLint/Prettier) from optional external tools (for example ShellCheck).
 - Supports explicit domain selection (include/exclude/only) with consistent target semantics.
-- Provides clean extension points for adding new domains.
+- Provides clear built-in domain boundaries and downstream ESLint extensibility via config composition.
 
 ## Non-goals
 
 - No behavior-changing implementation in this epic document (this is design/spec only).
 - No changes to the shipped ESLint ruleset content (rule tuning is out of scope).
-- No attempt to fully replace ESLint/Prettier/ShellCheck/nixfmt; this project orchestrates them.
+- No attempt to fully replace ESLint/Prettier/ShellCheck; this project orchestrates them.
 
 ## Constraints / invariants
 
@@ -82,7 +82,6 @@ Examples of relevance signals:
 - ESLint (JS/TS): any `*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,json}` in the target set.
 - Markdown/Prettier: any `*.{md,mdx}` in the target set (plus `README.md` by convention).
 - ShellCheck: any `*.sh` in the target set.
-- Nixfmt: any `*.nix` in the target set.
 
 Relevance must be computed against the *effective target set* (CLI paths/globs + config defaults), not against the whole filesystem blindly.
 
@@ -93,7 +92,7 @@ Relevance must be computed against the *effective target set* (CLI paths/globs +
 Availability is domain-specific:
 
 - **Built-in npm-based** domains (ESLint, Prettier) are expected to be available whenever `@matrixai/lint` is installed.
-- **External optional** domains (ShellCheck, nixfmt) may not exist in downstream environments.
+- **External optional** domains (ShellCheck) may not exist in downstream environments.
 
 ### Decision matrix
 
@@ -109,17 +108,17 @@ This model explicitly distinguishes "capability exists" from "domain matters".
 
 ---
 
-## Proposed domain/plugin architecture
+## Proposed domain architecture
 
 ### High-level components
 
 - **Lint engine**: parses CLI/config, computes target set, selects domains, orchestrates execution, aggregates results.
-- **Domain plugins**: encapsulate discovery, tool checks, execution, and reporting for one domain.
+- **Domain modules**: encapsulate discovery, tool checks, execution, and reporting for one domain.
 - **Capability registry**: standardizes dependency checks (npm module resolution vs external binary lookup).
 
-### Domain plugin interface (conceptual)
+### Domain module interface (conceptual)
 
-Each domain plugin should define:
+Each domain module should define:
 
 - `id`: stable string identifier (for example `eslint`, `shellcheck`).
 - `discover(ctx)`: returns relevance result and default target patterns for this domain.
@@ -144,9 +143,6 @@ The engine is responsible for:
 3. **shellcheck**
    - External optional tool.
    - Lints `*.sh`.
-4. **nixfmt**
-   - External optional tool.
-   - Formats/checks `*.nix`.
 
 ### Mermaid: selection and execution pipeline
 
@@ -186,7 +182,7 @@ Dependencies are classified at evaluation time:
 ### Policy rules
 
 - **Auto-discovery must never fail the command** due solely to missing optional external tools.
-- **Explicit domain selection must be strict**: if a user asks for `shellcheck` or `nixfmt`, and the tool is missing, exit non-zero.
+- **Explicit domain selection must be strict**: if a user asks for `shellcheck`, and the tool is missing, exit non-zero.
 - Provide an actionable error message (what is missing, how the tool was detected, how to install).
 
 ---
@@ -240,7 +236,7 @@ Nixfmt-specific:
 
 ---
 
-## Config schema proposal (v2) + examples + extension points
+## Config schema proposal (v2) + examples
 
 ### File discovery
 
@@ -279,26 +275,16 @@ Continue to support `matrixai-lint-config.json`, but evolve it to a versioned sc
       "tool": {
         "command": "shellcheck"
       }
-    },
-    "nixfmt": {
-      "enabled": "auto",
-      "targets": ["**/*.nix"],
-      "tool": {
-        "command": "nixfmt"
-      }
     }
-  },
-  "plugins": [
-    { "module": "./lint-domains/custom-domain.mjs" }
-  ]
+  }
 }
 ```
 
 Notes:
 
 - `enabled` supports: `auto` | `on` | `off`.
-- `plugins` is the extension point: additional domain modules can be loaded to register domains.
 - Domain `tool.command` allows a configurable executable name/path for external tools.
+- Extensibility for downstream ESLint behavior is via ESLint Flat Config composition from the shipped preset (`@matrixai/lint/configs/eslint.js`) and CLI config selection flags such as `--eslint-config` and `--user-config`.
 
 ### Backward compatibility (v1)
 
@@ -334,7 +320,6 @@ Define a stable default domain order for readability and compatibility, while al
 1. `eslint`
 2. `shellcheck`
 3. `markdown-prettier`
-4. `nixfmt`
 
 ### Exit codes
 
@@ -366,15 +351,15 @@ If downstream requires a single non-zero code, document that any non-zero is fai
 
 Assume the project contains `src/**/*.ts`, `docs/**/*.md`, `scripts/foo.sh`, and `nix/shell.nix`.
 
-| Invocation | Domain selection intent | Expected executed domains | If `shellcheck` missing | If `nixfmt` missing |
-| --- | --- | --- | --- | --- |
-| `matrixai-lint` | auto | eslint, markdown-prettier, shellcheck, nixfmt (if relevant) | shellcheck skipped with warning | nixfmt skipped with warning |
-| `matrixai-lint --fix` | auto + fix | eslint (fix), markdown-prettier (write), shellcheck (check), nixfmt (format) | shellcheck skipped with warning | nixfmt skipped with warning |
-| `matrixai-lint --domain eslint` | explicit | eslint only | n/a | n/a |
-| `matrixai-lint --domain shellcheck` | explicit | shellcheck only | fail (missing tool) | n/a |
-| `matrixai-lint --skip-domain shellcheck` | auto minus one | eslint, markdown-prettier, nixfmt | n/a | nixfmt skipped with warning |
-| `matrixai-lint docs` | auto scoped | markdown-prettier (and maybe eslint if JS files under docs) | likely not relevant | likely not relevant |
-| `matrixai-lint --eslint "src/**/*.ts"` | implicit eslint targeting | eslint (explicit targets) + other auto domains unless skipped | shellcheck still auto (unless targets exclude it) | nixfmt still auto (unless targets exclude it) |
+| Invocation | Domain selection intent | Expected executed domains | If `shellcheck` missing |
+| --- | --- | --- | --- |
+| `matrixai-lint` | auto | eslint, markdown-prettier, shellcheck (if relevant) | shellcheck skipped with warning |
+| `matrixai-lint --fix` | auto + fix | eslint (fix), markdown-prettier (write), shellcheck (check) | shellcheck skipped with warning |
+| `matrixai-lint --domain eslint` | explicit | eslint only | n/a |
+| `matrixai-lint --domain shellcheck` | explicit | shellcheck only | fail (missing tool) |
+| `matrixai-lint --skip-domain shellcheck` | auto minus one | eslint, markdown-prettier | n/a |
+| `matrixai-lint docs` | auto scoped | markdown-prettier (and maybe eslint if JS files under docs) | likely not relevant |
+| `matrixai-lint --eslint "src/**/*.ts"` | implicit eslint targeting | eslint (explicit targets) + other auto domains unless skipped | shellcheck still auto (unless targets exclude it) |
 | `matrixai-lint --eslnt` | invalid option typo | none | n/a | n/a |
 
 Notes:
@@ -397,17 +382,17 @@ Notes:
 ### Suggested rollout phases
 
 1. **Phase 1: Internal refactor (no CLI changes)**
-   - Introduce the domain abstraction internally and re-implement current behavior using plugins.
+   - Introduce the domain abstraction internally and re-implement current behavior using built-in domains.
    - Preserve existing fixed sequencing as the default order.
    - Remove correctness hazards while preserving user-facing defaults:
      - enforce single final aggregation path (no early success return masking failures)
      - normalize thrown domain errors into unified reporting.
 
-2. **Phase 2: Smart detection and missing-tool policy**
-   - Implement relevance vs availability model.
-   - Apply optional-tool skip semantics by default.
-   - Align multi-tsconfig target derivation with parser project configuration.
-   - Fix include-pattern normalization so extension-bearing entries remain valid.
+2. **Phase 2: Smart detection and missing-tool policy** *(complete)*
+   - Implemented relevance vs availability model.
+   - Applied optional-tool skip semantics by default.
+   - Aligned multi-tsconfig target derivation with parser project configuration (lint targets and ESLint parser projects now share the canonical tsconfig set).
+   - Fixed include-pattern normalization so extension-bearing entries remain valid.
 
 3. **Phase 3: New CLI for domain selection**
    - Add `--domain`, `--skip-domain`, `--list-domains`, `--explain`.
@@ -420,7 +405,7 @@ Notes:
    - Continue supporting v1 config as a subset mapping to the eslint domain.
 
 5. **Phase 5: Extension point hardening**
-   - Stabilize a plugin loading mechanism and document the domain plugin API.
+   - Stabilize built-in domain extension surfaces and document downstream ESLint composition guidance.
    - Expand CI matrix/scenarios to cover domain-only invocations not exercised by current repo scripts.
 
 ### Risks and mitigations

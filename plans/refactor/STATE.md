@@ -4,6 +4,7 @@
 
 - First implementation slice for CLI execution semantics has been delivered.
 - The target architecture is described in [`PLAN.md`](PLAN.md).
+- Multi-tsconfig targeting alignment is complete; lint target derivation and ESLint parser projects now share the same canonical tsconfig set.
 
 ## Implemented in full multi-tsconfig targeting alignment slice
 
@@ -22,7 +23,7 @@
   - only extensionless include entries are expanded with supported ESLint extensions
   - malformed glob synthesis paths from blanket suffixing are eliminated
 - Completed parser-project/target alignment across ESLint runtime paths:
-  - [`src/configs/js.ts`](../../src/configs/js.ts) continues to source parser project from resolved tsconfig list
+  - [`src/configs/eslint.ts`](../../src/configs/eslint.ts) continues to source parser project from resolved tsconfig list
   - [`src/utils.ts`](../../src/utils.ts) now injects parser `project` override from the same resolved config used for target derivation
   - [`src/domains/eslint.ts`](../../src/domains/eslint.ts) detection now derives default scope from the same multi-tsconfig union logic
 - Added regression coverage for multi-tsconfig alignment:
@@ -38,10 +39,10 @@
   - normalized output provides a single resolved shape for CLI/engine consumers
 - Updated runtime consumers to use the dedicated config module:
   - [`src/utils.ts`](../../src/utils.ts)
-  - [`src/configs/js.ts`](../../src/configs/js.ts)
+  - [`src/configs/eslint.ts`](../../src/configs/eslint.ts)
 - Expanded public exports for coherent extensibility:
   - [`package.json`](../../package.json) includes `./configs/*.js` typed/import exports
-  - canonical downstream preset import is `@matrixai/lint/configs/js.js`
+  - canonical downstream preset import is `@matrixai/lint/configs/eslint.js`
   - reusable downstream config import path available for `@matrixai/lint/configs/prettier.config.js`
 - Updated tests and docs for the new boundary:
   - adjusted programmatic export test in [`tests/index.test.ts`](../../tests/index.test.ts)
@@ -149,7 +150,7 @@
 - Implemented changes:
   - replaced [`src/configs/prettier.config.mjs`](../../src/configs/prettier.config.mjs) with [`src/configs/prettier.config.js`](../../src/configs/prettier.config.js)
   - updated imports and runtime references in:
-    - [`src/configs/js.ts`](../../src/configs/js.ts)
+    - [`src/configs/eslint.ts`](../../src/configs/eslint.ts)
     - [`src/bin/lint.ts`](../../src/bin/lint.ts)
 - Rationale:
   - the file is consumed directly at runtime by both ESLint config composition and Prettier CLI `--config`
@@ -183,7 +184,7 @@ Notes on resolved items:
 
 ## Next actions
 
-- Continue phased implementation from [`PLAN.md`](PLAN.md):
-  - move toward domain/plugin architecture internals
-  - align config evolution with v2 schema and precedence
-  - extend domain coverage and execution diagnostics (`--explain`, registry-style reporting)
+- Final cleanup for release:
+  - polish docs for domain/target selection and public import paths
+  - align scripts to canonical domain-targeting CLI usage
+  - cut release (version bump, build, test, lintfix)

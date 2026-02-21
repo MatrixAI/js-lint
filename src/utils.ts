@@ -59,7 +59,7 @@ async function runESLint({
   logger: Logger;
 }): Promise<boolean> {
   const dirname = path.dirname(url.fileURLToPath(import.meta.url));
-  const defaultConfigPath = path.resolve(dirname, './configs/js.js');
+  const defaultConfigPath = path.resolve(dirname, './configs/eslint.js');
   const lintConfig = resolvedConfig ?? resolveLintConfig();
   const parserProjectOverride = {
     languageOptions: {

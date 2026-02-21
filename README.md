@@ -42,7 +42,7 @@ matrixai-lint --fix
 | `--user-config`          | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
 | `--eslint-config <path>` | Explicitly use a custom ESLint config file                                   |
 | `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection     |
-| `--shell <targets>`      | Shell targets (files, roots, or globs) used to derive shell search roots     |
+| `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection       |
 | `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`)                    |
 | `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`)                        |
 | `--list-domains`         | Print available domains and short descriptions, then exit 0                  |
@@ -65,6 +65,32 @@ Domain selection behavior:
   - Directories are used as roots.
   - File paths and glob patterns are reduced to search roots, then `*.sh` files
     are discovered under those roots.
+
+#### Targeted workflows
+
+- Only ESLint on a subset of files:
+
+  ```sh
+  matrixai-lint --eslint "src/**/*.{ts,tsx}" --domain eslint
+  ```
+
+- Only shell scripts under specific roots:
+
+  ```sh
+  matrixai-lint --shell scripts packages/*/scripts
+  ```
+
+- Markdown only:
+
+  ```sh
+  matrixai-lint --domain markdown
+  ```
+
+- Mixed scoped run (ESLint + shell only):
+
+  ```sh
+  matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
+  ```
 
 #### Examples
 
@@ -98,7 +124,7 @@ export default config;
 
 ```js
 // eslint.config.js
-import matrixai from '@matrixai/lint/configs/js.js';
+import matrixai from '@matrixai/lint/configs/eslint.js';
 
 export default matrixai;
 ```
@@ -146,8 +172,8 @@ Supported imports:
 
 - `@matrixai/lint`: named export `config`; types `MatrixAILintCfg`,
   `RawMatrixCfg`, `CLIOptions`.
-- `@matrixai/lint/configs/js.js`: default export of the ESLint Flat Config array
-  (same shape as `config`).
+- `@matrixai/lint/configs/eslint.js`: default export of the ESLint Flat Config
+  array (same shape as `config`).
 - `@matrixai/lint/configs/prettier.config.js`: reusable Prettier options object.
 
 The exported `config` is intended as a composable base preset for downstream
