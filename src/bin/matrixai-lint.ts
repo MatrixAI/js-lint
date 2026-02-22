@@ -234,9 +234,17 @@ async function main(argv = process.argv) {
   }
 }
 
-if (import.meta.url.startsWith('file:')) {
-  const modulePath = url.fileURLToPath(import.meta.url);
-  if (process.argv[1] === modulePath) {
+if (import.meta.url.startsWith('file:') && process.argv[1] != null) {
+  const entryPath = process.argv[1];
+  let entryUrl: string;
+  try {
+    entryUrl = entryPath.startsWith('file:')
+      ? new URL(entryPath).href
+      : url.pathToFileURL(fs.realpathSync.native(entryPath)).href;
+  } catch {
+    entryUrl = url.pathToFileURL(path.resolve(entryPath)).href;
+  }
+  if (entryUrl === new URL(import.meta.url).href) {
     void main();
   }
 }

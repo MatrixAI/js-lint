@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
 import { jest } from '@jest/globals';
-import main from '#bin/lint.js';
+import main from '#bin/matrixai-lint.js';
 
 describe('matrixai-lint CLI domain semantics', () => {
   let capturedExecCalls: Array<{

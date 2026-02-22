@@ -209,8 +209,8 @@ Golden commands:
 Notes:
 
 - `npm run lint` and `npm run lintfix` invoke `npm run prepare` first so the
-  compiled CLI in `dist/bin/lint.js` stays up to date while keeping TypeScript
-  incremental rebuilds fast.
+  compiled CLI in `dist/bin/matrixai-lint.js` stays up to date while keeping
+  TypeScript incremental rebuilds fast.
 
 For the authoritative contributor guidance see [AGENTS.md](AGENTS.md).
 
