@@ -96,6 +96,31 @@ describe('matrixai-lint CLI domain semantics', () => {
     expect(prettierCalls).toHaveLength(0);
   });
 
+  test('--markdown no longer triggers eslint/shell domains', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'standards'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'standards', 'guide.md'),
+      '# guide\n',
+      'utf8',
+    );
+
+    await expect(
+      main(['node', 'matrixai-lint', '--markdown', 'standards']),
+    ).resolves.toBeUndefined();
+
+    const shellCalls = capturedExecCalls.filter((c) => c.file === 'shellcheck');
+    expect(shellCalls).toHaveLength(0);
+
+    const prettierCalls = capturedExecCalls.filter(
+      (c) =>
+        c.file === 'prettier' ||
+        c.args.some((arg) => /prettier\.cjs$/.test(arg)),
+    );
+    expect(prettierCalls.length).toBeGreaterThan(0);
+  });
+
   test('explicit shell request + missing shellcheck fails', async () => {
     jest
       .spyOn(childProcess, 'spawnSync')

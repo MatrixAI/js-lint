@@ -42,6 +42,7 @@ matrixai-lint --fix
 | `--user-config`          | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
 | `--eslint-config <path>` | Explicitly use a custom ESLint config file                                   |
 | `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection     |
+| `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection |
 | `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection       |
 | `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`)                    |
 | `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`)                        |
@@ -58,6 +59,9 @@ Domain selection behavior:
   - `--eslint ...` runs ESLint only.
   - `--shell ...` runs shell only.
   - Passing both runs both.
+- Passing `--markdown` implies markdown domain selection.
+  - `--markdown ...` runs markdown only.
+  - Combined with other target flags, only those targeted domains run.
 - `shellcheck` is optional only for default auto-run shell execution.
   - If shell is explicitly requested (`--shell ...` or `--domain shell`),
     missing `shellcheck` is a failure.
@@ -65,6 +69,10 @@ Domain selection behavior:
   - Directories are used as roots.
   - File paths and glob patterns are reduced to search roots, then `*.sh` files
     are discovered under those roots.
+- `--markdown` accepts target paths and glob patterns.
+  - Directories are used as roots.
+  - File paths and glob patterns are reduced to search roots, then `*.md` /
+    `*.mdx` files are discovered under those roots.
 
 #### Targeted workflows
 
@@ -86,6 +94,12 @@ Domain selection behavior:
   matrixai-lint --domain markdown
   ```
 
+- Markdown only under selected roots:
+
+  ```sh
+  matrixai-lint --markdown standards templates README.md
+  ```
+
 - Mixed scoped run (ESLint + shell only):
 
   ```sh
@@ -99,6 +113,7 @@ matrixai-lint --fix
 matrixai-lint --user-config
 matrixai-lint --eslint-config ./eslint.config.js --fix
 matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
+matrixai-lint --markdown standards templates README.md
 matrixai-lint --domain eslint markdown
 matrixai-lint --skip-domain markdown
 matrixai-lint --list-domains

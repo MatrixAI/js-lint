@@ -457,6 +457,34 @@ describe('domain selection', () => {
     expect(selectionSources.get('eslint')).toBe('target-flag');
   });
 
+  test('markdown target flag implies explicit markdown domain request', () => {
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
+      resolveDomainSelection({
+        fix: false,
+        userConfig: false,
+        markdown: ['standards', 'templates', 'README.md'],
+      });
+
+    expect([...selectedDomains]).toStrictEqual(['markdown']);
+    expect([...explicitlyRequestedDomains]).toStrictEqual(['markdown']);
+    expect(selectionSources.get('markdown')).toBe('target-flag');
+  });
+
+  test('domain flag remains authoritative over markdown target flag', () => {
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
+      resolveDomainSelection({
+        fix: false,
+        userConfig: false,
+        domain: ['eslint'],
+        markdown: ['standards'],
+      });
+
+    expect([...selectedDomains]).toStrictEqual(['eslint']);
+    expect([...explicitlyRequestedDomains]).toStrictEqual(['eslint']);
+    expect(selectionSources.get('eslint')).toBe('domain-flag');
+    expect(selectionSources.has('markdown')).toBe(false);
+  });
+
   test('--domain keeps explicit domains and --skip-domain removes them', () => {
     const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
       resolveDomainSelection({

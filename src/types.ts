@@ -35,6 +35,7 @@ type CLIOptions = {
   eslintConfig?: string;
   eslint?: string[];
   shell?: string[];
+  markdown?: string[];
   domain?: LintDomain[];
   skipDomain?: LintDomain[];
   listDomains?: boolean;

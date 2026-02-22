@@ -46,8 +46,11 @@ function createMarkdownDomainPlugin({
   return {
     domain: 'markdown',
     description: 'Format and check Markdown/MDX files with Prettier.',
-    detect: () => {
-      const searchPatterns = DEFAULT_MARKDOWN_SEARCH_ROOTS;
+    detect: ({ markdownPatterns }) => {
+      const searchPatterns =
+        markdownPatterns != null && markdownPatterns.length > 0
+          ? markdownPatterns
+          : DEFAULT_MARKDOWN_SEARCH_ROOTS;
       const searchRoots = resolveSearchRootsFromPatterns(searchPatterns);
       const matchedFiles = collectMarkdownFilesFromScope(searchRoots);
 

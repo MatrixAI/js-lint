@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MatrixAI/js-eslint.git"
+    "url": "git+https://github.com/MatrixAI/js-eslint.git"
   },
   "type": "module",
   "exports": {
@@ -29,7 +29,7 @@
     "#*": "./dist/*"
   },
   "bin": {
-    "matrixai-lint": "./dist/bin/lint.js"
+    "matrixai-lint": "dist/bin/lint.js"
   },
   "scripts": {
     "prepare": "tsc -p ./tsconfig.build.json",

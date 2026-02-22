@@ -29,6 +29,7 @@ function resolveDomainSelection(options: CLIOptions): {
   const hasDomainSelectors = domainFlags.length > 0 || skipDomains.size > 0;
   const hasExplicitESLintTargets = (options.eslint?.length ?? 0) > 0;
   const hasExplicitShellTargets = (options.shell?.length ?? 0) > 0;
+  const hasExplicitMarkdownTargets = (options.markdown?.length ?? 0) > 0;
   const explicitlyRequestedDomains = new Set<LintDomain>(domainFlags);
   const selectionSources = new Map<LintDomain, LintDomainSelectionSource>();
 
@@ -37,6 +38,9 @@ function resolveDomainSelection(options: CLIOptions): {
   }
   if (hasExplicitShellTargets) {
     explicitlyRequestedDomains.add('shell');
+  }
+  if (hasExplicitMarkdownTargets) {
+    explicitlyRequestedDomains.add('markdown');
   }
 
   let selectedDomains: Set<LintDomain>;
@@ -48,7 +52,9 @@ function resolveDomainSelection(options: CLIOptions): {
     }
   } else if (
     !hasDomainSelectors &&
-    (hasExplicitESLintTargets || hasExplicitShellTargets)
+    (hasExplicitESLintTargets ||
+      hasExplicitShellTargets ||
+      hasExplicitMarkdownTargets)
   ) {
     selectedDomains = new Set<LintDomain>();
     if (hasExplicitESLintTargets) {
@@ -58,6 +64,10 @@ function resolveDomainSelection(options: CLIOptions): {
     if (hasExplicitShellTargets) {
       selectedDomains.add('shell');
       selectionSources.set('shell', 'target-flag');
+    }
+    if (hasExplicitMarkdownTargets) {
+      selectedDomains.add('markdown');
+      selectionSources.set('markdown', 'target-flag');
     }
   } else {
     selectedDomains = new Set<LintDomain>(LINT_DOMAINS);

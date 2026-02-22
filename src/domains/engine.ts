@@ -8,6 +8,7 @@ type LintDomainEngineContext = {
   isConfigValid: boolean;
   eslintPatterns?: string[];
   shellPatterns?: string[];
+  markdownPatterns?: string[];
 };
 
 type LintDomainAvailabilityKind = 'required' | 'optional';
