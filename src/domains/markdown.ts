@@ -12,8 +12,10 @@ import {
 
 const platform = os.platform();
 const MARKDOWN_FILE_EXTENSIONS = ['.md', '.mdx'] as const;
+const DEFAULT_MARKDOWN_ROOT_FILES = ['README.md', 'AGENTS.md'] as const;
 const DEFAULT_MARKDOWN_SEARCH_ROOTS = [
   './README.md',
+  './AGENTS.md',
   './pages',
   './blog',
   './docs',
@@ -28,11 +30,10 @@ function collectMarkdownFilesFromScope(
   );
   const matchedRelativeFiles = relativizeFiles(matchedFiles);
 
-  if (
-    !matchedRelativeFiles.includes('README.md') &&
-    fs.existsSync('README.md')
-  ) {
-    matchedRelativeFiles.unshift('README.md');
+  for (const rootFile of [...DEFAULT_MARKDOWN_ROOT_FILES].reverse()) {
+    if (!matchedRelativeFiles.includes(rootFile) && fs.existsSync(rootFile)) {
+      matchedRelativeFiles.unshift(rootFile);
+    }
   }
 
   return matchedRelativeFiles;

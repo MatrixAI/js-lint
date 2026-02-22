@@ -73,6 +73,8 @@ Domain selection behavior:
   - Directories are used as roots.
   - File paths and glob patterns are reduced to search roots, then `*.md` /
     `*.mdx` files are discovered under those roots.
+  - Root-level `README.md` and `AGENTS.md` are always auto-included when
+    present.
 
 #### Targeted workflows
 

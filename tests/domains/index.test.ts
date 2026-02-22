@@ -423,6 +423,116 @@ describe('domain engine', () => {
       await fs.promises.rm(tmpRoot, { recursive: true, force: true });
     }
   });
+
+  test('markdown detection auto-includes root README.md and AGENTS.md', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-markdown-default-roots-'),
+    );
+
+    const previousCwd = process.cwd();
+
+    try {
+      process.chdir(tmpRoot);
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'README.md'),
+        '# readme\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'AGENTS.md'),
+        '# agents\n',
+        'utf8',
+      );
+
+      const registry = createBuiltInDomainRegistry({
+        prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
+      });
+
+      const decisions = await evaluateLintDomains({
+        registry,
+        selectedDomains: new Set(['markdown']),
+        explicitlyRequestedDomains: new Set(['markdown']),
+        selectionSources: new Map([['markdown', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown'],
+        context: {
+          fix: false,
+          logger: testLogger,
+          isConfigValid: true,
+        },
+      });
+
+      const markdownDecision = decisions.find(
+        (decision) => decision.domain === 'markdown',
+      );
+      const matchedFiles = (
+        markdownDecision?.detection?.matchedFiles ?? []
+      ).map((p) => p.split(path.sep).join(path.posix.sep));
+
+      expect(markdownDecision?.plannedAction).toBe('run');
+      expect(matchedFiles).toEqual(
+        expect.arrayContaining(['README.md', 'AGENTS.md']),
+      );
+      expect(matchedFiles.filter((file) => file === 'README.md')).toHaveLength(
+        1,
+      );
+      expect(matchedFiles.filter((file) => file === 'AGENTS.md')).toHaveLength(
+        1,
+      );
+    } finally {
+      process.chdir(previousCwd);
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('markdown detection auto-includes AGENTS.md when README.md is absent', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-markdown-agents-only-'),
+    );
+
+    const previousCwd = process.cwd();
+
+    try {
+      process.chdir(tmpRoot);
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'AGENTS.md'),
+        '# agents\n',
+        'utf8',
+      );
+
+      const registry = createBuiltInDomainRegistry({
+        prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
+      });
+
+      const decisions = await evaluateLintDomains({
+        registry,
+        selectedDomains: new Set(['markdown']),
+        explicitlyRequestedDomains: new Set(['markdown']),
+        selectionSources: new Map([['markdown', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown'],
+        context: {
+          fix: false,
+          logger: testLogger,
+          isConfigValid: true,
+        },
+      });
+
+      const markdownDecision = decisions.find(
+        (decision) => decision.domain === 'markdown',
+      );
+      const matchedFiles = (
+        markdownDecision?.detection?.matchedFiles ?? []
+      ).map((p) => p.split(path.sep).join(path.posix.sep));
+
+      expect(markdownDecision?.plannedAction).toBe('run');
+      expect(matchedFiles).toContain('AGENTS.md');
+      expect(matchedFiles).not.toContain('README.md');
+    } finally {
+      process.chdir(previousCwd);
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('domain selection', () => {

@@ -105,6 +105,16 @@ describe('matrixai-lint CLI domain semantics', () => {
       '# guide\n',
       'utf8',
     );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'README.md'),
+      '# fixture\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'AGENTS.md'),
+      '# agents\n',
+      'utf8',
+    );
 
     await expect(
       main(['node', 'matrixai-lint', '--markdown', 'standards']),
@@ -119,6 +129,14 @@ describe('matrixai-lint CLI domain semantics', () => {
         c.args.some((arg) => /prettier\.cjs$/.test(arg)),
     );
     expect(prettierCalls.length).toBeGreaterThan(0);
+
+    const normalizedPrettierArgs = prettierCalls
+      .flatMap((call) => call.args)
+      .map((arg) => arg.split(path.sep).join(path.posix.sep));
+
+    expect(normalizedPrettierArgs).toEqual(
+      expect.arrayContaining(['README.md', 'AGENTS.md', 'standards/guide.md']),
+    );
   });
 
   test('explicit shell request + missing shellcheck fails', async () => {
