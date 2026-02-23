@@ -80,6 +80,9 @@ async function runESLint({
       errorOnUnmatchedPattern: false,
       warnIgnored: false,
       ignorePatterns: [], // Trust caller entirely
+      cache: true,
+      cacheLocation: '.cache/matrixai-lint/eslint/.eslintcache',
+      cacheStrategy: 'content',
       overrideConfig: parserProjectOverride,
     });
 
@@ -120,6 +123,9 @@ async function runESLint({
     errorOnUnmatchedPattern: false,
     warnIgnored: false,
     ignorePatterns: ignorePats,
+    cache: true,
+    cacheLocation: '.cache/matrixai-lint/eslint/.eslintcache',
+    cacheStrategy: 'content',
     overrideConfig: parserProjectOverride,
   });
 

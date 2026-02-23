@@ -2,16 +2,21 @@ import type { LintDomainPlugin } from './engine.js';
 import os from 'node:os';
 import process from 'node:process';
 import childProcess from 'node:child_process';
-import {
-  collectFilesByExtensions,
-  relativizeFiles,
-  resolveSearchRootsFromPatterns,
-} from './files.js';
+import { resolveFilesFromPatterns } from './files.js';
 import * as utils from '../utils.js';
 
 const platform = os.platform();
 
 const SHELL_FILE_EXTENSIONS = ['.sh'] as const;
+
+function resolveShellPatterns(
+  shellPatterns: readonly string[] | undefined,
+  defaultSearchRoots: readonly string[],
+): string[] {
+  return shellPatterns != null && shellPatterns.length > 0
+    ? [...shellPatterns]
+    : [...defaultSearchRoots];
+}
 
 function createShellDomainPlugin({
   defaultSearchRoots,
@@ -22,22 +27,17 @@ function createShellDomainPlugin({
     domain: 'shell',
     description: 'Lint shell scripts with shellcheck when available.',
     detect: ({ shellPatterns }) => {
-      const patterns =
-        shellPatterns != null && shellPatterns.length > 0
-          ? shellPatterns
-          : [...defaultSearchRoots];
-      const searchRoots = resolveSearchRootsFromPatterns(patterns);
-      const matchedFiles = collectFilesByExtensions(
-        searchRoots,
+      const patterns = resolveShellPatterns(shellPatterns, defaultSearchRoots);
+      const matchedFiles = resolveFilesFromPatterns(
+        patterns,
         SHELL_FILE_EXTENSIONS,
       );
-      const matchedRelativeFiles = relativizeFiles(matchedFiles);
       const hasShellcheck = utils.commandExists('shellcheck');
 
       return {
-        relevant: matchedRelativeFiles.length > 0,
+        relevant: matchedFiles.length > 0,
         relevanceReason:
-          matchedRelativeFiles.length > 0
+          matchedFiles.length > 0
             ? undefined
             : 'No shell script files matched in effective scope.',
         available: hasShellcheck,
@@ -45,7 +45,7 @@ function createShellDomainPlugin({
         unavailableReason: hasShellcheck
           ? undefined
           : 'shellcheck not found in environment.',
-        matchedFiles: matchedRelativeFiles,
+        matchedFiles,
       };
     },
     run: ({ logger }, detection) => {

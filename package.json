@@ -59,6 +59,7 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-tailwindcss": "^3.18.0",
     "globals": "^16.2.0",
+    "minimatch": "^10.0.1",
     "prettier": "^3.0.0"
   },
   "devDependencies": {
@@ -69,7 +70,6 @@
     "jest": "^29.6.2",
     "jest-extended": "^4.0.2",
     "jest-junit": "^16.0.0",
-    "minimatch": "^10.0.1",
     "shx": "^0.3.4",
     "tsx": "^3.12.7",
     "typedoc": "^0.24.8",

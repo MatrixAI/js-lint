@@ -4,11 +4,7 @@ import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import {
-  collectFilesByExtensions,
-  relativizeFiles,
-  resolveSearchRootsFromPatterns,
-} from './files.js';
+import { resolveFilesFromPatterns } from './files.js';
 
 const platform = os.platform();
 const MARKDOWN_FILE_EXTENSIONS = ['.md', '.mdx'] as const;
@@ -21,14 +17,11 @@ const DEFAULT_MARKDOWN_SEARCH_ROOTS = [
   './docs',
 ];
 
-function collectMarkdownFilesFromScope(
-  searchRoots: readonly string[],
-): string[] {
-  const matchedFiles = collectFilesByExtensions(
-    searchRoots,
+function collectMarkdownFilesFromScope(patterns: readonly string[]): string[] {
+  const matchedRelativeFiles = resolveFilesFromPatterns(
+    patterns,
     MARKDOWN_FILE_EXTENSIONS,
   );
-  const matchedRelativeFiles = relativizeFiles(matchedFiles);
 
   for (const rootFile of [...DEFAULT_MARKDOWN_ROOT_FILES].reverse()) {
     if (!matchedRelativeFiles.includes(rootFile) && fs.existsSync(rootFile)) {
@@ -37,6 +30,14 @@ function collectMarkdownFilesFromScope(
   }
 
   return matchedRelativeFiles;
+}
+
+function resolveMarkdownPatterns(
+  markdownPatterns: readonly string[] | undefined,
+): string[] {
+  return markdownPatterns != null && markdownPatterns.length > 0
+    ? [...markdownPatterns]
+    : [...DEFAULT_MARKDOWN_SEARCH_ROOTS];
 }
 
 function createMarkdownDomainPlugin({
@@ -48,12 +49,8 @@ function createMarkdownDomainPlugin({
     domain: 'markdown',
     description: 'Format and check Markdown/MDX files with Prettier.',
     detect: ({ markdownPatterns }) => {
-      const searchPatterns =
-        markdownPatterns != null && markdownPatterns.length > 0
-          ? markdownPatterns
-          : DEFAULT_MARKDOWN_SEARCH_ROOTS;
-      const searchRoots = resolveSearchRootsFromPatterns(searchPatterns);
-      const matchedFiles = collectMarkdownFilesFromScope(searchRoots);
+      const patterns = resolveMarkdownPatterns(markdownPatterns);
+      const matchedFiles = collectMarkdownFilesFromScope(patterns);
 
       return {
         relevant: matchedFiles.length > 0,
