@@ -68,6 +68,12 @@ type LintDomainPlugin = {
       ) => LintDomainPluginResult);
 };
 
+function normalizeLogDetail(value: unknown): string {
+  return String(value)
+    .replace(/\r?\n+/g, ' | ')
+    .trim();
+}
+
 function createLintDomainRegistry(
   plugins: readonly LintDomainPlugin[],
 ): Map<LintDomain, LintDomainPlugin> {
@@ -212,7 +218,7 @@ async function runLintDomainDecisions({
     }
 
     if (plannedAction === 'fail-detection') {
-      const message = `[matrixai-lint]  -  Domain "${domain}" failed unexpectedly.\n${detectionError ?? 'Unknown detection error.'}`;
+      const message = `[matrixai-lint] - Domain "${domain}" failed unexpectedly. ${normalizeLogDetail(detectionError ?? 'Unknown detection error.')}`;
       logger.error(message);
       hadFailure = true;
       continue;
@@ -222,7 +228,7 @@ async function runLintDomainDecisions({
       if (explicitlyRequested) {
         const relevanceReason =
           detection?.relevanceReason ?? 'No files matched in effective scope.';
-        const message = `[matrixai-lint]  -  Domain "${domain}" was explicitly requested, but no files matched. ${relevanceReason}`;
+        const message = `[matrixai-lint] - Domain "${domain}" was explicitly requested, but no files matched. ${relevanceReason}`;
         logger.warn(message);
       }
       continue;
@@ -232,7 +238,7 @@ async function runLintDomainDecisions({
       const unavailableReason =
         detection?.unavailableReason ??
         `Tooling for domain "${domain}" is not available.`;
-      const message = `[matrixai-lint]  -  Domain "${domain}" cannot run. ${unavailableReason}`;
+      const message = `[matrixai-lint] - Domain "${domain}" cannot run. ${unavailableReason}`;
       logger.error(message);
       hadFailure = true;
       continue;
@@ -242,7 +248,7 @@ async function runLintDomainDecisions({
       const unavailableReason =
         detection?.unavailableReason ??
         `Tooling for domain "${domain}" is not available.`;
-      const message = `[matrixai-lint]  -  Domain "${domain}" skipped. ${unavailableReason}`;
+      const message = `[matrixai-lint] - Domain "${domain}" skipped. ${unavailableReason}`;
       logger.warn(message);
       continue;
     }
@@ -253,7 +259,7 @@ async function runLintDomainDecisions({
     }
 
     if (detection == null) {
-      const message = `[matrixai-lint]  -  Domain "${domain}" is missing detection metadata.`;
+      const message = `[matrixai-lint] - Domain "${domain}" is missing detection metadata.`;
       logger.error(message);
       hadFailure = true;
       continue;
@@ -265,7 +271,7 @@ async function runLintDomainDecisions({
         hadFailure = true;
       }
     } catch (err) {
-      const message = `[matrixai-lint]  -  Domain "${domain}" failed unexpectedly.\n${String(err)}`;
+      const message = `[matrixai-lint] - Domain "${domain}" failed unexpectedly. ${normalizeLogDetail(err)}`;
       logger.error(message);
       hadFailure = true;
     }

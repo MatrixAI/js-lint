@@ -6,6 +6,12 @@ import {
 import * as utils from '../utils.js';
 import { resolveLintConfig } from '../config.js';
 
+function normalizeLogDetail(value: unknown): string {
+  return String(value)
+    .replace(/\r?\n+/g, ' | ')
+    .trim();
+}
+
 const ESLINT_FILE_EXTENSIONS = [
   '.js',
   '.mjs',
@@ -109,7 +115,12 @@ function createESLintDomainPlugin(): LintDomainPlugin {
 
         return { hadFailure: hadLintingErrors };
       } catch (err) {
-        logger.error(`ESLint failed: \n${err}`);
+        const errorDetail = normalizeLogDetail(err);
+        logger.error(
+          errorDetail.length > 0
+            ? `ESLint failed. ${errorDetail}`
+            : 'ESLint failed.',
+        );
         return { hadFailure: true };
       }
     },

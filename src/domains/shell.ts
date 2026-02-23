@@ -9,6 +9,12 @@ const platform = os.platform();
 
 const SHELL_FILE_EXTENSIONS = ['.sh'] as const;
 
+function normalizeLogDetail(value: unknown): string {
+  return String(value)
+    .replace(/\r?\n+/g, ' | ')
+    .trim();
+}
+
 function resolveShellPatterns(
   shellPatterns: readonly string[] | undefined,
   defaultSearchRoots: readonly string[],
@@ -55,7 +61,9 @@ function createShellDomainPlugin({
       }
 
       logger.info('Running shellcheck:');
-      logger.info(' ' + ['shellcheck', ...matchedFiles].join(' '));
+      logger.info(
+        `Running shellcheck command: shellcheck ${matchedFiles.join(' ')}`,
+      );
 
       try {
         childProcess.execFileSync('shellcheck', matchedFiles, {
@@ -68,7 +76,12 @@ function createShellDomainPlugin({
 
         return { hadFailure: false };
       } catch (err) {
-        logger.error('Shellcheck failed. ' + err);
+        const errorDetail = normalizeLogDetail(err);
+        logger.error(
+          errorDetail.length > 0
+            ? `Shellcheck failed. ${errorDetail}`
+            : 'Shellcheck failed.',
+        );
         return { hadFailure: true };
       }
     },

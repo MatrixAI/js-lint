@@ -72,7 +72,9 @@ async function runESLint({
   // PATH A - user supplied explicit globs
   if (explicitGlobs?.length) {
     logger.info('Linting with explicit patterns:');
-    explicitGlobs.forEach((g) => logger.info('  ' + g));
+    explicitGlobs.forEach((pattern) => {
+      logger.info(`Linting: ${pattern}`);
+    });
 
     const eslint = new ESLint({
       overrideConfigFile: configPath || defaultConfigPath,
@@ -93,12 +95,14 @@ async function runESLint({
   const { forceInclude, tsconfigPaths } = lintConfig.domains.eslint;
 
   if (tsconfigPaths.length === 0) {
-    logger.error('[matrixai-lint]  ⚠  No tsconfig.json files found.');
+    logger.error('[matrixai-lint] ⚠ No tsconfig.json files found.');
     return true;
   }
 
   logger.info(`Found ${tsconfigPaths.length} tsconfig.json files:`);
-  tsconfigPaths.forEach((p) => logger.info('  ' + p));
+  tsconfigPaths.forEach((tsconfigPath) => {
+    logger.info(`Using tsconfig: ${tsconfigPath}`);
+  });
 
   const { files: patterns, ignore: ignorePats } = buildPatterns(
     tsconfigPaths,
@@ -109,13 +113,15 @@ async function runESLint({
 
   if (patterns.length === 0) {
     logger.warn(
-      '[matrixai-lint]  ⚠  No ESLint targets were derived from configured tsconfig paths.',
+      '[matrixai-lint] ⚠ No ESLint targets were derived from configured tsconfig paths.',
     );
     return false;
   }
 
   logger.info('Linting files:');
-  patterns.forEach((p) => logger.info('  ' + p));
+  patterns.forEach((pattern) => {
+    logger.info(`Linting: ${pattern}`);
+  });
 
   const eslint = new ESLint({
     overrideConfigFile: configPath || defaultConfigPath,
@@ -144,9 +150,28 @@ async function lintAndReport(
     await ESLint.outputFixes(results);
   }
 
+  const errorCount = results.reduce(
+    (sum, result) => sum + result.errorCount,
+    0,
+  );
+  const warningCount = results.reduce(
+    (sum, result) => sum + result.warningCount,
+    0,
+  );
+  logger.info(
+    `ESLint summary: files=${results.length} errors=${errorCount} warnings=${warningCount} fix=${fix ? 'on' : 'off'}`,
+  );
+
   const formatter = await eslint.loadFormatter('stylish');
-  logger.info(formatter.format(results));
-  const hasErrors = results.some((r) => r.errorCount > 0);
+  const formattedOutput = await formatter.format(results);
+  for (const line of formattedOutput.split(/\r?\n/)) {
+    const normalizedLine = line.trim();
+    if (normalizedLine.length > 0) {
+      logger.info(`ESLint detail: ${normalizedLine}`);
+    }
+  }
+
+  const hasErrors = errorCount > 0;
 
   return hasErrors;
 }

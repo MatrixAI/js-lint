@@ -96,7 +96,9 @@ function printDomainList(
 ): void {
   logger.info('Available lint domains:');
   for (const domainInfo of domains) {
-    logger.info(`- ${domainInfo.domain}: ${domainInfo.description}`);
+    logger.info(
+      `Domain info: domain=${domainInfo.domain} description=${domainInfo.description}`,
+    );
   }
 }
 
@@ -106,24 +108,20 @@ function printExplain(
 ): void {
   logger.info('[matrixai-lint] Domain execution plan:');
   for (const decision of decisions) {
-    logger.info(`[matrixai-lint]  -  domain: ${decision.domain}`);
+    logger.info(`[matrixai-lint] domain=${decision.domain}`);
     logger.info(
-      `[matrixai-lint]     selection: ${decision.selectionSource}${decision.explicitlyRequested ? ' (explicit)' : ''}`,
+      `[matrixai-lint] selection=${decision.selectionSource}${decision.explicitlyRequested ? ' (explicit)' : ''}`,
     );
+    logger.info(`[matrixai-lint] relevance=${describeRelevance(decision)}`);
     logger.info(
-      `[matrixai-lint]     relevance: ${describeRelevance(decision)}`,
-    );
-    logger.info(
-      `[matrixai-lint]     availability: ${describeAvailability(decision)}`,
+      `[matrixai-lint] availability=${describeAvailability(decision)}`,
     );
     if (decision.detectionError != null) {
       logger.error(
-        `[matrixai-lint]     detection-error: ${decision.detectionError}`,
+        `[matrixai-lint] detection-error=${decision.detectionError}`,
       );
     }
-    logger.info(
-      `[matrixai-lint]     planned-action: ${decision.plannedAction}`,
-    );
+    logger.info(`[matrixai-lint] planned-action=${decision.plannedAction}`);
   }
 }
 
@@ -227,10 +225,10 @@ async function main(argv = process.argv) {
   }
 
   if (hadFailure) {
-    logger.error('[matrixai-lint]  ✖  Linting failed.');
+    logger.error('[matrixai-lint] ✖ Linting failed.');
     process.exit(1);
   } else {
-    logger.info('[matrixai-lint]  ✔  Linting passed.');
+    logger.info('[matrixai-lint] ✔ Linting passed.');
   }
 }
 

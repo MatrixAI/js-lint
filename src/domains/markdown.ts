@@ -17,6 +17,12 @@ const DEFAULT_MARKDOWN_SEARCH_ROOTS = [
   './docs',
 ];
 
+function normalizeLogDetail(value: unknown): string {
+  return String(value)
+    .replace(/\r?\n+/g, ' | ')
+    .trim();
+}
+
 function collectMarkdownFilesFromScope(patterns: readonly string[]): string[] {
   const matchedRelativeFiles = resolveFilesFromPatterns(
     patterns,
@@ -92,7 +98,9 @@ function createMarkdownDomainPlugin({
 
       try {
         if (prettierBin) {
-          logger.info(` ${prettierBin} \n ${prettierArgs.join('\n' + ' ')}`);
+          logger.info(
+            `Running prettier command: ${process.execPath} ${prettierBin} ${prettierArgs.join(' ')}`,
+          );
           childProcess.execFileSync(
             process.execPath,
             [prettierBin, ...prettierArgs],
@@ -104,7 +112,9 @@ function createMarkdownDomainPlugin({
             },
           );
         } else {
-          logger.info('prettier ' + prettierArgs.join('\n' + ' '));
+          logger.info(
+            `Running prettier command: prettier ${prettierArgs.join(' ')}`,
+          );
           childProcess.execFileSync('prettier', prettierArgs, {
             stdio: 'inherit',
             windowsHide: true,
@@ -114,10 +124,19 @@ function createMarkdownDomainPlugin({
           });
         }
       } catch (err) {
+        const errorDetail = normalizeLogDetail(err);
         if (!fix) {
-          logger.error('Prettier check failed.');
+          logger.error(
+            errorDetail.length > 0
+              ? `Prettier check failed. ${errorDetail}`
+              : 'Prettier check failed.',
+          );
         } else {
-          logger.error('Prettier write failed. ' + err);
+          logger.error(
+            errorDetail.length > 0
+              ? `Prettier write failed. ${errorDetail}`
+              : 'Prettier write failed.',
+          );
         }
 
         return { hadFailure: true };

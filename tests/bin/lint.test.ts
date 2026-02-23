@@ -265,7 +265,7 @@ describe('matrixai-lint CLI domain semantics', () => {
     );
     expect(stderrWriteSpy).toHaveBeenCalledWith(
       expect.stringContaining(
-        'INFO:matrixai-lint:[matrixai-lint]  -  domain: markdown',
+        'INFO:matrixai-lint:[matrixai-lint] domain=markdown',
       ),
     );
     expect(stderrWriteSpy).toHaveBeenCalledWith(
