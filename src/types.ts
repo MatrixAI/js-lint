@@ -26,7 +26,7 @@ type MatrixAILintCfg = {
 
 type MatrixAILintCfgResolved = MatrixAILintCfg;
 
-type LintDomain = 'eslint' | 'shell' | 'markdown';
+type LintDomain = 'eslint' | 'shell' | 'markdown' | 'nix';
 
 type CLIOptions = {
   fix: boolean;
@@ -36,6 +36,7 @@ type CLIOptions = {
   eslint?: string[];
   shell?: string[];
   markdown?: string[];
+  nix?: string[];
   domain?: LintDomain[];
   skipDomain?: LintDomain[];
   listDomains?: boolean;

@@ -14,10 +14,17 @@ import {
 import { createESLintDomainPlugin } from './eslint.js';
 import { createShellDomainPlugin } from './shell.js';
 import { createMarkdownDomainPlugin } from './markdown.js';
+import { createNixDomainPlugin } from './nix.js';
 
-const LINT_DOMAINS: LintDomain[] = ['eslint', 'shell', 'markdown'];
+const LINT_DOMAINS: LintDomain[] = ['eslint', 'shell', 'markdown', 'nix'];
 
 const DEFAULT_SHELLCHECK_SEARCH_ROOTS = ['./src', './scripts', './tests'];
+const DEFAULT_NIXFMT_SEARCH_PATTERNS = [
+  './flake.nix',
+  './shell.nix',
+  './default.nix',
+  './nix/**/*.nix',
+] as const;
 
 function resolveDomainSelection(options: CLIOptions): {
   selectedDomains: Set<LintDomain>;
@@ -30,6 +37,7 @@ function resolveDomainSelection(options: CLIOptions): {
   const hasExplicitESLintTargets = (options.eslint?.length ?? 0) > 0;
   const hasExplicitShellTargets = (options.shell?.length ?? 0) > 0;
   const hasExplicitMarkdownTargets = (options.markdown?.length ?? 0) > 0;
+  const hasExplicitNixTargets = (options.nix?.length ?? 0) > 0;
   const explicitlyRequestedDomains = new Set<LintDomain>(domainFlags);
   const selectionSources = new Map<LintDomain, LintDomainSelectionSource>();
 
@@ -41,6 +49,9 @@ function resolveDomainSelection(options: CLIOptions): {
   }
   if (hasExplicitMarkdownTargets) {
     explicitlyRequestedDomains.add('markdown');
+  }
+  if (hasExplicitNixTargets) {
+    explicitlyRequestedDomains.add('nix');
   }
 
   let selectedDomains: Set<LintDomain>;
@@ -54,7 +65,8 @@ function resolveDomainSelection(options: CLIOptions): {
     !hasDomainSelectors &&
     (hasExplicitESLintTargets ||
       hasExplicitShellTargets ||
-      hasExplicitMarkdownTargets)
+      hasExplicitMarkdownTargets ||
+      hasExplicitNixTargets)
   ) {
     selectedDomains = new Set<LintDomain>();
     if (hasExplicitESLintTargets) {
@@ -68,6 +80,10 @@ function resolveDomainSelection(options: CLIOptions): {
     if (hasExplicitMarkdownTargets) {
       selectedDomains.add('markdown');
       selectionSources.set('markdown', 'target-flag');
+    }
+    if (hasExplicitNixTargets) {
+      selectedDomains.add('nix');
+      selectionSources.set('nix', 'target-flag');
     }
   } else {
     selectedDomains = new Set<LintDomain>(LINT_DOMAINS);
@@ -107,6 +123,9 @@ function createBuiltInDomainRegistry({
     createMarkdownDomainPlugin({
       prettierConfigPath,
     }),
+    createNixDomainPlugin({
+      defaultSearchPatterns: DEFAULT_NIXFMT_SEARCH_PATTERNS,
+    }),
   ]);
 }
 
@@ -120,6 +139,7 @@ export type {
 export {
   LINT_DOMAINS,
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,
+  DEFAULT_NIXFMT_SEARCH_PATTERNS,
   resolveDomainSelection,
   createBuiltInDomainRegistry,
   createLintDomainRegistry,

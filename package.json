@@ -36,8 +36,8 @@
     "build": "shx rm -rf ./dist && tsc -p ./tsconfig.build.json && shx chmod +x ./dist/bin/matrixai-lint.js",
     "postversion": "npm install --package-lock-only --ignore-scripts --silent",
     "tsx": "tsx",
-    "lint": "npm run prepare && node ./dist/bin/matrixai-lint.js --domain eslint shell markdown --eslint \"{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}\" --shell src scripts tests",
-    "lintfix": "npm run prepare && node ./dist/bin/matrixai-lint.js --fix --domain eslint shell markdown --eslint \"{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}\" --shell src scripts tests",
+    "lint": "npm run prepare && node ./dist/bin/matrixai-lint.js --domain eslint shell markdown nix --eslint \"{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}\" --shell src scripts tests",
+    "lintfix": "npm run prepare && node ./dist/bin/matrixai-lint.js --fix --domain eslint shell markdown nix --eslint \"{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}\" --shell src scripts tests",
     "lint-shell": "npm run prepare && node ./dist/bin/matrixai-lint.js --domain shell --shell src scripts tests",
     "docs": "shx rm -rf ./docs && typedoc --gitRevision master --tsconfig ./tsconfig.build.json --out ./docs src",
     "test": "node ./scripts/test.mjs"

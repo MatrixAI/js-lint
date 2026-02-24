@@ -7,8 +7,10 @@ for use in Matrix AI JavaScript/TypeScript projects.
   `tsconfig.json` files
 - Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
   rules
-- Supports Prettier formatting for Markdown and ShellCheck for shell scripts
-- Single command to lint JavaScript/TypeScript, Markdown, and shell scripts
+- Supports Prettier formatting for Markdown, ShellCheck for shell scripts, and
+  nixfmt for Nix files
+- Single command to lint JavaScript/TypeScript, Markdown, shell scripts, and Nix
+  files
 - Customizable via `matrixai-lint-config.json` and extensible with your own
   ESLint config
 - CLI options to override config and enable auto-fix
@@ -43,9 +45,10 @@ matrixai-lint --fix
 | `--eslint-config <path>` | Explicitly use a custom ESLint config file                                   |
 | `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection     |
 | `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection |
+| `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection           |
 | `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection       |
-| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`)                    |
-| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`)                        |
+| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `nix`)             |
+| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `nix`)                 |
 | `--list-domains`         | Print available domains and short descriptions, then exit 0                  |
 | `--explain`              | Print per-domain decision details before execution                           |
 | `-v, --verbose`          | Increase log verbosity (repeat for more detail)                              |
@@ -62,9 +65,15 @@ Domain selection behavior:
 - Passing `--markdown` implies markdown domain selection.
   - `--markdown ...` runs markdown only.
   - Combined with other target flags, only those targeted domains run.
+- Passing `--nix` implies nix domain selection.
+  - `--nix ...` runs nix only.
+  - Combined with other target flags, only those targeted domains run.
 - `shellcheck` is optional only for default auto-run shell execution.
   - If shell is explicitly requested (`--shell ...` or `--domain shell`),
     missing `shellcheck` is a failure.
+- `nixfmt` is optional only for default auto-run nix execution.
+  - If nix is explicitly requested (`--nix ...` or `--domain nix`), missing
+    `nixfmt` is a failure.
 - `--shell` accepts target paths and glob patterns.
   - Directories are used as roots.
   - File paths and glob patterns are reduced to search roots, then `*.sh` files
@@ -75,6 +84,13 @@ Domain selection behavior:
     `*.mdx` files are discovered under those roots.
   - Root-level `README.md` and `AGENTS.md` are always auto-included when
     present.
+- `--nix` accepts target paths and glob patterns.
+  - Directories are used as roots.
+  - File paths and glob patterns are reduced to search roots, then `*.nix` files
+    are discovered under those roots.
+  - By default, nix domain scope is `flake.nix`, `shell.nix`, `default.nix`, and
+    `nix/**/*.nix`.
+  - When `--nix` is provided, explicit nix targets replace these defaults.
 
 #### Targeted workflows
 
@@ -102,6 +118,18 @@ Domain selection behavior:
   matrixai-lint --markdown standards templates README.md
   ```
 
+- Nix only (default nix scope):
+
+  ```sh
+  matrixai-lint --domain nix
+  ```
+
+- Nix only under selected roots/patterns:
+
+  ```sh
+  matrixai-lint --nix nix modules flake.nix
+  ```
+
 - Mixed scoped run (ESLint + shell only):
 
   ```sh
@@ -116,7 +144,9 @@ matrixai-lint --user-config
 matrixai-lint --eslint-config ./eslint.config.js --fix
 matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
 matrixai-lint --markdown standards templates README.md
+matrixai-lint --nix nix flake.nix
 matrixai-lint --domain eslint markdown
+matrixai-lint --domain nix
 matrixai-lint --skip-domain markdown
 matrixai-lint --list-domains
 matrixai-lint --explain --domain eslint

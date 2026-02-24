@@ -301,6 +301,7 @@ describe('matrixai-lint CLI domain semantics', () => {
         'eslint',
         'shell',
         'markdown',
+        'nix',
         '--eslint',
         '{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}',
         '--shell',
@@ -309,6 +310,41 @@ describe('matrixai-lint CLI domain semantics', () => {
         'tests',
       ]),
     ).resolves.toBeUndefined();
+  });
+
+  test('explicit nix request + missing nixfmt fails', async () => {
+    await fs.promises.writeFile(
+      path.join(dataDir, 'flake.nix'),
+      '{ }\n',
+      'utf8',
+    );
+
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'nixfmt'
+            ? 1
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await expect(
+      main(['node', 'matrixai-lint', '--domain', 'nix', '--nix', 'flake.nix']),
+    ).rejects.toBeDefined();
+
+    const nixfmtCall = capturedExecCalls.find((c) => c.file === 'nixfmt');
+    expect(nixfmtCall).toBeUndefined();
   });
 
   test('unknown option handling rejects typoed flags', async () => {

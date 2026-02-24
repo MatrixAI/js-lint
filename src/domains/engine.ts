@@ -9,6 +9,7 @@ type LintDomainEngineContext = {
   eslintPatterns?: string[];
   shellPatterns?: string[];
   markdownPatterns?: string[];
+  nixPatterns?: string[];
 };
 
 type LintDomainAvailabilityKind = 'required' | 'optional';

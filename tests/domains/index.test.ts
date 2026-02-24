@@ -10,6 +10,7 @@ import {
   listLintDomains,
   resolveDomainSelection,
   createBuiltInDomainRegistry,
+  DEFAULT_NIXFMT_SEARCH_PATTERNS,
   type LintDomainPlugin,
 } from '#domains/index.js';
 import * as utils from '#utils.js';
@@ -59,13 +60,26 @@ describe('domain engine', () => {
           return { hadFailure: false };
         },
       },
+      {
+        domain: 'nix',
+        description: 'nix test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'optional',
+        }),
+        run: () => {
+          executionTrace.push('nix');
+          return { hadFailure: false };
+        },
+      },
     ] satisfies readonly LintDomainPlugin[]);
 
     const hadFailure = await runLintDomains({
       registry,
       selectedDomains: new Set(['eslint', 'markdown']),
       explicitlyRequestedDomains: new Set<never>(),
-      executionOrder: ['eslint', 'shell', 'markdown'],
+      executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
       context: {
         fix: false,
         logger: testLogger,
@@ -258,6 +272,16 @@ describe('domain engine', () => {
         }),
         run: () => ({ hadFailure: false }),
       },
+      {
+        domain: 'nix',
+        description: 'nix test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'optional',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
     ] satisfies readonly LintDomainPlugin[]);
 
     const decisions = await evaluateLintDomains({
@@ -268,7 +292,7 @@ describe('domain engine', () => {
         ['eslint', 'default'],
         ['shell', 'domain-flag'],
       ]),
-      executionOrder: ['eslint', 'shell', 'markdown'],
+      executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
       context: {
         fix: false,
         logger: testLogger,
@@ -276,7 +300,7 @@ describe('domain engine', () => {
       },
     });
 
-    expect(decisions).toHaveLength(3);
+    expect(decisions).toHaveLength(4);
     expect(decisions[0]?.domain).toBe('eslint');
     expect(decisions[0]?.plannedAction).toBe('run');
     expect(decisions[1]?.domain).toBe('shell');
@@ -284,6 +308,8 @@ describe('domain engine', () => {
     expect(decisions[1]?.selectionSource).toBe('domain-flag');
     expect(decisions[2]?.domain).toBe('markdown');
     expect(decisions[2]?.plannedAction).toBe('skip-unselected');
+    expect(decisions[3]?.domain).toBe('nix');
+    expect(decisions[3]?.plannedAction).toBe('skip-unselected');
   });
 
   test('list-domains reflects registry metadata in execution order', () => {
@@ -318,17 +344,28 @@ describe('domain engine', () => {
         }),
         run: () => ({ hadFailure: false }),
       },
+      {
+        domain: 'nix',
+        description: 'nix test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'optional',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
     ] satisfies readonly LintDomainPlugin[]);
 
     const listed = listLintDomains({
       registry,
-      executionOrder: ['eslint', 'shell', 'markdown'],
+      executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
     });
 
     expect(listed).toStrictEqual([
       { domain: 'eslint', description: 'eslint test plugin' },
       { domain: 'shell', description: 'shell test plugin' },
       { domain: 'markdown', description: 'markdown test plugin' },
+      { domain: 'nix', description: 'nix test plugin' },
     ]);
   });
 
@@ -401,7 +438,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['eslint']),
         explicitlyRequestedDomains: new Set(['eslint']),
         selectionSources: new Map([['eslint', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -456,7 +493,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -512,7 +549,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -596,7 +633,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['shell']),
         explicitlyRequestedDomains: new Set(['shell']),
         selectionSources: new Map([['shell', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -622,7 +659,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['shell']),
         explicitlyRequestedDomains: new Set(['shell']),
         selectionSources: new Map([['shell', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -691,7 +728,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -717,7 +754,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -753,6 +790,198 @@ describe('domain engine', () => {
       await fs.promises.rm(tmpRoot, { recursive: true, force: true });
     }
   });
+
+  test('nix detection defaults include root nix files and nix directory glob', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-nix-default-roots-'),
+    );
+
+    const previousCwd = process.cwd();
+
+    try {
+      process.chdir(tmpRoot);
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'flake.nix'),
+        '{ }\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'default.nix'),
+        '{ }\n',
+        'utf8',
+      );
+      await fs.promises.mkdir(path.join(tmpRoot, 'nix', 'modules'), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'nix', 'modules', 'service.nix'),
+        '{ }\n',
+        'utf8',
+      );
+
+      const registry = createBuiltInDomainRegistry({
+        prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
+      });
+
+      const decisions = await evaluateLintDomains({
+        registry,
+        selectedDomains: new Set(['nix']),
+        explicitlyRequestedDomains: new Set(['nix']),
+        selectionSources: new Map([['nix', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        context: {
+          fix: false,
+          logger: testLogger,
+          isConfigValid: true,
+        },
+      });
+
+      const nixDecision = decisions.find(
+        (decision) => decision.domain === 'nix',
+      );
+      const matchedFiles = (nixDecision?.detection?.matchedFiles ?? []).map(
+        (p) => p.split(path.sep).join(path.posix.sep),
+      );
+
+      expect(nixDecision?.plannedAction).toBe('run');
+      expect(matchedFiles).toEqual(
+        expect.arrayContaining([
+          'flake.nix',
+          'default.nix',
+          'nix/modules/service.nix',
+        ]),
+      );
+    } finally {
+      process.chdir(previousCwd);
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('nix detection and run resolve explicit globs consistently', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-nix-glob-consistency-'),
+    );
+
+    const previousCwd = process.cwd();
+    const execFileSyncMock = jest
+      .spyOn(childProcess, 'execFileSync')
+      .mockImplementation(
+        (_file: string, _args?: readonly string[] | undefined) =>
+          Buffer.from(''),
+      );
+    const spawnSyncMock = jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'nixfmt'
+            ? 0
+            : 1;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    try {
+      process.chdir(tmpRoot);
+
+      await fs.promises.mkdir(path.join(tmpRoot, 'infra', 'nix'), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'infra', 'nix', 'a.nix'),
+        '{ }\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'infra', 'nix', 'b.nix'),
+        '{ }\n',
+        'utf8',
+      );
+
+      const registry = createBuiltInDomainRegistry({
+        prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
+      });
+
+      const decisions = await evaluateLintDomains({
+        registry,
+        selectedDomains: new Set(['nix']),
+        explicitlyRequestedDomains: new Set(['nix']),
+        selectionSources: new Map([['nix', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        context: {
+          fix: false,
+          logger: testLogger,
+          isConfigValid: true,
+          nixPatterns: ['./infra/nix/**/*.nix'],
+        },
+      });
+
+      const nixDecision = decisions.find(
+        (decision) => decision.domain === 'nix',
+      );
+      const matchedFiles = (nixDecision?.detection?.matchedFiles ?? []).map(
+        (p) => p.split(path.sep).join(path.posix.sep),
+      );
+
+      expect(nixDecision?.plannedAction).toBe('run');
+      expect(matchedFiles).toEqual(
+        expect.arrayContaining(['infra/nix/a.nix', 'infra/nix/b.nix']),
+      );
+
+      const hadFailure = await runLintDomains({
+        registry,
+        selectedDomains: new Set(['nix']),
+        explicitlyRequestedDomains: new Set(['nix']),
+        selectionSources: new Map([['nix', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        context: {
+          fix: false,
+          logger: testLogger,
+          isConfigValid: true,
+          nixPatterns: ['./infra/nix/**/*.nix'],
+        },
+      });
+
+      expect(hadFailure).toBe(false);
+      const nixfmtCall = execFileSyncMock.mock.calls.find(
+        ([file]) => file === 'nixfmt',
+      );
+      const nixfmtArgs = nixfmtCall?.[1] as string[] | undefined;
+      const normalizedNixfmtArgs = (nixfmtArgs ?? []).map((arg) =>
+        arg.split(path.sep).join(path.posix.sep),
+      );
+      expect(normalizedNixfmtArgs).toEqual(
+        expect.arrayContaining([
+          '--check',
+          'infra/nix/a.nix',
+          'infra/nix/b.nix',
+        ]),
+      );
+    } finally {
+      spawnSyncMock.mockRestore();
+      execFileSyncMock.mockRestore();
+      process.chdir(previousCwd);
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('nix default search patterns are stable and explicit', () => {
+    expect(DEFAULT_NIXFMT_SEARCH_PATTERNS).toStrictEqual([
+      './flake.nix',
+      './shell.nix',
+      './default.nix',
+      './nix/**/*.nix',
+    ]);
+  });
 });
 
 describe('domain selection', () => {
@@ -766,12 +995,14 @@ describe('domain selection', () => {
     expect([...selectedDomains].sort()).toStrictEqual([
       'eslint',
       'markdown',
+      'nix',
       'shell',
     ]);
     expect([...explicitlyRequestedDomains]).toStrictEqual([]);
     expect(selectionSources.get('eslint')).toBe('default');
     expect(selectionSources.get('shell')).toBe('default');
     expect(selectionSources.get('markdown')).toBe('default');
+    expect(selectionSources.get('nix')).toBe('default');
   });
 
   test('domain specific target flags imply explicit domain request', () => {
@@ -813,6 +1044,19 @@ describe('domain selection', () => {
     expect([...explicitlyRequestedDomains]).toStrictEqual(['eslint']);
     expect(selectionSources.get('eslint')).toBe('domain-flag');
     expect(selectionSources.has('markdown')).toBe(false);
+  });
+
+  test('nix target flag implies explicit nix domain request', () => {
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
+      resolveDomainSelection({
+        fix: false,
+        userConfig: false,
+        nix: ['./nix/**/*.nix'],
+      });
+
+    expect([...selectedDomains]).toStrictEqual(['nix']);
+    expect([...explicitlyRequestedDomains]).toStrictEqual(['nix']);
+    expect(selectionSources.get('nix')).toBe('target-flag');
   });
 
   test('--domain keeps explicit domains and --skip-domain removes them', () => {

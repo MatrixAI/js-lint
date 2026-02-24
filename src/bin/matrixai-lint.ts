@@ -45,6 +45,7 @@ program
   .option('--eslint-config <path>', 'Path to explicit ESLint config file')
   .option('--eslint <target...>', 'ESLint targets (files, roots, or globs)')
   .option('--markdown <target...>', 'Markdown targets (files, roots, or globs)')
+  .option('--nix <target...>', 'Nix targets (files, roots, or globs)')
   .option(
     '--shell <target...>',
     'Shell targets (files, roots, or globs) used to derive shellcheck search roots',
@@ -139,6 +140,7 @@ async function main(argv = process.argv) {
 
   const eslintPatterns: string[] | undefined = options.eslint;
   const markdownPatterns: string[] | undefined = options.markdown;
+  const nixPatterns: string[] | undefined = options.nix;
   const shellPatterns: string[] | undefined = options.shell;
   const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
     resolveDomainSelection(options);
@@ -198,6 +200,7 @@ async function main(argv = process.argv) {
       isConfigValid,
       eslintPatterns,
       markdownPatterns,
+      nixPatterns,
       shellPatterns,
     },
   });
@@ -216,6 +219,7 @@ async function main(argv = process.argv) {
       isConfigValid,
       eslintPatterns,
       markdownPatterns,
+      nixPatterns,
       shellPatterns,
     },
   });

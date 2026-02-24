@@ -19,8 +19,10 @@ for use in Matrix AI JavaScript/TypeScript projects.</p>
 <code>tsconfig.json</code> files</li>
 <li>Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
 rules</li>
-<li>Supports Prettier formatting for Markdown and ShellCheck for shell scripts</li>
-<li>Single command to lint JavaScript/TypeScript, Markdown, and shell scripts</li>
+<li>Supports Prettier formatting for Markdown, ShellCheck for shell scripts, and
+nixfmt for Nix files</li>
+<li>Single command to lint JavaScript/TypeScript, Markdown, shell scripts, and Nix
+files</li>
 <li>Customizable via <code>matrixai-lint-config.json</code> and extensible with your own
 ESLint config</li>
 <li>CLI options to override config and enable auto-fix</li>
@@ -60,16 +62,24 @@ ESLint config</li>
 <td>ESLint targets (files, roots, or globs); implies ESLint domain selection</td>
 </tr>
 <tr>
+<td><code>--markdown &lt;targets&gt;</code></td>
+<td>Markdown targets (files, roots, or globs); implies markdown domain selection</td>
+</tr>
+<tr>
+<td><code>--nix &lt;targets&gt;</code></td>
+<td>Nix targets (files, roots, or globs); implies nix domain selection</td>
+</tr>
+<tr>
 <td><code>--shell &lt;targets&gt;</code></td>
-<td>Shell targets (files, roots, or globs) used to derive shell search roots</td>
+<td>Shell targets (files, roots, or globs); implies shell domain selection</td>
 </tr>
 <tr>
 <td><code>--domain &lt;id...&gt;</code></td>
-<td>Run only selected domains (<code>eslint</code>, <code>shell</code>, <code>markdown</code>)</td>
+<td>Run only selected domains (<code>eslint</code>, <code>shell</code>, <code>markdown</code>, <code>nix</code>)</td>
 </tr>
 <tr>
 <td><code>--skip-domain &lt;id...&gt;</code></td>
-<td>Skip selected domains (<code>eslint</code>, <code>shell</code>, <code>markdown</code>)</td>
+<td>Skip selected domains (<code>eslint</code>, <code>shell</code>, <code>markdown</code>, <code>nix</code>)</td>
 </tr>
 <tr>
 <td><code>--list-domains</code></td>
@@ -95,9 +105,24 @@ those flags.<ul>
 <li>Passing both runs both.</li>
 </ul>
 </li>
+<li>Passing <code>--markdown</code> implies markdown domain selection.<ul>
+<li><code>--markdown ...</code> runs markdown only.</li>
+<li>Combined with other target flags, only those targeted domains run.</li>
+</ul>
+</li>
+<li>Passing <code>--nix</code> implies nix domain selection.<ul>
+<li><code>--nix ...</code> runs nix only.</li>
+<li>Combined with other target flags, only those targeted domains run.</li>
+</ul>
+</li>
 <li><code>shellcheck</code> is optional only for default auto-run shell execution.<ul>
 <li>If shell is explicitly requested (<code>--shell ...</code> or <code>--domain shell</code>),
 missing <code>shellcheck</code> is a failure.</li>
+</ul>
+</li>
+<li><code>nixfmt</code> is optional only for default auto-run nix execution.<ul>
+<li>If nix is explicitly requested (<code>--nix ...</code> or <code>--domain nix</code>), missing
+<code>nixfmt</code> is a failure.</li>
 </ul>
 </li>
 <li><code>--shell</code> accepts target paths and glob patterns.<ul>
@@ -106,21 +131,69 @@ missing <code>shellcheck</code> is a failure.</li>
 are discovered under those roots.</li>
 </ul>
 </li>
+<li><code>--markdown</code> accepts target paths and glob patterns.<ul>
+<li>Directories are used as roots.</li>
+<li>File paths and glob patterns are reduced to search roots, then <code>*.md</code> /
+<code>*.mdx</code> files are discovered under those roots.</li>
+<li>Root-level <code>README.md</code> and <code>AGENTS.md</code> are always auto-included when
+present.</li>
 </ul>
-<a id="md:examples" class="tsd-anchor"></a><h4><a href="#md:examples">Examples</a></h4><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--eslint-config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--eslint</span><span class="hl-1"> </span><span class="hl-2">&quot;src/**/*.{ts,tsx}&quot;</span><span class="hl-1"> </span><span class="hl-3">--shell</span><span class="hl-1"> </span><span class="hl-2">scripts</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">eslint</span><span class="hl-1"> </span><span class="hl-2">markdown</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--skip-domain</span><span class="hl-1"> </span><span class="hl-2">markdown</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--list-domains</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--explain</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">eslint</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">-v</span><span class="hl-1"> </span><span class="hl-3">-v</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">markdown</span>
+</li>
+<li><code>--nix</code> accepts target paths and glob patterns.<ul>
+<li>Directories are used as roots.</li>
+<li>File paths and glob patterns are reduced to search roots, then <code>*.nix</code> files
+are discovered under those roots.</li>
+<li>By default, nix domain scope is <code>flake.nix</code>, <code>shell.nix</code>, <code>default.nix</code>, and
+<code>nix/**/*.nix</code>.</li>
+<li>When <code>--nix</code> is provided, explicit nix targets replace these defaults.</li>
+</ul>
+</li>
+</ul>
+<a id="md:targeted-workflows" class="tsd-anchor"></a><h4><a href="#md:targeted-workflows">Targeted workflows</a></h4><ul>
+<li><p>Only ESLint on a subset of files:</p>
+<pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--eslint</span><span class="hl-1"> </span><span class="hl-2">&quot;src/**/*.{ts,tsx}&quot;</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">eslint</span>
+</code><button>Copy</button></pre>
+</li>
+<li><p>Only shell scripts under specific roots:</p>
+<pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--shell</span><span class="hl-1"> </span><span class="hl-2">scripts</span><span class="hl-1"> </span><span class="hl-2">packages/</span><span class="hl-3">*</span><span class="hl-2">/scripts</span>
+</code><button>Copy</button></pre>
+</li>
+<li><p>Markdown only:</p>
+<pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">markdown</span>
+</code><button>Copy</button></pre>
+</li>
+<li><p>Markdown only under selected roots:</p>
+<pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--markdown</span><span class="hl-1"> </span><span class="hl-2">standards</span><span class="hl-1"> </span><span class="hl-2">templates</span><span class="hl-1"> </span><span class="hl-2">README.md</span>
+</code><button>Copy</button></pre>
+</li>
+<li><p>Nix only (default nix scope):</p>
+<pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">nix</span>
+</code><button>Copy</button></pre>
+</li>
+<li><p>Nix only under selected roots/patterns:</p>
+<pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--nix</span><span class="hl-1"> </span><span class="hl-2">nix</span><span class="hl-1"> </span><span class="hl-2">modules</span><span class="hl-1"> </span><span class="hl-2">flake.nix</span>
+</code><button>Copy</button></pre>
+</li>
+<li><p>Mixed scoped run (ESLint + shell only):</p>
+<pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--eslint</span><span class="hl-1"> </span><span class="hl-2">&quot;src/**/*.{ts,tsx}&quot;</span><span class="hl-1"> </span><span class="hl-3">--shell</span><span class="hl-1"> </span><span class="hl-2">scripts</span>
+</code><button>Copy</button></pre>
+</li>
+</ul>
+<a id="md:examples" class="tsd-anchor"></a><h4><a href="#md:examples">Examples</a></h4><pre><code class="language-sh"><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--user-config</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--eslint-config</span><span class="hl-1"> </span><span class="hl-2">./eslint.config.js</span><span class="hl-1"> </span><span class="hl-3">--fix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--eslint</span><span class="hl-1"> </span><span class="hl-2">&quot;src/**/*.{ts,tsx}&quot;</span><span class="hl-1"> </span><span class="hl-3">--shell</span><span class="hl-1"> </span><span class="hl-2">scripts</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--markdown</span><span class="hl-1"> </span><span class="hl-2">standards</span><span class="hl-1"> </span><span class="hl-2">templates</span><span class="hl-1"> </span><span class="hl-2">README.md</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--nix</span><span class="hl-1"> </span><span class="hl-2">nix</span><span class="hl-1"> </span><span class="hl-2">flake.nix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">eslint</span><span class="hl-1"> </span><span class="hl-2">markdown</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">nix</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--skip-domain</span><span class="hl-1"> </span><span class="hl-2">markdown</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--list-domains</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">--explain</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">eslint</span><br/><span class="hl-0">matrixai-lint</span><span class="hl-1"> </span><span class="hl-3">-v</span><span class="hl-1"> </span><span class="hl-3">-v</span><span class="hl-1"> </span><span class="hl-3">--domain</span><span class="hl-1"> </span><span class="hl-2">markdown</span>
 </code><button>Copy</button></pre>
 <a id="md:eslint-config-esm--nodenext" class="tsd-anchor"></a><h3><a href="#md:eslint-config-esm--nodenext">ESLint config (ESM / NodeNext)</a></h3><p><code>matrixai-lint</code> ships an ESLint Flat Config array and types for TypeScript
 projects configured as NodeNext.</p>
 <a id="md:default-import" class="tsd-anchor"></a><h4><a href="#md:default-import">Default import</a></h4><pre><code class="language-js"><span class="hl-4">// eslint.config.js</span><br/><span class="hl-5">import</span><span class="hl-1"> { </span><span class="hl-6">config</span><span class="hl-1"> } </span><span class="hl-5">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">export</span><span class="hl-1"> </span><span class="hl-5">default</span><span class="hl-1"> </span><span class="hl-6">config</span><span class="hl-1">;</span>
 </code><button>Copy</button></pre>
-<a id="md:explicit-subpath-import" class="tsd-anchor"></a><h4><a href="#md:explicit-subpath-import">Explicit subpath import</a></h4><pre><code class="language-js"><span class="hl-4">// eslint.config.js</span><br/><span class="hl-5">import</span><span class="hl-1"> </span><span class="hl-6">matrixai</span><span class="hl-1"> </span><span class="hl-5">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint/config.js&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">export</span><span class="hl-1"> </span><span class="hl-5">default</span><span class="hl-1"> </span><span class="hl-6">matrixai</span><span class="hl-1">;</span>
+<a id="md:explicit-subpath-import" class="tsd-anchor"></a><h4><a href="#md:explicit-subpath-import">Explicit subpath import</a></h4><pre><code class="language-js"><span class="hl-4">// eslint.config.js</span><br/><span class="hl-5">import</span><span class="hl-1"> </span><span class="hl-6">matrixai</span><span class="hl-1"> </span><span class="hl-5">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@matrixai/lint/configs/eslint.js&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">export</span><span class="hl-1"> </span><span class="hl-5">default</span><span class="hl-1"> </span><span class="hl-6">matrixai</span><span class="hl-1">;</span>
 </code><button>Copy</button></pre>
 <a id="md:lint-configuration-file" class="tsd-anchor"></a><h3><a href="#md:lint-configuration-file">Lint configuration file</a></h3><p>The linter is TypeScript-aware and requires a <code>tsconfig.json</code> to determine which
 files to lint and how to parse them. By default it looks for <code>tsconfig.json</code> in
 the project root and uses the <code>include</code>/<code>exclude</code> entries.</p>
 <p>If your project uses more than one <code>tsconfig.json</code> or does not have one at the
-root, configure the linter using a <code>matrixai-lint-config.json</code> file at the root:</p>
-<pre><code class="language-json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-7">&quot;tsconfigPaths&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;./tsconfig.base.json&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;./packages/core/tsconfig.json&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-7">&quot;forceInclude&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;scripts&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;src/overrides&quot;</span><span class="hl-1">]</span><br/><span class="hl-1">}</span>
+root, configure the linter using a <code>matrixai-lint-config.json</code> file at the root.</p>
+<p>This config uses a versioned schema and must explicitly declare <code>&quot;version&quot;: 2</code>:</p>
+<pre><code class="language-json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-7">&quot;version&quot;</span><span class="hl-1">: </span><span class="hl-8">2</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-7">&quot;root&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;.&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-7">&quot;domains&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">    </span><span class="hl-7">&quot;eslint&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">      </span><span class="hl-7">&quot;tsconfigPaths&quot;</span><span class="hl-1">: [</span><br/><span class="hl-1">        </span><span class="hl-2">&quot;./tsconfig.base.json&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">        </span><span class="hl-2">&quot;./packages/core/tsconfig.json&quot;</span><br/><span class="hl-1">      ],</span><br/><span class="hl-1">      </span><span class="hl-7">&quot;forceInclude&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;scripts&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;src/overrides&quot;</span><span class="hl-1">]</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}</span>
 </code><button>Copy</button></pre>
 <table>
 <thead>
@@ -131,12 +204,22 @@ root, configure the linter using a <code>matrixai-lint-config.json</code> file a
 </tr>
 </thead>
 <tbody><tr>
-<td><code>tsconfigPaths</code></td>
+<td><code>version</code></td>
+<td><code>2</code></td>
+<td>Required schema version marker</td>
+</tr>
+<tr>
+<td><code>root</code></td>
+<td><code>string</code></td>
+<td>Optional lint root (defaults to <code>.</code>). <code>tsconfigPaths</code> are resolved relative to this root.</td>
+</tr>
+<tr>
+<td><code>domains.eslint.tsconfigPaths</code></td>
 <td><code>string[]</code></td>
 <td>One or more paths to <code>tsconfig.json</code> files</td>
 </tr>
 <tr>
-<td><code>forceInclude</code></td>
+<td><code>domains.eslint.forceInclude</code></td>
 <td><code>string[]</code></td>
 <td>Paths to always include, even if excluded by tsconfig (must be included by at least one)</td>
 </tr>
@@ -147,11 +230,14 @@ TypeScript will throw a parsing error.</p>
 <ul>
 <li><code>@matrixai/lint</code>: named export <code>config</code>; types <code>MatrixAILintCfg</code>,
 <code>RawMatrixCfg</code>, <code>CLIOptions</code>.</li>
-<li><code>@matrixai/lint/config.js</code>: default export of the Flat Config array (same
-shape as <code>config</code>).</li>
+<li><code>@matrixai/lint/configs/eslint.js</code>: default export of the ESLint Flat Config
+array (same shape as <code>config</code>).</li>
+<li><code>@matrixai/lint/configs/prettier.config.js</code>: reusable Prettier options object.</li>
 </ul>
-<p>Internal modules (plugins, rules, utilities, and wildcard passthroughs under
-<code>@matrixai/lint/*</code>) are for tooling and are not a stable public API.</p>
+<p>The exported <code>config</code> is intended as a composable base preset for downstream
+<code>eslint.config.js</code> files, not as an internal-only implementation detail.</p>
+<p>Any package import path not listed above is internal and not a stable public
+API.</p>
 <a id="md:contributing" class="tsd-anchor"></a><h2><a href="#md:contributing">Contributing</a></h2><p>Golden commands:</p>
 <ul>
 <li><code>npm run build</code></li>
@@ -162,8 +248,8 @@ shape as <code>config</code>).</li>
 <p>Notes:</p>
 <ul>
 <li><code>npm run lint</code> and <code>npm run lintfix</code> invoke <code>npm run prepare</code> first so the
-compiled CLI in <code>dist/bin/lint.js</code> stays up to date while keeping TypeScript
-incremental rebuilds fast.</li>
+compiled CLI in <code>dist/bin/matrixai-lint.js</code> stays up to date while keeping
+TypeScript incremental rebuilds fast.</li>
 </ul>
 <p>For the authoritative contributor guidance see <a href="AGENTS.md">AGENTS.md</a>.</p>
 <p>Docs: <a href="https://matrixai.github.io/js-lint/">https://matrixai.github.io/js-lint/</a></p>
@@ -210,6 +296,7 @@ incremental rebuilds fast.</li>
 <li><a href="#md:cli-options"><span>CLI <wbr/>Options</span></a></li>
 <li>
 <ul>
+<li><a href="#md:targeted-workflows"><span>Targeted workflows</span></a></li>
 <li><a href="#md:examples"><span>Examples</span></a></li></ul></li>
 <li><a href="#md:eslint-config-esm--nodenext"><span>ESLint config (ESM / <wbr/>Node<wbr/>Next)</span></a></li>
 <li>

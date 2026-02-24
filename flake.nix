@@ -14,8 +14,7 @@
         shell = { ci ? false }:
           with pkgs;
           pkgs.mkShell {
-            nativeBuildInputs = [ nodejs_20 shellcheck gh ];
-            PKG_IGNORE_TAG = 1;
+            nativeBuildInputs = [ nodejs_20 shellcheck nixfmt gh ];
             shellHook = ''
               echo "Entering $(npm pkg get name)"
               set -o allexport
