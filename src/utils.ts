@@ -1,36 +1,13 @@
-import type { MatrixAILintCfgResolved } from './types.js';
-import type Logger from '@matrixai/logger';
 import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
-import url from 'node:url';
-import ts from 'typescript';
-import { ESLint } from 'eslint';
+import { minimatch } from 'minimatch';
 import { LogLevel } from '@matrixai/logger';
-import { resolveLintConfig } from './config.js';
-
-const ESLINT_TARGET_EXTENSIONS = [
-  'js',
-  'mjs',
-  'cjs',
-  'jsx',
-  'ts',
-  'tsx',
-  'mts',
-  'cts',
-  'json',
-] as const;
-
-const ESLINT_TARGET_EXTENSION_GLOB = `.{${ESLINT_TARGET_EXTENSIONS.join(',')}}`;
-
-const DEFAULT_IGNORE_PATTERNS = [
-  'node_modules/**',
-  'bower_components/**',
-  'jspm_packages/**',
-] as const;
 
 const GLOB_META_PATTERN = /[*?[\]{}()!+@]/;
+
+const EXCLUDED_DIR_NAMES = new Set(['.git', 'node_modules', 'dist']);
 
 /**
  * Convert verbosity count to logger level.
@@ -45,176 +22,6 @@ function verboseToLogLevel(c: number = 0): LogLevel {
   return logLevel;
 }
 
-async function runESLint({
-  fix,
-  configPath,
-  explicitGlobs,
-  resolvedConfig,
-  logger,
-}: {
-  fix: boolean;
-  configPath?: string;
-  explicitGlobs?: string[];
-  resolvedConfig?: MatrixAILintCfgResolved;
-  logger: Logger;
-}): Promise<boolean> {
-  const dirname = path.dirname(url.fileURLToPath(import.meta.url));
-  const defaultConfigPath = path.resolve(dirname, './configs/eslint.js');
-  const lintConfig = resolvedConfig ?? resolveLintConfig();
-  const parserProjectOverride = {
-    languageOptions: {
-      parserOptions: {
-        project: lintConfig.domains.eslint.tsconfigPaths,
-      },
-    },
-  };
-
-  // PATH A - user supplied explicit globs
-  if (explicitGlobs?.length) {
-    logger.info('Linting with explicit patterns:');
-    explicitGlobs.forEach((pattern) => {
-      logger.info(`Linting: ${pattern}`);
-    });
-
-    const eslint = new ESLint({
-      overrideConfigFile: configPath || defaultConfigPath,
-      fix,
-      errorOnUnmatchedPattern: false,
-      warnIgnored: false,
-      ignorePatterns: [], // Trust caller entirely
-      cache: true,
-      cacheLocation: '.cache/matrixai-lint/eslint/.eslintcache',
-      cacheStrategy: 'content',
-      overrideConfig: parserProjectOverride,
-    });
-
-    return await lintAndReport(eslint, explicitGlobs, fix, logger);
-  }
-
-  // PATH B - default behaviour (tsconfig + matrix config)
-  const { forceInclude, tsconfigPaths } = lintConfig.domains.eslint;
-
-  if (tsconfigPaths.length === 0) {
-    logger.error('[matrixai-lint] ⚠ No tsconfig.json files found.');
-    return true;
-  }
-
-  logger.info(`Found ${tsconfigPaths.length} tsconfig.json files:`);
-  tsconfigPaths.forEach((tsconfigPath) => {
-    logger.info(`Using tsconfig: ${tsconfigPath}`);
-  });
-
-  const { files: patterns, ignore: ignorePats } = buildPatterns(
-    tsconfigPaths,
-    forceInclude,
-    process.cwd(),
-    lintConfig.root,
-  );
-
-  if (patterns.length === 0) {
-    logger.warn(
-      '[matrixai-lint] ⚠ No ESLint targets were derived from configured tsconfig paths.',
-    );
-    return false;
-  }
-
-  logger.info('Linting files:');
-  patterns.forEach((pattern) => {
-    logger.info(`Linting: ${pattern}`);
-  });
-
-  const eslint = new ESLint({
-    overrideConfigFile: configPath || defaultConfigPath,
-    fix,
-    errorOnUnmatchedPattern: false,
-    warnIgnored: false,
-    ignorePatterns: ignorePats,
-    cache: true,
-    cacheLocation: '.cache/matrixai-lint/eslint/.eslintcache',
-    cacheStrategy: 'content',
-    overrideConfig: parserProjectOverride,
-  });
-
-  return await lintAndReport(eslint, patterns, fix, logger);
-}
-
-async function lintAndReport(
-  eslint: ESLint,
-  patterns: string[],
-  fix: boolean,
-  logger: Logger,
-): Promise<boolean> {
-  const results = await eslint.lintFiles(patterns);
-
-  if (fix) {
-    await ESLint.outputFixes(results);
-  }
-
-  const errorCount = results.reduce(
-    (sum, result) => sum + result.errorCount,
-    0,
-  );
-  const warningCount = results.reduce(
-    (sum, result) => sum + result.warningCount,
-    0,
-  );
-  logger.info(
-    `ESLint summary: files=${results.length} errors=${errorCount} warnings=${warningCount} fix=${fix ? 'on' : 'off'}`,
-  );
-
-  const formatter = await eslint.loadFormatter('stylish');
-  const formattedOutput = await formatter.format(results);
-  for (const line of formattedOutput.split(/\r?\n/)) {
-    const normalizedLine = line.trim();
-    if (normalizedLine.length > 0) {
-      logger.info(`ESLint detail: ${normalizedLine}`);
-    }
-  }
-
-  const hasErrors = errorCount > 0;
-
-  return hasErrors;
-}
-
-/**
- * Find the user's ESLint config file in the current working directory.
- * It looks for the following files:
- * - eslint.config.js
- * - eslint.config.mjs
- * - eslint.config.cjs
- * - eslint.config.ts
- *
- * @param repoRoot The root directory of the repository (default: process.cwd())
- * @returns The path to the ESLint config file, or null if not found.
- */
-function findUserESLintConfig(repoRoot = process.cwd()): string | undefined {
-  const candidates = [
-    'eslint.config.js',
-    'eslint.config.mjs',
-    'eslint.config.cjs',
-    'eslint.config.ts',
-  ];
-  for (const file of candidates) {
-    const abs = path.join(repoRoot, file);
-    if (fs.existsSync(abs)) return abs;
-  }
-  return undefined;
-}
-
-/**
- * Collect all Markdown files in a directory and its subdirectories.
- *
- * @param dir The directory to search in.
- * @returns An array of paths to Markdown files.
- */
-function collectMarkdown(dir: string): string[] {
-  const files = fs.readdirSync(dir, { encoding: 'utf8', recursive: true });
-
-  return files
-    .filter((f) => /\.(md|mdx)$/i.test(f))
-    .map((f) => path.join(dir, f));
-}
-
 /**
  * Check if a command exists in the system PATH.
  *
@@ -227,36 +34,27 @@ function commandExists(cmd: string): boolean {
   return result.status === 0;
 }
 
-function toStringArray(value: unknown): string[] {
-  if (typeof value === 'string') {
-    return [value];
+function normalizePathForGlob(value: string): string {
+  return value.replace(/\\/g, '/').replace(/^\.\//, '');
+}
+
+function normalizePatternForSearchRoot(pattern: string): string {
+  return pattern.trim().replace(/\\/g, '/');
+}
+
+function toPosixRelativePath(filePath: string, cwd = process.cwd()): string {
+  const relativePath = path.relative(cwd, filePath).split(path.sep).join('/');
+  if (relativePath === '') {
+    return '.';
   }
-
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string');
-  }
-
-  return [];
+  return relativePath;
 }
 
-function dedupeAndSort(values: readonly string[]): string[] {
-  return [...new Set(values)].sort();
-}
-
-function normalizeGlobValue(value: string): string {
-  return value.trim().replace(/\\/g, '/').replace(/^\.\//, '');
-}
-
-function rebasePatternToCwd({
-  pattern,
-  baseDir,
-  cwd,
-}: {
-  pattern: string;
-  baseDir: string;
-  cwd: string;
-}): string {
-  const normalizedPattern = normalizeGlobValue(pattern);
+function normalizePatternForMatching(
+  pattern: string,
+  cwd = process.cwd(),
+): string {
+  const normalizedPattern = normalizePathForGlob(pattern.trim());
   if (normalizedPattern.length === 0) {
     return '';
   }
@@ -264,228 +62,216 @@ function rebasePatternToCwd({
   const platformPattern = normalizedPattern.split('/').join(path.sep);
   const absolutePattern = path.isAbsolute(platformPattern)
     ? platformPattern
-    : path.resolve(baseDir, platformPattern);
-  const relativePattern = path
-    .relative(cwd, absolutePattern)
+    : path.resolve(cwd, platformPattern);
+
+  return toPosixRelativePath(absolutePattern, cwd);
+}
+
+function isGlobPattern(value: string): boolean {
+  return GLOB_META_PATTERN.test(value);
+}
+
+function patternToSearchRoot(pattern: string, cwd = process.cwd()): string {
+  const normalizedPattern = normalizePatternForSearchRoot(pattern);
+
+  if (!isGlobPattern(normalizedPattern)) {
+    return path.resolve(cwd, normalizedPattern);
+  }
+
+  const platformPattern = normalizedPattern.split('/').join(path.sep);
+  const segments = platformPattern
     .split(path.sep)
-    .join('/');
-
-  if (relativePattern.length === 0) {
-    return '.';
-  }
-
-  return normalizeGlobValue(relativePattern);
-}
-
-function hasExtensionOrGlobExtensionPattern(value: string): boolean {
-  return /(^|\/)[^/]*\.[^/]*$/.test(value);
-}
-
-function expandExtensionlessPattern(value: string): string {
-  const normalized = normalizeGlobValue(value).replace(/\/+$/, '');
-
-  if (normalized.length === 0) {
-    return '';
-  }
-
-  if (hasExtensionOrGlobExtensionPattern(normalized)) {
-    return normalized;
-  }
-
-  if (!GLOB_META_PATTERN.test(normalized)) {
-    return `${normalized}/**/*${ESLINT_TARGET_EXTENSION_GLOB}`;
-  }
-
-  if (normalized === '**') {
-    return `**/*${ESLINT_TARGET_EXTENSION_GLOB}`;
-  }
-
-  if (normalized.endsWith('/**')) {
-    return `${normalized}/*${ESLINT_TARGET_EXTENSION_GLOB}`;
-  }
-
-  return `${normalized}${ESLINT_TARGET_EXTENSION_GLOB}`;
-}
-
-function normalizeIncludePatterns(values: readonly string[]): string[] {
-  return dedupeAndSort(
-    values
-      .map((value) => expandExtensionlessPattern(value))
-      .filter((value) => value.length > 0),
-  );
-}
-
-function normalizeExcludePatterns(values: readonly string[]): string[] {
-  return dedupeAndSort(
-    values
-      .map((value) => normalizeGlobValue(value).replace(/\/+$/, ''))
-      .filter((value) => value.length > 0),
-  );
-}
-
-function patternPrefix(value: string): string {
-  const normalized = normalizeGlobValue(value);
-  const segments = normalized
-    .split('/')
     .filter((segment) => segment.length > 0);
-  const prefixSegments: string[] = [];
+  const rootSegments: string[] = [];
 
   for (const segment of segments) {
-    if (GLOB_META_PATTERN.test(segment)) {
+    if (isGlobPattern(segment)) {
       break;
     }
-    prefixSegments.push(segment);
+    rootSegments.push(segment);
   }
 
-  return prefixSegments.join('/');
+  if (rootSegments.length === 0) {
+    return cwd;
+  }
+
+  return path.resolve(cwd, ...rootSegments);
 }
 
-function patternsOverlapByPrefix(left: string, right: string): boolean {
-  if (left === right) {
-    return true;
-  }
-
-  const leftPrefix = patternPrefix(left);
-  const rightPrefix = patternPrefix(right);
-
-  if (leftPrefix.length === 0 || rightPrefix.length === 0) {
-    return false;
-  }
-
-  return (
-    leftPrefix === rightPrefix ||
-    leftPrefix.startsWith(`${rightPrefix}/`) ||
-    rightPrefix.startsWith(`${leftPrefix}/`)
-  );
-}
-
-/**
- * Builds file and ignore patterns based on a given TypeScript configuration file path,
- * with optional forced inclusion of specific paths.
- *
- * @param tsconfigPaths - One or more paths to TypeScript configuration files.
- * @param forceInclude - An optional array of paths or patterns to forcefully include,
- *                       even if they overlap with excluded patterns.
- * @returns An object containing:
- *          - `files`: An array of glob patterns for files to include.
- *          - `ignore`: An array of glob patterns for files or directories to ignore.
- *
- * The function reads the `include` and `exclude` properties from the TypeScript
- * configuration file, processes them into glob patterns, and applies overrides
- * based on the `forceInclude` parameter. If no `exclude` patterns are specified,
- * default ignore patterns for common directories like `node_modules` are added.
- */
-function buildPatterns(
-  tsconfigPaths: readonly string[],
-  forceInclude: string[] = [],
+function resolveSearchRootsFromPatterns(
+  patterns: readonly string[],
   cwd = process.cwd(),
-  forceIncludeBaseDir = cwd,
-): {
-  files: string[];
-  ignore: string[];
-} {
-  const normalizedForceInclude = normalizeIncludePatterns(
-    forceInclude.map((value) =>
-      rebasePatternToCwd({ pattern: value, baseDir: forceIncludeBaseDir, cwd }),
-    ),
-  );
-  const forceIncludeRaw = dedupeAndSort(
-    forceInclude
-      .map((value) =>
-        rebasePatternToCwd({
-          pattern: value,
-          baseDir: forceIncludeBaseDir,
-          cwd,
-        }),
-      )
-      .map((value) => normalizeGlobValue(value).replace(/\/+$/, ''))
-      .filter((value) => value.length > 0),
-  );
+): string[] {
+  const existingRoots = new Set<string>();
 
-  const includePatternsByTsconfig: string[][] = [];
-  const excludePatternsByTsconfig: string[][] = [];
-
-  for (const tsconfigPath of tsconfigPaths) {
-    if (!fs.existsSync(tsconfigPath)) {
-      continue;
+  for (const pattern of patterns) {
+    const root = patternToSearchRoot(pattern, cwd);
+    if (fs.existsSync(root)) {
+      existingRoots.add(root);
     }
-
-    const tsconfigDir = path.dirname(tsconfigPath);
-
-    const readResult = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
-    if (readResult.error != null || readResult.config == null) {
-      continue;
-    }
-
-    const config = readResult.config as Record<string, unknown>;
-
-    const rawInclude = toStringArray(config.include).map((pattern) =>
-      rebasePatternToCwd({ pattern, baseDir: tsconfigDir, cwd }),
-    );
-    const defaultInclude = rebasePatternToCwd({
-      pattern: '**/*',
-      baseDir: tsconfigDir,
-      cwd,
-    });
-    const normalizedInclude = normalizeIncludePatterns(
-      rawInclude.length > 0 ? rawInclude : [defaultInclude],
-    );
-    const normalizedExclude = normalizeExcludePatterns(
-      toStringArray(config.exclude).map((pattern) =>
-        rebasePatternToCwd({ pattern, baseDir: tsconfigDir, cwd }),
-      ),
-    );
-
-    includePatternsByTsconfig.push(normalizedInclude);
-    excludePatternsByTsconfig.push(normalizedExclude);
   }
 
-  const include = dedupeAndSort([
-    ...includePatternsByTsconfig.flat(),
-    ...normalizedForceInclude,
-  ]);
+  return [...existingRoots].sort();
+}
 
-  const ignoreCandidates: string[] = [];
-  excludePatternsByTsconfig.forEach((excludePatterns, index) => {
-    if (excludePatterns.length === 0) {
-      ignoreCandidates.push(...DEFAULT_IGNORE_PATTERNS);
+function collectFilesByExtensions(
+  searchRoots: readonly string[],
+  extensions: readonly string[],
+): string[] {
+  const extensionSet = new Set(extensions.map((ext) => ext.toLowerCase()));
+  const matchedFiles = new Set<string>();
+
+  const visitPath = (entryPath: string): void => {
+    let entryStats: fs.Stats;
+    try {
+      entryStats = fs.statSync(entryPath);
+    } catch {
       return;
     }
 
-    for (const excludePattern of excludePatterns) {
-      const overlappedByOtherTsconfigInclude = includePatternsByTsconfig.some(
-        (includePatterns, includeIndex) =>
-          includeIndex !== index &&
-          includePatterns.some((includePattern) =>
-            patternsOverlapByPrefix(includePattern, excludePattern),
-          ),
-      );
+    if (entryStats.isFile()) {
+      const extension = path.extname(entryPath).toLowerCase();
+      if (extensionSet.has(extension)) {
+        matchedFiles.add(entryPath);
+      }
+      return;
+    }
 
-      if (!overlappedByOtherTsconfigInclude) {
-        ignoreCandidates.push(excludePattern);
+    if (!entryStats.isDirectory()) {
+      return;
+    }
+
+    let dirEntries: fs.Dirent[];
+    try {
+      dirEntries = fs.readdirSync(entryPath, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const dirEntry of dirEntries) {
+      const childPath = path.join(entryPath, dirEntry.name);
+      if (dirEntry.isDirectory()) {
+        if (EXCLUDED_DIR_NAMES.has(dirEntry.name)) {
+          continue;
+        }
+        visitPath(childPath);
+      } else if (dirEntry.isFile()) {
+        visitPath(childPath);
       }
     }
-  });
+  };
 
-  const ignore = dedupeAndSort(ignoreCandidates).filter((ignorePattern) => {
-    const overlappedByNormalized = normalizedForceInclude.some(
-      (forceIncludePattern) =>
-        patternsOverlapByPrefix(ignorePattern, forceIncludePattern),
-    );
-    const overlappedByRaw = forceIncludeRaw.some((forceIncludePattern) =>
-      patternsOverlapByPrefix(ignorePattern, forceIncludePattern),
-    );
-    return !overlappedByNormalized && !overlappedByRaw;
-  });
+  for (const searchRoot of searchRoots) {
+    visitPath(searchRoot);
+  }
 
-  return { files: include, ignore };
+  return [...matchedFiles].sort();
+}
+
+function resolveFilesFromPatterns(
+  patterns: readonly string[],
+  extensions: readonly string[],
+  cwd = process.cwd(),
+): string[] {
+  const normalizedPatterns = [...new Set(patterns)]
+    .map((pattern) => pattern.trim())
+    .filter((pattern) => pattern.length > 0);
+
+  if (normalizedPatterns.length === 0) {
+    return [];
+  }
+
+  const extensionSet = new Set(
+    extensions.map((extension) => extension.toLowerCase()),
+  );
+  const matchedFiles = new Set<string>();
+  const literalFiles = new Set<string>();
+  const literalDirectories = new Set<string>();
+  const globPatterns: string[] = [];
+
+  for (const pattern of normalizedPatterns) {
+    const platformPattern = pattern.replace(/\//g, path.sep);
+    const absolutePath = path.isAbsolute(platformPattern)
+      ? platformPattern
+      : path.resolve(cwd, platformPattern);
+    let stats: fs.Stats | undefined;
+
+    try {
+      stats = fs.statSync(absolutePath);
+    } catch {
+      stats = undefined;
+    }
+
+    if (stats?.isFile()) {
+      literalFiles.add(absolutePath);
+      continue;
+    }
+
+    if (stats?.isDirectory()) {
+      literalDirectories.add(absolutePath);
+      continue;
+    }
+
+    if (isGlobPattern(pattern)) {
+      globPatterns.push(pattern);
+      continue;
+    }
+  }
+
+  for (const literalFile of literalFiles) {
+    const extension = path.extname(literalFile).toLowerCase();
+    if (extensionSet.has(extension)) {
+      matchedFiles.add(literalFile);
+    }
+  }
+
+  for (const literalDirectory of literalDirectories) {
+    const files = collectFilesByExtensions([literalDirectory], extensions);
+    files.forEach((file) => matchedFiles.add(file));
+  }
+
+  if (globPatterns.length > 0) {
+    const globRoots = resolveSearchRootsFromPatterns(globPatterns, cwd);
+    const globCandidates = collectFilesByExtensions(globRoots, extensions);
+    const normalizedGlobPatterns = globPatterns
+      .map((pattern) => normalizePatternForMatching(pattern, cwd))
+      .filter((pattern) => pattern.length > 0);
+
+    for (const candidate of globCandidates) {
+      const relativeCandidatePath = toPosixRelativePath(candidate, cwd);
+      if (
+        normalizedGlobPatterns.some((pattern) =>
+          minimatch(relativeCandidatePath, pattern, {
+            dot: true,
+          }),
+        )
+      ) {
+        matchedFiles.add(candidate);
+      }
+    }
+  }
+
+  return relativizeFiles([...matchedFiles].sort(), cwd);
+}
+
+function relativizeFiles(
+  files: readonly string[],
+  cwd = process.cwd(),
+): string[] {
+  return files.map((file) => {
+    const relativePath = path.relative(cwd, file);
+    if (relativePath === '') {
+      return '.';
+    }
+    return relativePath;
+  });
 }
 
 export {
-  verboseToLogLevel,
-  runESLint,
-  findUserESLintConfig,
-  collectMarkdown,
+  collectFilesByExtensions,
   commandExists,
-  buildPatterns,
+  relativizeFiles,
+  resolveFilesFromPatterns,
+  resolveSearchRootsFromPatterns,
+  verboseToLogLevel,
 };

@@ -14,7 +14,8 @@ import {
   evaluateLintDomains,
   runLintDomainDecisions,
   type LintDomainDecision,
-} from '../domains/index.js';
+} from '../domains.js';
+import * as eslintUtils from '../eslint/utils.js';
 import * as utils from '../utils.js';
 
 const program = new Command();
@@ -179,7 +180,7 @@ async function main(argv = process.argv) {
       chosenConfig = absolutePath;
     }
   } else if (useUserConfig) {
-    chosenConfig = utils.findUserESLintConfig();
+    chosenConfig = eslintUtils.findUserESLintConfig();
     if (chosenConfig === undefined) {
       logger.warn(
         '--user-config given but no local ESLint config was found. Falling back to built-in config.',

@@ -12,8 +12,12 @@ import {
   createBuiltInDomainRegistry,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
   type LintDomainPlugin,
-} from '#domains/index.js';
-import * as utils from '#utils.js';
+} from '#domains.js';
+import ESLintDomainPlugin from '#eslint/ESLintDomainPlugin.js';
+import ShellDomainPlugin from '#shell/ShellDomainPlugin.js';
+import MarkdownDomainPlugin from '#markdown/MarkdownDomainPlugin.js';
+import NixDomainPlugin from '#nix/NixDomainPlugin.js';
+import { buildPatterns } from '#eslint/utils.js';
 
 const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
 
@@ -367,6 +371,17 @@ describe('domain engine', () => {
       { domain: 'markdown', description: 'markdown test plugin' },
       { domain: 'nix', description: 'nix test plugin' },
     ]);
+  });
+
+  test('built-in registry uses class-backed domain plugins', () => {
+    const registry = createBuiltInDomainRegistry({
+      prettierConfigPath: './src/configs/prettier.config.js',
+    });
+
+    expect(registry.get('eslint')).toBeInstanceOf(ESLintDomainPlugin);
+    expect(registry.get('shell')).toBeInstanceOf(ShellDomainPlugin);
+    expect(registry.get('markdown')).toBeInstanceOf(MarkdownDomainPlugin);
+    expect(registry.get('nix')).toBeInstanceOf(NixDomainPlugin);
   });
 
   test('eslint detection derives scope from canonical multi-tsconfig union', async () => {
@@ -797,6 +812,25 @@ describe('domain engine', () => {
     );
 
     const previousCwd = process.cwd();
+    const spawnSyncMock = jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'nixfmt'
+            ? 0
+            : 1;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
 
     try {
       process.chdir(tmpRoot);
@@ -853,6 +887,7 @@ describe('domain engine', () => {
         ]),
       );
     } finally {
+      spawnSyncMock.mockRestore();
       process.chdir(previousCwd);
       await fs.promises.rm(tmpRoot, { recursive: true, force: true });
     }
@@ -1102,7 +1137,7 @@ describe('eslint target derivation', () => {
         'utf8',
       );
 
-      const patterns = utils.buildPatterns(
+      const patterns = buildPatterns(
         [pkgOneTsconfig, pkgTwoTsconfig],
         [],
         tmpRoot,
@@ -1161,7 +1196,7 @@ describe('eslint target derivation', () => {
         'utf8',
       );
 
-      const patterns = utils.buildPatterns(
+      const patterns = buildPatterns(
         [pkgOneTsconfig, pkgTwoTsconfig],
         ['pkg-one/scripts'],
         tmpRoot,

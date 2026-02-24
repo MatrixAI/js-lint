@@ -8,7 +8,7 @@ import tsParser from '@typescript-eslint/parser';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
 import prettierOptions from './prettier.config.js';
-import matrixaiPlugin from '../plugins/eslint-plugin-matrixai.js';
+import noAliasedImportsRule from '../eslint/rules/no-aliased-imports.js';
 import { resolveLintConfig } from '../config.js';
 
 const resolvedLintConfig = resolveLintConfig();
@@ -35,7 +35,11 @@ const config = [
   {
     plugins: {
       import: fixupPluginRules(_import),
-      '@matrixai': matrixaiPlugin,
+      '@matrixai': {
+        rules: {
+          'no-aliased-imports': noAliasedImportsRule,
+        },
+      },
     },
 
     settings: {

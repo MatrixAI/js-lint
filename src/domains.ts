@@ -1,4 +1,4 @@
-import type { LintDomain, CLIOptions } from '../types.js';
+import type { LintDomain, CLIOptions } from './types.js';
 import {
   createLintDomainRegistry,
   listLintDomains,
@@ -10,11 +10,11 @@ import {
   type LintDomainDecision,
   type LintDomainEngineContext,
   type LintDomainSelectionSource,
-} from './engine.js';
-import { createESLintDomainPlugin } from './eslint.js';
-import { createShellDomainPlugin } from './shell.js';
-import { createMarkdownDomainPlugin } from './markdown.js';
-import { createNixDomainPlugin } from './nix.js';
+} from './domainEngine.js';
+import ESLintDomainPlugin from './eslint/ESLintDomainPlugin.js';
+import ShellDomainPlugin from './shell/ShellDomainPlugin.js';
+import MarkdownDomainPlugin from './markdown/MarkdownDomainPlugin.js';
+import NixDomainPlugin from './nix/NixDomainPlugin.js';
 
 const LINT_DOMAINS: LintDomain[] = ['eslint', 'shell', 'markdown', 'nix'];
 
@@ -116,16 +116,10 @@ function createBuiltInDomainRegistry({
   prettierConfigPath: string;
 }): Map<LintDomain, LintDomainPlugin> {
   return createLintDomainRegistry([
-    createESLintDomainPlugin(),
-    createShellDomainPlugin({
-      defaultSearchRoots: DEFAULT_SHELLCHECK_SEARCH_ROOTS,
-    }),
-    createMarkdownDomainPlugin({
-      prettierConfigPath,
-    }),
-    createNixDomainPlugin({
-      defaultSearchPatterns: DEFAULT_NIXFMT_SEARCH_PATTERNS,
-    }),
+    new ESLintDomainPlugin(),
+    new ShellDomainPlugin(DEFAULT_SHELLCHECK_SEARCH_ROOTS),
+    new MarkdownDomainPlugin(prettierConfigPath),
+    new NixDomainPlugin(DEFAULT_NIXFMT_SEARCH_PATTERNS),
   ]);
 }
 

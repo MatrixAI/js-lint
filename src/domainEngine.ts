@@ -1,73 +1,16 @@
-import type { LintDomain } from '../types.js';
-import type Logger from '@matrixai/logger';
-
-type LintDomainEngineContext = {
-  fix: boolean;
-  logger: Logger;
-  chosenConfig?: string;
-  isConfigValid: boolean;
-  eslintPatterns?: string[];
-  shellPatterns?: string[];
-  markdownPatterns?: string[];
-  nixPatterns?: string[];
-};
-
-type LintDomainAvailabilityKind = 'required' | 'optional';
-
-type LintDomainDetection = {
-  relevant: boolean;
-  relevanceReason?: string;
-  available: boolean;
-  availabilityKind: LintDomainAvailabilityKind;
-  unavailableReason?: string;
-  matchedFiles?: string[];
-};
-
-type LintDomainPluginResult = {
-  hadFailure: boolean;
-};
-
-type LintDomainSelectionSource =
-  | 'default'
-  | 'domain-flag'
-  | 'target-flag'
-  | 'unselected';
-
-type LintDomainPlannedAction =
-  | 'run'
-  | 'skip-unselected'
-  | 'skip-not-relevant'
-  | 'skip-unavailable'
-  | 'fail-unavailable'
-  | 'fail-detection';
-
-type LintDomainDecision = {
-  domain: LintDomain;
-  description: string;
-  selected: boolean;
-  explicitlyRequested: boolean;
-  selectionSource: LintDomainSelectionSource;
-  detection: LintDomainDetection | null;
-  plannedAction: LintDomainPlannedAction;
-  detectionError?: string;
-};
-
-type LintDomainPlugin = {
-  domain: LintDomain;
-  description: string;
-  detect:
-    | ((context: LintDomainEngineContext) => Promise<LintDomainDetection>)
-    | ((context: LintDomainEngineContext) => LintDomainDetection);
-  run:
-    | ((
-        context: LintDomainEngineContext,
-        detection: LintDomainDetection,
-      ) => Promise<LintDomainPluginResult>)
-    | ((
-        context: LintDomainEngineContext,
-        detection: LintDomainDetection,
-      ) => LintDomainPluginResult);
-};
+import type {
+  LintDomainAvailabilityKind,
+  LintDomainDecision,
+  LintDomainDetect,
+  LintDomainDetection,
+  LintDomain,
+  LintDomainEngineContext,
+  LintDomainPlannedAction,
+  LintDomainPlugin,
+  LintDomainPluginResult,
+  LintDomainRun,
+  LintDomainSelectionSource,
+} from './types.js';
 
 function normalizeLogDetail(value: unknown): string {
   return String(value)
@@ -313,7 +256,9 @@ async function runLintDomains({
 }
 
 export type {
+  LintDomainDetect,
   LintDomainDecision,
+  LintDomainRun,
   LintDomainPlannedAction,
   LintDomainSelectionSource,
   LintDomainAvailabilityKind,
