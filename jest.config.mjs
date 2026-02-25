@@ -64,7 +64,7 @@ const config = {
   collectCoverage: false,
   coverageProvider: 'v8',
   coverageDirectory: '<rootDir>/tmp/coverage',
-  collectCoverageFrom: ['<rootDir>/dist/**/*.{js,mjs,cjs,jsx}'],
+  collectCoverageFrom: ['<rootDir>/dist/**/*.{js,mjs,cjs}'],
   coverageReporters: ['text', 'cobertura'],
   globals,
   // Global setup script executed once before all test files
