@@ -28,11 +28,10 @@ const globals = {
 const config = {
   testEnvironment: 'node',
   verbose: true,
-  collectCoverage: false,
   cacheDirectory: '<rootDir>/tmp/jest',
-  coverageDirectory: '<rootDir>/tmp/coverage',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/?(*.)+(spec|test|unit.test).+(ts|tsx|js|jsx)'],
+  // transformIgnorePatterns: ['<rootDir>/dist/'],
   transform: {
     "^.+\\.(t|j)sx?$": [
       "@swc/jest",
@@ -61,7 +60,11 @@ const config = {
       reportTestSuiteErrors: 'true',
     }],
   ],
-  collectCoverageFrom: ['src/**/*.{ts,tsx,js,jsx}', '!src/**/*.d.ts'],
+  // This is flipped to true when using `--coverage` flag
+  collectCoverage: false,
+  coverageProvider: 'v8',
+  coverageDirectory: '<rootDir>/tmp/coverage',
+  collectCoverageFrom: ['<rootDir>/dist/**/*.{js,mjs,cjs,jsx}'],
   coverageReporters: ['text', 'cobertura'],
   globals,
   // Global setup script executed once before all test files
