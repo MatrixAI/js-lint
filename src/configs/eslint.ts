@@ -201,6 +201,7 @@ const config = [
           'newlines-between': 'never',
         },
       ],
+      'import/enforce-node-protocol-usage': ['error', 'always'],
       '@typescript-eslint/no-require-imports': 0,
       '@typescript-eslint/no-namespace': 0,
       '@typescript-eslint/no-explicit-any': 0,
