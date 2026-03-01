@@ -1,15 +1,17 @@
 import type { LintDomain, CLIOptions } from './types.js';
+import type {
+  LintDomainPlugin,
+  LintDomainPluginResult,
+  LintDomainDecision,
+  LintDomainEngineContext,
+  LintDomainSelectionSource,
+} from './domainEngine.js';
 import {
   createLintDomainRegistry,
   listLintDomains,
   evaluateLintDomains,
   runLintDomainDecisions,
   runLintDomains,
-  type LintDomainPlugin,
-  type LintDomainPluginResult,
-  type LintDomainDecision,
-  type LintDomainEngineContext,
-  type LintDomainSelectionSource,
 } from './domainEngine.js';
 import ESLintDomainPlugin from './eslint/ESLintDomainPlugin.js';
 import ShellDomainPlugin from './shell/ShellDomainPlugin.js';

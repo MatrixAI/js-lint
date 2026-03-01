@@ -1,3 +1,4 @@
+import type { LintDomainPlugin } from '#domains.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
@@ -11,7 +12,6 @@ import {
   resolveDomainSelection,
   createBuiltInDomainRegistry,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
-  type LintDomainPlugin,
 } from '#domains.js';
 import ESLintDomainPlugin from '#eslint/ESLintDomainPlugin.js';
 import ShellDomainPlugin from '#shell/ShellDomainPlugin.js';

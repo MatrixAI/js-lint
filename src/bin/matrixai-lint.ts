@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import type { CLIOptions } from '../types.js';
+import type { LintDomainDecision } from '../domains.js';
 import path from 'node:path';
 import process from 'node:process';
 import fs from 'node:fs';
@@ -13,7 +14,6 @@ import {
   listLintDomains,
   evaluateLintDomains,
   runLintDomainDecisions,
-  type LintDomainDecision,
 } from '../domains.js';
 import * as eslintUtils from '../eslint/utils.js';
 import * as utils from '../utils.js';
