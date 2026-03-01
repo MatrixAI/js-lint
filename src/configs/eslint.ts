@@ -149,6 +149,21 @@ const config = [
           message: 'Use `globalThis` instead',
         },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'Program > VariableDeclaration[kind="const"] > VariableDeclarator[id.type="Identifier"][init.type="ArrowFunctionExpression"]',
+          message:
+            'Top-level functions must be declarations: `function foo() {}`',
+        },
+        {
+          selector:
+            'Program > VariableDeclaration[kind="const"] > VariableDeclarator[id.type="Identifier"][init.type="FunctionExpression"]',
+          message:
+            'Top-level functions must be declarations: `function foo() {}`',
+        },
+      ],
       'prefer-rest-params': 0,
       'require-yield': 0,
       eqeqeq: ['error', 'smart'],
