@@ -96,7 +96,7 @@ const config = [
       'react/jsx-no-leaked-render': ['error', { validStrategies: ['ternary'] }],
       'react/function-component-definition': [
         'warn',
-        { namedComponents: 'arrow-function' },
+        { namedComponents: 'function-declaration' },
       ],
       'react/jsx-key': [
         'error',
