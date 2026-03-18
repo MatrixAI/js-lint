@@ -9,18 +9,14 @@ import childProcess from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
+import {
+  DEFAULT_MARKDOWN_ROOT_FILES,
+  DEFAULT_MARKDOWN_SEARCH_ROOTS,
+} from '../constants.js';
 import { resolveFilesFromPatterns } from '../utils.js';
 
 const platform = os.platform();
 const MARKDOWN_FILE_EXTENSIONS = ['.md', '.mdx'] as const;
-const DEFAULT_MARKDOWN_ROOT_FILES = ['README.md', 'AGENTS.md'] as const;
-const DEFAULT_MARKDOWN_SEARCH_ROOTS = [
-  './README.md',
-  './AGENTS.md',
-  './pages',
-  './blog',
-  './docs',
-];
 
 function collectMarkdownFilesFromScope(patterns: readonly string[]): string[] {
   const matchedRelativeFiles = resolveFilesFromPatterns(

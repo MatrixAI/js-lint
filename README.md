@@ -92,6 +92,40 @@ Domain selection behavior:
     `nix/**/*.nix`.
   - When `--nix` is provided, explicit nix targets replace these defaults.
 
+#### Effective default search scope
+
+When you run bare `matrixai-lint` or bare `matrixai-lint --fix` with no
+domain-specific target flags, all built-in domains run, but each domain decides
+its own effective scope:
+
+- `eslint`: computed from resolved `tsconfigPaths` and `forceInclude`. With no
+  [`matrixai-lint-config.json`](README.md) and no explicit
+  `domains.eslint.tsconfigPaths`, this means the root `tsconfig.json` is used by
+  default. The effective ESLint patterns come from that `tsconfig.json`
+  `include`/`exclude` plus any `forceInclude` entries. If no usable
+  TypeScript-driven scope can be derived, ESLint falls back to `./src`,
+  `./scripts`, and `./tests`.
+- `shell`: `./src`, `./scripts`, `./tests`
+- `markdown`: `./README.md`, `./AGENTS.md`, `./pages`, `./blog`, and `./docs`.
+  Root-level `README.md` and `AGENTS.md` are always auto-included when present.
+- `nix`: `./flake.nix`, `./shell.nix`, `./default.nix`, and `./nix/**/*.nix`
+
+Use `matrixai-lint --explain` to print the per-domain decision details and see
+which scope was selected at runtime.
+
+#### Repo-local npm scripts in this repository
+
+The scripts in this repository's [`package.json`](package.json) are wrappers for
+developing this package itself; they are not the generic package defaults.
+
+- [`npm run lint`](package.json) and [`npm run lintfix`](package.json)
+  explicitly pass `--eslint "{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}"`
+  and `--shell src scripts tests`.
+- That means this repository's npm scripts override the generic default scope
+  for the `eslint` and `shell` domains.
+- In those scripts, `markdown` and `nix` still use their built-in default
+  scopes.
+
 #### Targeted workflows
 
 - Only ESLint on a subset of files:

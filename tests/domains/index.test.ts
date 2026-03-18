@@ -11,8 +11,14 @@ import {
   listLintDomains,
   resolveDomainSelection,
   createBuiltInDomainRegistry,
-  DEFAULT_NIXFMT_SEARCH_PATTERNS,
 } from '#domains.js';
+import {
+  DEFAULT_ESLINT_SEARCH_ROOTS,
+  DEFAULT_SHELLCHECK_SEARCH_ROOTS,
+  DEFAULT_MARKDOWN_ROOT_FILES,
+  DEFAULT_MARKDOWN_SEARCH_ROOTS,
+  DEFAULT_NIXFMT_SEARCH_PATTERNS,
+} from '#constants.js';
 import ESLintDomainPlugin from '#eslint/ESLintDomainPlugin.js';
 import ShellDomainPlugin from '#shell/ShellDomainPlugin.js';
 import MarkdownDomainPlugin from '#markdown/MarkdownDomainPlugin.js';
@@ -1009,7 +1015,28 @@ describe('domain engine', () => {
     }
   });
 
-  test('nix default search patterns are stable and explicit', () => {
+  test('shared default search patterns are stable and explicit', () => {
+    expect(DEFAULT_ESLINT_SEARCH_ROOTS).toStrictEqual([
+      './src',
+      './scripts',
+      './tests',
+    ]);
+    expect(DEFAULT_SHELLCHECK_SEARCH_ROOTS).toStrictEqual([
+      './src',
+      './scripts',
+      './tests',
+    ]);
+    expect(DEFAULT_MARKDOWN_ROOT_FILES).toStrictEqual([
+      'README.md',
+      'AGENTS.md',
+    ]);
+    expect(DEFAULT_MARKDOWN_SEARCH_ROOTS).toStrictEqual([
+      './README.md',
+      './AGENTS.md',
+      './pages',
+      './blog',
+      './docs',
+    ]);
     expect(DEFAULT_NIXFMT_SEARCH_PATTERNS).toStrictEqual([
       './flake.nix',
       './shell.nix',

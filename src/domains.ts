@@ -13,20 +13,16 @@ import {
   runLintDomainDecisions,
   runLintDomains,
 } from './domainEngine.js';
+import {
+  DEFAULT_SHELLCHECK_SEARCH_ROOTS,
+  DEFAULT_NIXFMT_SEARCH_PATTERNS,
+} from './constants.js';
 import ESLintDomainPlugin from './eslint/ESLintDomainPlugin.js';
 import ShellDomainPlugin from './shell/ShellDomainPlugin.js';
 import MarkdownDomainPlugin from './markdown/MarkdownDomainPlugin.js';
 import NixDomainPlugin from './nix/NixDomainPlugin.js';
 
 const LINT_DOMAINS: LintDomain[] = ['eslint', 'shell', 'markdown', 'nix'];
-
-const DEFAULT_SHELLCHECK_SEARCH_ROOTS = ['./src', './scripts', './tests'];
-const DEFAULT_NIXFMT_SEARCH_PATTERNS = [
-  './flake.nix',
-  './shell.nix',
-  './default.nix',
-  './nix/**/*.nix',
-] as const;
 
 function resolveDomainSelection(options: CLIOptions): {
   selectedDomains: Set<LintDomain>;

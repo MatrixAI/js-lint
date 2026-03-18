@@ -6,6 +6,7 @@ import type {
 import { buildPatterns, runESLint } from './utils.js';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
 import { resolveLintConfig } from '../config.js';
+import { DEFAULT_ESLINT_SEARCH_ROOTS } from '../constants.js';
 import {
   resolveFilesFromPatterns,
   resolveSearchRootsFromPatterns,
@@ -23,8 +24,6 @@ const ESLINT_FILE_EXTENSIONS = [
   '.json',
 ] as const;
 
-const DEFAULT_ESLINT_SEARCH_ROOTS = ['./src', './scripts', './tests'];
-
 function resolveESLintDetectionPatterns(
   eslintPatterns: readonly string[] | undefined,
 ): string[] {
@@ -36,7 +35,7 @@ function resolveESLintDetectionPatterns(
   const { tsconfigPaths, forceInclude } = resolvedConfig.domains.eslint;
 
   if (tsconfigPaths.length === 0) {
-    return DEFAULT_ESLINT_SEARCH_ROOTS;
+    return [...DEFAULT_ESLINT_SEARCH_ROOTS];
   }
 
   const { files } = buildPatterns(
@@ -46,7 +45,7 @@ function resolveESLintDetectionPatterns(
     resolvedConfig.root,
   );
   if (files.length === 0) {
-    return DEFAULT_ESLINT_SEARCH_ROOTS;
+    return [...DEFAULT_ESLINT_SEARCH_ROOTS];
   }
 
   return files;
