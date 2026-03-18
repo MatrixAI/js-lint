@@ -78,7 +78,7 @@ const config = {
   // after the jest test environment is installed
   // Can access globals
   setupFilesAfterEnv: [
-    'jest-extended',
+    'jest-extended/all',
     '<rootDir>/tests/setupAfterEnv.ts'
   ],
   moduleNameMapper: {
