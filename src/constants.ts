@@ -11,9 +11,20 @@ const DEFAULT_MARKDOWN_ROOT_FILES = ['README.md', 'AGENTS.md'] as const;
 const DEFAULT_MARKDOWN_SEARCH_ROOTS = [
   './README.md',
   './AGENTS.md',
+  './specs',
   './pages',
   './blog',
   './docs',
+] as const;
+
+const DEFAULT_SVG_SEARCH_ROOTS = [
+  './src',
+  './specs',
+  './pages',
+  './public',
+  './static',
+  './docs',
+  './assets',
 ] as const;
 
 const DEFAULT_NIXFMT_SEARCH_PATTERNS = [
@@ -28,5 +39,6 @@ export {
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,
   DEFAULT_MARKDOWN_ROOT_FILES,
   DEFAULT_MARKDOWN_SEARCH_ROOTS,
+  DEFAULT_SVG_SEARCH_ROOTS,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
 };

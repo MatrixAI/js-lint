@@ -16,13 +16,21 @@ import {
 import {
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
+  DEFAULT_SVG_SEARCH_ROOTS,
 } from './constants.js';
 import ESLintDomainPlugin from './eslint/ESLintDomainPlugin.js';
 import ShellDomainPlugin from './shell/ShellDomainPlugin.js';
 import MarkdownDomainPlugin from './markdown/MarkdownDomainPlugin.js';
+import SvgDomainPlugin from './svg/SvgDomainPlugin.js';
 import NixDomainPlugin from './nix/NixDomainPlugin.js';
 
-const LINT_DOMAINS: LintDomain[] = ['eslint', 'shell', 'markdown', 'nix'];
+const LINT_DOMAINS: LintDomain[] = [
+  'eslint',
+  'shell',
+  'markdown',
+  'svg',
+  'nix',
+];
 
 function resolveDomainSelection(options: CLIOptions): {
   selectedDomains: Set<LintDomain>;
@@ -35,6 +43,7 @@ function resolveDomainSelection(options: CLIOptions): {
   const hasExplicitESLintTargets = (options.eslint?.length ?? 0) > 0;
   const hasExplicitShellTargets = (options.shell?.length ?? 0) > 0;
   const hasExplicitMarkdownTargets = (options.markdown?.length ?? 0) > 0;
+  const hasExplicitSvgTargets = (options.svg?.length ?? 0) > 0;
   const hasExplicitNixTargets = (options.nix?.length ?? 0) > 0;
   const explicitlyRequestedDomains = new Set<LintDomain>(domainFlags);
   const selectionSources = new Map<LintDomain, LintDomainSelectionSource>();
@@ -47,6 +56,9 @@ function resolveDomainSelection(options: CLIOptions): {
   }
   if (hasExplicitMarkdownTargets) {
     explicitlyRequestedDomains.add('markdown');
+  }
+  if (hasExplicitSvgTargets) {
+    explicitlyRequestedDomains.add('svg');
   }
   if (hasExplicitNixTargets) {
     explicitlyRequestedDomains.add('nix');
@@ -64,6 +76,7 @@ function resolveDomainSelection(options: CLIOptions): {
     (hasExplicitESLintTargets ||
       hasExplicitShellTargets ||
       hasExplicitMarkdownTargets ||
+      hasExplicitSvgTargets ||
       hasExplicitNixTargets)
   ) {
     selectedDomains = new Set<LintDomain>();
@@ -78,6 +91,10 @@ function resolveDomainSelection(options: CLIOptions): {
     if (hasExplicitMarkdownTargets) {
       selectedDomains.add('markdown');
       selectionSources.set('markdown', 'target-flag');
+    }
+    if (hasExplicitSvgTargets) {
+      selectedDomains.add('svg');
+      selectionSources.set('svg', 'target-flag');
     }
     if (hasExplicitNixTargets) {
       selectedDomains.add('nix');
@@ -117,6 +134,7 @@ function createBuiltInDomainRegistry({
     new ESLintDomainPlugin(),
     new ShellDomainPlugin(DEFAULT_SHELLCHECK_SEARCH_ROOTS),
     new MarkdownDomainPlugin(prettierConfigPath),
+    new SvgDomainPlugin(prettierConfigPath, DEFAULT_SVG_SEARCH_ROOTS),
     new NixDomainPlugin(DEFAULT_NIXFMT_SEARCH_PATTERNS),
   ]);
 }
@@ -131,6 +149,7 @@ export type {
 export {
   LINT_DOMAINS,
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,
+  DEFAULT_SVG_SEARCH_ROOTS,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
   resolveDomainSelection,
   createBuiltInDomainRegistry,

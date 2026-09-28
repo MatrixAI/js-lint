@@ -28,7 +28,7 @@ type MatrixAILintCfg = {
 
 type MatrixAILintCfgResolved = MatrixAILintCfg;
 
-type LintDomain = 'eslint' | 'shell' | 'markdown' | 'nix';
+type LintDomain = 'eslint' | 'shell' | 'markdown' | 'svg' | 'nix';
 
 type CLIOptions = {
   fix: boolean;
@@ -38,6 +38,7 @@ type CLIOptions = {
   eslint?: string[];
   shell?: string[];
   markdown?: string[];
+  svg?: string[];
   nix?: string[];
   domain?: LintDomain[];
   skipDomain?: LintDomain[];
@@ -53,6 +54,7 @@ type LintDomainEngineContext = {
   eslintPatterns?: string[];
   shellPatterns?: string[];
   markdownPatterns?: string[];
+  svgPatterns?: string[];
   nixPatterns?: string[];
 };
 

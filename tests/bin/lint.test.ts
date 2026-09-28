@@ -139,6 +139,43 @@ describe('matrixai-lint CLI domain semantics', () => {
     );
   });
 
+  test('--svg no longer triggers eslint/shell/markdown domains', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'assets'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'assets', 'logo.svg'),
+      '<svg><path d="M0 0"/></svg>\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'README.md'),
+      '# fixture\n',
+      'utf8',
+    );
+
+    await expect(
+      main(['node', 'matrixai-lint', '--svg', 'assets']),
+    ).resolves.toBeUndefined();
+
+    const shellCalls = capturedExecCalls.filter((c) => c.file === 'shellcheck');
+    expect(shellCalls).toHaveLength(0);
+
+    const prettierCalls = capturedExecCalls.filter(
+      (c) =>
+        c.file === 'prettier' ||
+        c.args.some((arg) => /prettier\.cjs$/.test(arg)),
+    );
+    expect(prettierCalls.length).toBeGreaterThan(0);
+
+    const normalizedPrettierArgs = prettierCalls
+      .flatMap((call) => call.args)
+      .map((arg) => arg.split(path.sep).join(path.posix.sep));
+
+    expect(normalizedPrettierArgs).toContain('assets/logo.svg');
+    expect(normalizedPrettierArgs).not.toContain('README.md');
+  });
+
   test('explicit shell request + missing shellcheck fails', async () => {
     jest
       .spyOn(childProcess, 'spawnSync')
@@ -301,6 +338,7 @@ describe('matrixai-lint CLI domain semantics', () => {
         'eslint',
         'shell',
         'markdown',
+        'svg',
         'nix',
         '--eslint',
         '{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}',

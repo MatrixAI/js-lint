@@ -46,6 +46,7 @@ program
   .option('--eslint-config <path>', 'Path to explicit ESLint config file')
   .option('--eslint <target...>', 'ESLint targets (files, roots, or globs)')
   .option('--markdown <target...>', 'Markdown targets (files, roots, or globs)')
+  .option('--svg <target...>', 'SVG targets (files, roots, or globs)')
   .option('--nix <target...>', 'Nix targets (files, roots, or globs)')
   .option(
     '--shell <target...>',
@@ -141,6 +142,7 @@ async function main(argv = process.argv) {
 
   const eslintPatterns: string[] | undefined = options.eslint;
   const markdownPatterns: string[] | undefined = options.markdown;
+  const svgPatterns: string[] | undefined = options.svg;
   const nixPatterns: string[] | undefined = options.nix;
   const shellPatterns: string[] | undefined = options.shell;
   const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
@@ -201,6 +203,7 @@ async function main(argv = process.argv) {
       isConfigValid,
       eslintPatterns,
       markdownPatterns,
+      svgPatterns,
       nixPatterns,
       shellPatterns,
     },
@@ -220,6 +223,7 @@ async function main(argv = process.argv) {
       isConfigValid,
       eslintPatterns,
       markdownPatterns,
+      svgPatterns,
       nixPatterns,
       shellPatterns,
     },

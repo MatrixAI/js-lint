@@ -7,10 +7,10 @@ for use in Matrix AI JavaScript/TypeScript projects.
   `tsconfig.json` files
 - Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
   rules
-- Supports Prettier formatting for Markdown, ShellCheck for shell scripts, and
-  nixfmt for Nix files
-- Single command to lint JavaScript/TypeScript, Markdown, shell scripts, and Nix
-  files
+- Supports Prettier formatting for Markdown and SVG, ShellCheck for shell
+  scripts, and nixfmt for Nix files
+- Single command to lint JavaScript/TypeScript, Markdown, SVG, shell scripts,
+  and Nix files
 - Customizable via `matrixai-lint-config.json` and extensible with your own
   ESLint config
 - CLI options to override config and enable auto-fix
@@ -45,10 +45,11 @@ matrixai-lint --fix
 | `--eslint-config <path>` | Explicitly use a custom ESLint config file                                   |
 | `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection     |
 | `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection |
+| `--svg <targets>`        | SVG targets (files, roots, or globs); implies SVG domain selection           |
 | `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection           |
 | `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection       |
-| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `nix`)             |
-| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `nix`)                 |
+| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`)      |
+| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`)          |
 | `--list-domains`         | Print available domains and short descriptions, then exit 0                  |
 | `--explain`              | Print per-domain decision details before execution                           |
 | `-v, --verbose`          | Increase log verbosity (repeat for more detail)                              |
@@ -64,6 +65,9 @@ Domain selection behavior:
   - Passing both runs both.
 - Passing `--markdown` implies markdown domain selection.
   - `--markdown ...` runs markdown only.
+  - Combined with other target flags, only those targeted domains run.
+- Passing `--svg` implies SVG domain selection.
+  - `--svg ...` runs SVG only.
   - Combined with other target flags, only those targeted domains run.
 - Passing `--nix` implies nix domain selection.
   - `--nix ...` runs nix only.
@@ -84,6 +88,12 @@ Domain selection behavior:
     `*.mdx` files are discovered under those roots.
   - Root-level `README.md` and `AGENTS.md` are always auto-included when
     present.
+- `--svg` accepts target paths and glob patterns.
+  - Directories are used as roots.
+  - File paths and glob patterns are reduced to search roots, then `*.svg` files
+    are discovered under those roots.
+  - By default, SVG domain scope is `./src`, `./specs`, `./pages`, `./public`,
+    `./static`, `./docs`, and `./assets`.
 - `--nix` accepts target paths and glob patterns.
   - Directories are used as roots.
   - File paths and glob patterns are reduced to search roots, then `*.nix` files
@@ -106,8 +116,11 @@ its own effective scope:
   TypeScript-driven scope can be derived, ESLint falls back to `./src`,
   `./scripts`, and `./tests`.
 - `shell`: `./src`, `./scripts`, `./tests`
-- `markdown`: `./README.md`, `./AGENTS.md`, `./pages`, `./blog`, and `./docs`.
-  Root-level `README.md` and `AGENTS.md` are always auto-included when present.
+- `markdown`: `./README.md`, `./AGENTS.md`, `./specs`, `./pages`, `./blog`, and
+  `./docs`. Root-level `README.md` and `AGENTS.md` are always auto-included when
+  present.
+- `svg`: `./src`, `./specs`, `./pages`, `./public`, `./static`, `./docs`, and
+  `./assets`.
 - `nix`: `./flake.nix`, `./shell.nix`, `./default.nix`, and `./nix/**/*.nix`
 
 Use `matrixai-lint --explain` to print the per-domain decision details and see
@@ -123,8 +136,8 @@ developing this package itself; they are not the generic package defaults.
   and `--shell src scripts tests`.
 - That means this repository's npm scripts override the generic default scope
   for the `eslint` and `shell` domains.
-- In those scripts, `markdown` and `nix` still use their built-in default
-  scopes.
+- In those scripts, `markdown`, `svg`, and `nix` still use their built-in
+  default scopes.
 
 #### Targeted workflows
 
@@ -150,6 +163,12 @@ developing this package itself; they are not the generic package defaults.
 
   ```sh
   matrixai-lint --markdown standards templates README.md
+  ```
+
+- SVG only under selected roots:
+
+  ```sh
+  matrixai-lint --svg specs assets public
   ```
 
 - Nix only (default nix scope):
@@ -178,8 +197,9 @@ matrixai-lint --user-config
 matrixai-lint --eslint-config ./eslint.config.js --fix
 matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
 matrixai-lint --markdown standards templates README.md
+matrixai-lint --svg specs assets public
 matrixai-lint --nix nix flake.nix
-matrixai-lint --domain eslint markdown
+matrixai-lint --domain eslint markdown svg
 matrixai-lint --domain nix
 matrixai-lint --skip-domain markdown
 matrixai-lint --list-domains

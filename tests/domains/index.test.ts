@@ -17,11 +17,13 @@ import {
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,
   DEFAULT_MARKDOWN_ROOT_FILES,
   DEFAULT_MARKDOWN_SEARCH_ROOTS,
+  DEFAULT_SVG_SEARCH_ROOTS,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
 } from '#constants.js';
 import ESLintDomainPlugin from '#eslint/ESLintDomainPlugin.js';
 import ShellDomainPlugin from '#shell/ShellDomainPlugin.js';
 import MarkdownDomainPlugin from '#markdown/MarkdownDomainPlugin.js';
+import SvgDomainPlugin from '#svg/SvgDomainPlugin.js';
 import NixDomainPlugin from '#nix/NixDomainPlugin.js';
 import { buildPatterns } from '#eslint/utils.js';
 
@@ -71,6 +73,19 @@ describe('domain engine', () => {
         },
       },
       {
+        domain: 'svg',
+        description: 'svg test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'required',
+        }),
+        run: () => {
+          executionTrace.push('svg');
+          return { hadFailure: false };
+        },
+      },
+      {
         domain: 'nix',
         description: 'nix test plugin',
         detect: () => ({
@@ -89,7 +104,7 @@ describe('domain engine', () => {
       registry,
       selectedDomains: new Set(['eslint', 'markdown']),
       explicitlyRequestedDomains: new Set<never>(),
-      executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+      executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
       context: {
         fix: false,
         logger: testLogger,
@@ -283,6 +298,16 @@ describe('domain engine', () => {
         run: () => ({ hadFailure: false }),
       },
       {
+        domain: 'svg',
+        description: 'svg test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'required',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+      {
         domain: 'nix',
         description: 'nix test plugin',
         detect: () => ({
@@ -302,7 +327,7 @@ describe('domain engine', () => {
         ['eslint', 'default'],
         ['shell', 'domain-flag'],
       ]),
-      executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+      executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
       context: {
         fix: false,
         logger: testLogger,
@@ -310,7 +335,7 @@ describe('domain engine', () => {
       },
     });
 
-    expect(decisions).toHaveLength(4);
+    expect(decisions).toHaveLength(5);
     expect(decisions[0]?.domain).toBe('eslint');
     expect(decisions[0]?.plannedAction).toBe('run');
     expect(decisions[1]?.domain).toBe('shell');
@@ -318,8 +343,10 @@ describe('domain engine', () => {
     expect(decisions[1]?.selectionSource).toBe('domain-flag');
     expect(decisions[2]?.domain).toBe('markdown');
     expect(decisions[2]?.plannedAction).toBe('skip-unselected');
-    expect(decisions[3]?.domain).toBe('nix');
+    expect(decisions[3]?.domain).toBe('svg');
     expect(decisions[3]?.plannedAction).toBe('skip-unselected');
+    expect(decisions[4]?.domain).toBe('nix');
+    expect(decisions[4]?.plannedAction).toBe('skip-unselected');
   });
 
   test('list-domains reflects registry metadata in execution order', () => {
@@ -355,6 +382,16 @@ describe('domain engine', () => {
         run: () => ({ hadFailure: false }),
       },
       {
+        domain: 'svg',
+        description: 'svg test plugin',
+        detect: () => ({
+          relevant: true,
+          available: true,
+          availabilityKind: 'required',
+        }),
+        run: () => ({ hadFailure: false }),
+      },
+      {
         domain: 'nix',
         description: 'nix test plugin',
         detect: () => ({
@@ -368,13 +405,14 @@ describe('domain engine', () => {
 
     const listed = listLintDomains({
       registry,
-      executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+      executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
     });
 
     expect(listed).toStrictEqual([
       { domain: 'eslint', description: 'eslint test plugin' },
       { domain: 'shell', description: 'shell test plugin' },
       { domain: 'markdown', description: 'markdown test plugin' },
+      { domain: 'svg', description: 'svg test plugin' },
       { domain: 'nix', description: 'nix test plugin' },
     ]);
   });
@@ -387,6 +425,7 @@ describe('domain engine', () => {
     expect(registry.get('eslint')).toBeInstanceOf(ESLintDomainPlugin);
     expect(registry.get('shell')).toBeInstanceOf(ShellDomainPlugin);
     expect(registry.get('markdown')).toBeInstanceOf(MarkdownDomainPlugin);
+    expect(registry.get('svg')).toBeInstanceOf(SvgDomainPlugin);
     expect(registry.get('nix')).toBeInstanceOf(NixDomainPlugin);
   });
 
@@ -459,7 +498,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['eslint']),
         explicitlyRequestedDomains: new Set(['eslint']),
         selectionSources: new Map([['eslint', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -484,7 +523,7 @@ describe('domain engine', () => {
     }
   });
 
-  test('markdown detection auto-includes root README.md and AGENTS.md', async () => {
+  test('markdown detection defaults include root files and specs', async () => {
     const tmpRoot = await fs.promises.mkdtemp(
       path.join(tmpDir, 'domain-markdown-default-roots-'),
     );
@@ -504,6 +543,14 @@ describe('domain engine', () => {
         '# agents\n',
         'utf8',
       );
+      await fs.promises.mkdir(path.join(tmpRoot, 'specs'), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'specs', 'protocol.md'),
+        '# protocol\n',
+        'utf8',
+      );
 
       const registry = createBuiltInDomainRegistry({
         prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
@@ -514,7 +561,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -531,7 +578,7 @@ describe('domain engine', () => {
 
       expect(markdownDecision?.plannedAction).toBe('run');
       expect(matchedFiles).toEqual(
-        expect.arrayContaining(['README.md', 'AGENTS.md']),
+        expect.arrayContaining(['README.md', 'AGENTS.md', 'specs/protocol.md']),
       );
       expect(matchedFiles.filter((file) => file === 'README.md')).toHaveLength(
         1,
@@ -570,7 +617,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -654,7 +701,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['shell']),
         explicitlyRequestedDomains: new Set(['shell']),
         selectionSources: new Map([['shell', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -680,7 +727,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['shell']),
         explicitlyRequestedDomains: new Set(['shell']),
         selectionSources: new Map([['shell', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -749,7 +796,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -775,7 +822,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['markdown']),
         explicitlyRequestedDomains: new Set(['markdown']),
         selectionSources: new Map([['markdown', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -805,6 +852,193 @@ describe('domain engine', () => {
       expect(
         normalizedPrettierArgs.filter((arg) => arg === 'docs/guides/b.mdx'),
       ).toHaveLength(1);
+    } finally {
+      execFileSyncMock.mockRestore();
+      process.chdir(previousCwd);
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('svg detection defaults include specs and common asset roots', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-svg-default-roots-'),
+    );
+
+    const previousCwd = process.cwd();
+
+    try {
+      process.chdir(tmpRoot);
+
+      await fs.promises.mkdir(path.join(tmpRoot, 'public', 'icons'), {
+        recursive: true,
+      });
+      await fs.promises.mkdir(path.join(tmpRoot, 'specs', 'diagrams'), {
+        recursive: true,
+      });
+      await fs.promises.mkdir(path.join(tmpRoot, 'other'), {
+        recursive: true,
+      });
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'public', 'icons', 'logo.svg'),
+        '<svg><path d="M0 0"/></svg>\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'specs', 'diagrams', 'flow.svg'),
+        '<svg><path d="M1 1"/></svg>\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'other', 'skip.svg'),
+        '<svg><path d="M0 0"/></svg>\n',
+        'utf8',
+      );
+
+      const registry = createBuiltInDomainRegistry({
+        prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
+      });
+
+      const decisions = await evaluateLintDomains({
+        registry,
+        selectedDomains: new Set(['svg']),
+        explicitlyRequestedDomains: new Set<never>(),
+        selectionSources: new Map([['svg', 'default']]),
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
+        context: {
+          fix: false,
+          logger: testLogger,
+          isConfigValid: true,
+        },
+      });
+
+      const svgDecision = decisions.find(
+        (decision) => decision.domain === 'svg',
+      );
+      const matchedFiles = (svgDecision?.detection?.matchedFiles ?? []).map(
+        (p) => p.split(path.sep).join(path.posix.sep),
+      );
+
+      expect(svgDecision?.plannedAction).toBe('run');
+      expect(matchedFiles).toContain('public/icons/logo.svg');
+      expect(matchedFiles).toContain('specs/diagrams/flow.svg');
+      expect(matchedFiles).not.toContain('other/skip.svg');
+    } finally {
+      process.chdir(previousCwd);
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('svg detection and run resolve globs consistently from explicit patterns', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-svg-glob-consistency-'),
+    );
+
+    const previousCwd = process.cwd();
+    const execFileSyncMock = jest
+      .spyOn(childProcess, 'execFileSync')
+      .mockImplementation(
+        (_file: string, _args?: readonly string[] | undefined) =>
+          Buffer.from(''),
+      );
+
+    try {
+      process.chdir(tmpRoot);
+
+      await fs.promises.mkdir(path.join(tmpRoot, 'assets', 'icons'), {
+        recursive: true,
+      });
+      await fs.promises.mkdir(path.join(tmpRoot, 'assets', 'ignored'), {
+        recursive: true,
+      });
+
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'assets', 'icons', 'a.svg'),
+        '<svg><path d="M0 0"/></svg>\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'assets', 'icons', 'b.svg'),
+        '<svg><path d="M1 1"/></svg>\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'assets', 'ignored', 'c.svg'),
+        '<svg><path d="M2 2"/></svg>\n',
+        'utf8',
+      );
+
+      const registry = createBuiltInDomainRegistry({
+        prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
+      });
+
+      const decisions = await evaluateLintDomains({
+        registry,
+        selectedDomains: new Set(['svg']),
+        explicitlyRequestedDomains: new Set(['svg']),
+        selectionSources: new Map([['svg', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
+        context: {
+          fix: true,
+          logger: testLogger,
+          isConfigValid: true,
+          svgPatterns: ['./assets/icons/*.svg'],
+        },
+      });
+
+      const svgDecision = decisions.find(
+        (decision) => decision.domain === 'svg',
+      );
+      const matchedFiles = (svgDecision?.detection?.matchedFiles ?? []).map(
+        (p) => p.split(path.sep).join(path.posix.sep),
+      );
+
+      expect(svgDecision?.plannedAction).toBe('run');
+      expect(matchedFiles).toEqual(
+        expect.arrayContaining(['assets/icons/a.svg', 'assets/icons/b.svg']),
+      );
+      expect(matchedFiles).not.toContain('assets/ignored/c.svg');
+
+      const hadFailure = await runLintDomains({
+        registry,
+        selectedDomains: new Set(['svg']),
+        explicitlyRequestedDomains: new Set(['svg']),
+        selectionSources: new Map([['svg', 'domain-flag']]),
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
+        context: {
+          fix: true,
+          logger: testLogger,
+          isConfigValid: true,
+          svgPatterns: ['./assets/icons/*.svg'],
+        },
+      });
+
+      expect(hadFailure).toBe(false);
+      const prettierCall = execFileSyncMock.mock.calls.find(([file, args]) => {
+        const argList = [...((args as readonly string[] | undefined) ?? [])];
+        return (
+          file === 'prettier' ||
+          argList.some((arg) => /prettier\.cjs$/.test(arg))
+        );
+      });
+      const prettierArgs = (prettierCall?.[1] as string[] | undefined) ?? [];
+      const normalizedPrettierArgs = prettierArgs.map((arg) =>
+        arg.split(path.sep).join(path.posix.sep),
+      );
+      expect(normalizedPrettierArgs).toEqual(
+        expect.arrayContaining([
+          '--write',
+          'assets/icons/a.svg',
+          'assets/icons/b.svg',
+        ]),
+      );
+      expect(
+        normalizedPrettierArgs.filter((arg) => arg === 'assets/icons/a.svg'),
+      ).toHaveLength(1);
+      expect(
+        normalizedPrettierArgs.filter((arg) => arg === 'assets/icons/b.svg'),
+      ).toHaveLength(1);
+      expect(normalizedPrettierArgs).not.toContain('assets/ignored/c.svg');
     } finally {
       execFileSyncMock.mockRestore();
       process.chdir(previousCwd);
@@ -869,7 +1103,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['nix']),
         explicitlyRequestedDomains: new Set(['nix']),
         selectionSources: new Map([['nix', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -957,7 +1191,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['nix']),
         explicitlyRequestedDomains: new Set(['nix']),
         selectionSources: new Map([['nix', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -983,7 +1217,7 @@ describe('domain engine', () => {
         selectedDomains: new Set(['nix']),
         explicitlyRequestedDomains: new Set(['nix']),
         selectionSources: new Map([['nix', 'domain-flag']]),
-        executionOrder: ['eslint', 'shell', 'markdown', 'nix'],
+        executionOrder: ['eslint', 'shell', 'markdown', 'svg', 'nix'],
         context: {
           fix: false,
           logger: testLogger,
@@ -1033,9 +1267,19 @@ describe('domain engine', () => {
     expect(DEFAULT_MARKDOWN_SEARCH_ROOTS).toStrictEqual([
       './README.md',
       './AGENTS.md',
+      './specs',
       './pages',
       './blog',
       './docs',
+    ]);
+    expect(DEFAULT_SVG_SEARCH_ROOTS).toStrictEqual([
+      './src',
+      './specs',
+      './pages',
+      './public',
+      './static',
+      './docs',
+      './assets',
     ]);
     expect(DEFAULT_NIXFMT_SEARCH_PATTERNS).toStrictEqual([
       './flake.nix',
@@ -1059,11 +1303,13 @@ describe('domain selection', () => {
       'markdown',
       'nix',
       'shell',
+      'svg',
     ]);
     expect([...explicitlyRequestedDomains]).toStrictEqual([]);
     expect(selectionSources.get('eslint')).toBe('default');
     expect(selectionSources.get('shell')).toBe('default');
     expect(selectionSources.get('markdown')).toBe('default');
+    expect(selectionSources.get('svg')).toBe('default');
     expect(selectionSources.get('nix')).toBe('default');
   });
 
@@ -1093,19 +1339,34 @@ describe('domain selection', () => {
     expect(selectionSources.get('markdown')).toBe('target-flag');
   });
 
-  test('domain flag remains authoritative over markdown target flag', () => {
+  test('svg target flag implies explicit svg domain request', () => {
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
+      resolveDomainSelection({
+        fix: false,
+        userConfig: false,
+        svg: ['assets', 'public/logo.svg'],
+      });
+
+    expect([...selectedDomains]).toStrictEqual(['svg']);
+    expect([...explicitlyRequestedDomains]).toStrictEqual(['svg']);
+    expect(selectionSources.get('svg')).toBe('target-flag');
+  });
+
+  test('domain flag remains authoritative over target flags', () => {
     const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
       resolveDomainSelection({
         fix: false,
         userConfig: false,
         domain: ['eslint'],
         markdown: ['standards'],
+        svg: ['assets'],
       });
 
     expect([...selectedDomains]).toStrictEqual(['eslint']);
     expect([...explicitlyRequestedDomains]).toStrictEqual(['eslint']);
     expect(selectionSources.get('eslint')).toBe('domain-flag');
     expect(selectionSources.has('markdown')).toBe(false);
+    expect(selectionSources.has('svg')).toBe(false);
   });
 
   test('nix target flag implies explicit nix domain request', () => {
