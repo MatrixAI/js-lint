@@ -860,7 +860,7 @@ describe('domain engine', () => {
     }
   });
 
-  test('svg detection defaults include specs and common asset roots', async () => {
+  test('svg detection defaults include source docs roots and skip asset roots', async () => {
     const tmpRoot = await fs.promises.mkdtemp(
       path.join(tmpDir, 'domain-svg-default-roots-'),
     );
@@ -921,8 +921,8 @@ describe('domain engine', () => {
       );
 
       expect(svgDecision?.plannedAction).toBe('run');
-      expect(matchedFiles).toContain('public/icons/logo.svg');
       expect(matchedFiles).toContain('specs/diagrams/flow.svg');
+      expect(matchedFiles).not.toContain('public/icons/logo.svg');
       expect(matchedFiles).not.toContain('other/skip.svg');
     } finally {
       process.chdir(previousCwd);
@@ -1279,10 +1279,7 @@ describe('domain engine', () => {
       './src',
       './specs',
       './pages',
-      './public',
-      './static',
       './docs',
-      './assets',
     ]);
     expect(DEFAULT_NIXFMT_SEARCH_PATTERNS).toStrictEqual([
       './flake.nix',

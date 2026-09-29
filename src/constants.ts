@@ -21,10 +21,7 @@ const DEFAULT_SVG_SEARCH_ROOTS = [
   './src',
   './specs',
   './pages',
-  './public',
-  './static',
   './docs',
-  './assets',
 ] as const;
 
 const DEFAULT_NIXFMT_SEARCH_PATTERNS = [
