@@ -68,6 +68,8 @@ class SvgDomainPlugin extends LintDomainPluginBase {
       '--config-precedence',
       'cli-override',
       '--no-editorconfig',
+      '--parser',
+      'html',
       fix ? '--write' : '--check',
       ...svgFiles,
     ];

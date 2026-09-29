@@ -1028,6 +1028,8 @@ describe('domain engine', () => {
       );
       expect(normalizedPrettierArgs).toEqual(
         expect.arrayContaining([
+          '--parser',
+          'html',
           '--write',
           'assets/icons/a.svg',
           'assets/icons/b.svg',
