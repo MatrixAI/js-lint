@@ -26,6 +26,7 @@ import MarkdownDomainPlugin from '#markdown/MarkdownDomainPlugin.js';
 import SvgDomainPlugin from '#svg/SvgDomainPlugin.js';
 import NixDomainPlugin from '#nix/NixDomainPlugin.js';
 import { buildPatterns } from '#eslint/utils.js';
+import { resolveFilesFromPatterns } from '#utils.js';
 
 const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
 
@@ -1399,6 +1400,79 @@ describe('domain selection', () => {
 });
 
 describe('eslint target derivation', () => {
+  test('guarded file discovery follows directory symlinks without cycling', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-symlink-cycle-'),
+    );
+
+    try {
+      const sourceDir = path.join(tmpRoot, 'src');
+      const nestedDir = path.join(sourceDir, 'nested');
+
+      await fs.promises.mkdir(nestedDir, { recursive: true });
+      await fs.promises.writeFile(
+        path.join(sourceDir, 'index.ts'),
+        'export const index = 1;\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(nestedDir, 'nested.ts'),
+        'export const nested = 1;\n',
+        'utf8',
+      );
+      await fs.promises.symlink(sourceDir, path.join(nestedDir, 'loop'), 'dir');
+
+      const matchedFiles = resolveFilesFromPatterns(
+        ['./src/**/*.ts'],
+        ['.ts'],
+        tmpRoot,
+      ).map((p) => p.split(path.sep).join(path.posix.sep));
+
+      expect(matchedFiles).toEqual(['src/index.ts', 'src/nested/nested.ts']);
+    } finally {
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('guarded file discovery follows external directory symlinks once', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-symlink-external-'),
+    );
+
+    try {
+      const sourceDir = path.join(tmpRoot, 'src');
+      const externalDir = path.join(tmpRoot, 'external');
+
+      await fs.promises.mkdir(sourceDir, { recursive: true });
+      await fs.promises.mkdir(externalDir, { recursive: true });
+      await fs.promises.writeFile(
+        path.join(externalDir, 'external.ts'),
+        'export const external = 1;\n',
+        'utf8',
+      );
+      await fs.promises.symlink(
+        externalDir,
+        path.join(sourceDir, 'external-link'),
+        'dir',
+      );
+      await fs.promises.symlink(
+        externalDir,
+        path.join(sourceDir, 'external-link-again'),
+        'dir',
+      );
+
+      const matchedFiles = resolveFilesFromPatterns(
+        ['./src/**/*.ts'],
+        ['.ts'],
+        tmpRoot,
+      ).map((p) => p.split(path.sep).join(path.posix.sep));
+
+      expect(matchedFiles).toEqual(['src/external-link/external.ts']);
+    } finally {
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
   test('preserves extension-bearing include entries while expanding extensionless entries', async () => {
     const tmpRoot = await fs.promises.mkdtemp(
       path.join(tmpDir, 'domain-eslint-patterns-'),

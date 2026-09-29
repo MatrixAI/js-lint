@@ -120,6 +120,7 @@ function collectFilesByExtensions(
 ): string[] {
   const extensionSet = new Set(extensions.map((ext) => ext.toLowerCase()));
   const matchedFiles = new Set<string>();
+  const visitedDirectoryRealPaths = new Set<string>();
 
   const visitPath = (entryPath: string): void => {
     let entryStats: fs.Stats;
@@ -141,6 +142,18 @@ function collectFilesByExtensions(
       return;
     }
 
+    let realPath: string;
+    try {
+      realPath = fs.realpathSync.native(entryPath);
+    } catch {
+      return;
+    }
+
+    if (visitedDirectoryRealPaths.has(realPath)) {
+      return;
+    }
+    visitedDirectoryRealPaths.add(realPath);
+
     let dirEntries: fs.Dirent[];
     try {
       dirEntries = fs.readdirSync(entryPath, { withFileTypes: true });
@@ -150,7 +163,7 @@ function collectFilesByExtensions(
 
     for (const dirEntry of dirEntries) {
       const childPath = path.join(entryPath, dirEntry.name);
-      if (dirEntry.isDirectory()) {
+      if (dirEntry.isDirectory() || dirEntry.isSymbolicLink()) {
         if (EXCLUDED_DIR_NAMES.has(dirEntry.name)) {
           continue;
         }

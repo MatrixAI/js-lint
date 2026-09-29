@@ -7,6 +7,7 @@ import url from 'node:url';
 import ts from 'typescript';
 import { ESLint } from 'eslint';
 import { resolveLintConfig } from '../config.js';
+import { resolveFilesFromPatterns } from '../utils.js';
 
 const ESLINT_TARGET_EXTENSIONS = [
   'js',
@@ -19,6 +20,10 @@ const ESLINT_TARGET_EXTENSIONS = [
   'cts',
   'json',
 ] as const;
+
+const ESLINT_TARGET_FILE_EXTENSIONS = ESLINT_TARGET_EXTENSIONS.map(
+  (extension) => `.${extension}`,
+);
 
 const ESLINT_TARGET_EXTENSION_GLOB = `.{${ESLINT_TARGET_EXTENSIONS.join(',')}}`;
 
@@ -107,6 +112,18 @@ async function runESLint({
     logger.info(`Linting: ${pattern}`);
   });
 
+  const resolvedPatterns = resolveFilesFromPatterns(
+    patterns,
+    ESLINT_TARGET_FILE_EXTENSIONS,
+  );
+
+  if (resolvedPatterns.length === 0) {
+    logger.warn(
+      '[matrixai-lint] ⚠ No ESLint targets matched after guarded traversal.',
+    );
+    return false;
+  }
+
   const eslint = new ESLint({
     overrideConfigFile: resolvedConfigPath,
     fix,
@@ -119,7 +136,7 @@ async function runESLint({
     overrideConfig: parserProjectOverride,
   });
 
-  return await lintAndReport(eslint, patterns, fix, logger);
+  return await lintAndReport(eslint, resolvedPatterns, fix, logger);
 }
 
 async function lintAndReport(
