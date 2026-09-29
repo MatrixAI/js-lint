@@ -1,13 +1,31 @@
+import type { Ignore, Options as IgnoreOptions } from 'ignore';
 import path from 'node:path';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { minimatch } from 'minimatch';
 import { LogLevel } from '@matrixai/logger';
+
+const require = createRequire(import.meta.url);
+const createIgnore = require('ignore') as (options?: IgnoreOptions) => Ignore;
 
 const GLOB_META_PATTERN = /[*?[\]{}()!+@]/;
 
 const EXCLUDED_DIR_NAMES = new Set(['.git', 'node_modules', 'dist']);
+
+const DEFAULT_TAILWIND_CSS_FILES = [
+  './src/**/*.css',
+  './pages/**/*.css',
+  './docs/**/*.css',
+  './blog/**/*.css',
+  './styles/**/*.css',
+  '!**/node_modules/**',
+  '!**/.*/**',
+  '!**/dist/**',
+  '!**/build/**',
+  '!**/tmp/**',
+] as const;
 
 /**
  * Convert verbosity count to logger level.
@@ -48,6 +66,48 @@ function toPosixRelativePath(filePath: string, cwd = process.cwd()): string {
     return '.';
   }
   return relativePath;
+}
+
+function isPathInside(childPath: string, parentPath: string): boolean {
+  const relativePath = path.relative(parentPath, childPath);
+  return (
+    relativePath === '' ||
+    (relativePath.length > 0 &&
+      !relativePath.startsWith('..') &&
+      !path.isAbsolute(relativePath))
+  );
+}
+
+function createGitignoreMatcher(cwd = process.cwd()): Ignore {
+  const matcher = createIgnore({ allowRelativePaths: true });
+  const gitignorePath = path.join(cwd, '.gitignore');
+
+  try {
+    matcher.add(fs.readFileSync(gitignorePath, 'utf8'));
+  } catch {
+    // A project does not have to use Git. In that case the built-in generated
+    // directory guards and symlink boundary checks still protect traversal.
+  }
+
+  return matcher;
+}
+
+function isIgnoredPath(
+  filePath: string,
+  matcher: Ignore,
+  cwd = process.cwd(),
+  isDirectory = false,
+): boolean {
+  const relativePath = toPosixRelativePath(filePath, cwd);
+
+  if (relativePath === '.' || relativePath.startsWith('../')) {
+    return false;
+  }
+
+  return (
+    matcher.ignores(relativePath) ||
+    (isDirectory && matcher.ignores(`${relativePath}/`))
+  );
 }
 
 function normalizePatternForMatching(
@@ -117,16 +177,38 @@ function resolveSearchRootsFromPatterns(
 function collectFilesByExtensions(
   searchRoots: readonly string[],
   extensions: readonly string[],
+  cwd = process.cwd(),
 ): string[] {
   const extensionSet = new Set(extensions.map((ext) => ext.toLowerCase()));
   const matchedFiles = new Set<string>();
-  const visitedDirectoryRealPaths = new Set<string>();
+  const ignoreMatcher = createGitignoreMatcher(cwd);
 
-  const visitPath = (entryPath: string): void => {
+  let projectRootRealPath: string;
+  try {
+    projectRootRealPath = fs.realpathSync.native(cwd);
+  } catch {
+    projectRootRealPath = path.resolve(cwd);
+  }
+
+  const visitPath = (
+    entryPath: string,
+    rootRealPath: string,
+    visitedDirectoryRealPaths: Set<string>,
+    isSearchRoot = false,
+  ): void => {
     let entryStats: fs.Stats;
     try {
       entryStats = fs.statSync(entryPath);
     } catch {
+      return;
+    }
+
+    const isDirectory = entryStats.isDirectory();
+
+    if (
+      !isSearchRoot &&
+      isIgnoredPath(entryPath, ignoreMatcher, cwd, isDirectory)
+    ) {
       return;
     }
 
@@ -138,7 +220,7 @@ function collectFilesByExtensions(
       return;
     }
 
-    if (!entryStats.isDirectory()) {
+    if (!isDirectory) {
       return;
     }
 
@@ -167,15 +249,47 @@ function collectFilesByExtensions(
         if (EXCLUDED_DIR_NAMES.has(dirEntry.name)) {
           continue;
         }
-        visitPath(childPath);
+
+        if (dirEntry.isSymbolicLink()) {
+          let childRealPath: string;
+          try {
+            childRealPath = fs.realpathSync.native(childPath);
+          } catch {
+            continue;
+          }
+
+          // Recursive discovery must not escape the package root through
+          // repository-to-repository scratch symlinks such as tmp/project-a ->
+          // project-a. An explicitly targeted external search root is still
+          // allowed because it receives its own rootRealPath below.
+          if (!isPathInside(childRealPath, projectRootRealPath)) {
+            continue;
+          }
+
+          // A symlink can stay inside the package root but still jump outside
+          // the current logical search root. Keeping both boundaries avoids
+          // surprising cross-root scans while preserving explicit opt-in roots.
+          if (!isPathInside(childRealPath, rootRealPath)) {
+            continue;
+          }
+        }
+
+        visitPath(childPath, rootRealPath, visitedDirectoryRealPaths);
       } else if (dirEntry.isFile()) {
-        visitPath(childPath);
+        visitPath(childPath, rootRealPath, visitedDirectoryRealPaths);
       }
     }
   };
 
   for (const searchRoot of searchRoots) {
-    visitPath(searchRoot);
+    let rootRealPath: string;
+    try {
+      rootRealPath = fs.realpathSync.native(searchRoot);
+    } catch {
+      continue;
+    }
+
+    visitPath(searchRoot, rootRealPath, new Set<string>(), true);
   }
 
   return [...matchedFiles].sort();
@@ -239,13 +353,13 @@ function resolveFilesFromPatterns(
   }
 
   for (const literalDirectory of literalDirectories) {
-    const files = collectFilesByExtensions([literalDirectory], extensions);
+    const files = collectFilesByExtensions([literalDirectory], extensions, cwd);
     files.forEach((file) => matchedFiles.add(file));
   }
 
   if (globPatterns.length > 0) {
     const globRoots = resolveSearchRootsFromPatterns(globPatterns, cwd);
-    const globCandidates = collectFilesByExtensions(globRoots, extensions);
+    const globCandidates = collectFilesByExtensions(globRoots, extensions, cwd);
     const normalizedGlobPatterns = globPatterns
       .map((pattern) => normalizePatternForMatching(pattern, cwd))
       .filter((pattern) => pattern.length > 0);
@@ -283,6 +397,7 @@ function relativizeFiles(
 export {
   collectFilesByExtensions,
   commandExists,
+  DEFAULT_TAILWIND_CSS_FILES,
   relativizeFiles,
   resolveFilesFromPatterns,
   resolveSearchRootsFromPatterns,

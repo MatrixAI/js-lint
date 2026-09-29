@@ -10,6 +10,7 @@ import { fixupPluginRules } from '@eslint/compat';
 import prettierOptions from './prettier.config.js';
 import noAliasedImportsRule from '../eslint/rules/no-aliased-imports.js';
 import { resolveLintConfig } from '../config.js';
+import { DEFAULT_TAILWIND_CSS_FILES } from '../utils.js';
 
 const resolvedLintConfig = resolveLintConfig();
 
@@ -45,6 +46,14 @@ const config = [
     settings: {
       react: {
         version: 'detect',
+      },
+      tailwindcss: {
+        // eslint-plugin-tailwindcss defaults cssFiles to **/*.css, which makes
+        // the rule perform its own CWD-wide fast-glob traversal outside our
+        // domain discovery guards. Keep this bounded to source-style roots so
+        // generated scratch trees like tmp/ and .direnv/ are never scanned by
+        // plugin side effects.
+        cssFiles: [...DEFAULT_TAILWIND_CSS_FILES],
       },
     },
 

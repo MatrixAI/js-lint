@@ -26,7 +26,11 @@ import MarkdownDomainPlugin from '#markdown/MarkdownDomainPlugin.js';
 import SvgDomainPlugin from '#svg/SvgDomainPlugin.js';
 import NixDomainPlugin from '#nix/NixDomainPlugin.js';
 import { buildPatterns } from '#eslint/utils.js';
-import { resolveFilesFromPatterns } from '#utils.js';
+import {
+  DEFAULT_TAILWIND_CSS_FILES,
+  resolveFilesFromPatterns,
+} from '#utils.js';
+import eslintConfig from '#configs/eslint.js';
 
 const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
 
@@ -1288,6 +1292,19 @@ describe('domain engine', () => {
       './nix/**/*.nix',
     ]);
   });
+
+  test('shared eslint config bounds tailwind css discovery', () => {
+    const tailwindSettings = eslintConfig
+      .map((configEntry) => configEntry.settings?.tailwindcss)
+      .find((settings) => settings != null) as
+      | { cssFiles?: readonly string[] }
+      | undefined;
+
+    expect(tailwindSettings?.cssFiles).toStrictEqual([
+      ...DEFAULT_TAILWIND_CSS_FILES,
+    ]);
+    expect(tailwindSettings?.cssFiles).not.toContain('**/*.css');
+  });
 });
 
 describe('domain selection', () => {
@@ -1433,7 +1450,7 @@ describe('eslint target derivation', () => {
     }
   });
 
-  test('guarded file discovery follows external directory symlinks once', async () => {
+  test('guarded file discovery skips external directory symlinks by default', async () => {
     const tmpRoot = await fs.promises.mkdtemp(
       path.join(tmpDir, 'domain-symlink-external-'),
     );
@@ -1466,7 +1483,134 @@ describe('eslint target derivation', () => {
         tmpRoot,
       ).map((p) => p.split(path.sep).join(path.posix.sep));
 
-      expect(matchedFiles).toEqual(['src/external-link/external.ts']);
+      expect(matchedFiles).toEqual([]);
+    } finally {
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('guarded file discovery follows explicit external search roots', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-symlink-explicit-external-'),
+    );
+
+    try {
+      const sourceDir = path.join(tmpRoot, 'src');
+      const externalDir = path.join(tmpRoot, 'external');
+      const externalSourceDir = path.join(externalDir, 'src');
+
+      await fs.promises.mkdir(sourceDir, { recursive: true });
+      await fs.promises.mkdir(externalSourceDir, { recursive: true });
+      await fs.promises.writeFile(
+        path.join(externalSourceDir, 'external.ts'),
+        'export const external = 1;\n',
+        'utf8',
+      );
+      await fs.promises.symlink(
+        externalSourceDir,
+        path.join(sourceDir, 'external-src'),
+        'dir',
+      );
+
+      const matchedFiles = resolveFilesFromPatterns(
+        ['./src/external-src/**/*.ts'],
+        ['.ts'],
+        tmpRoot,
+      ).map((p) => p.split(path.sep).join(path.posix.sep));
+
+      expect(matchedFiles).toEqual(['src/external-src/external.ts']);
+    } finally {
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('guarded file discovery prunes gitignored scratch paths', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-symlink-gitignore-'),
+    );
+
+    try {
+      await fs.promises.mkdir(path.join(tmpRoot, 'src'), { recursive: true });
+      await fs.promises.mkdir(path.join(tmpRoot, 'tmp', 'src'), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(path.join(tmpRoot, '.gitignore'), '/tmp\n');
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'src', 'index.ts'),
+        'export const index = 1;\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(tmpRoot, 'tmp', 'src', 'ignored.ts'),
+        'export const ignored = 1;\n',
+        'utf8',
+      );
+
+      const matchedFiles = resolveFilesFromPatterns(
+        ['./**/*.ts'],
+        ['.ts'],
+        tmpRoot,
+      ).map((p) => p.split(path.sep).join(path.posix.sep));
+
+      expect(matchedFiles).toEqual(['src/index.ts']);
+    } finally {
+      await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('guarded file discovery stops cross-repository tmp symlink cycles', async () => {
+    const tmpRoot = await fs.promises.mkdtemp(
+      path.join(tmpDir, 'domain-symlink-cross-repo-'),
+    );
+
+    try {
+      const matrixRoot = path.join(tmpRoot, 'matrix.ai');
+      const zetaRoot = path.join(tmpRoot, 'zeta.house');
+
+      await fs.promises.mkdir(path.join(matrixRoot, 'src'), {
+        recursive: true,
+      });
+      await fs.promises.mkdir(path.join(matrixRoot, 'tmp'), {
+        recursive: true,
+      });
+      await fs.promises.mkdir(path.join(zetaRoot, 'src'), { recursive: true });
+      await fs.promises.mkdir(path.join(zetaRoot, 'tmp'), { recursive: true });
+      await fs.promises.writeFile(
+        path.join(matrixRoot, '.gitignore'),
+        '/tmp\n',
+      );
+      await fs.promises.writeFile(path.join(zetaRoot, '.gitignore'), '/tmp\n');
+      await fs.promises.writeFile(
+        path.join(matrixRoot, 'src', 'matrix.ts'),
+        'export const matrix = 1;\n',
+        'utf8',
+      );
+      await fs.promises.writeFile(
+        path.join(zetaRoot, 'src', 'zeta.ts'),
+        'export const zeta = 1;\n',
+        'utf8',
+      );
+      await fs.promises.symlink(
+        zetaRoot,
+        path.join(matrixRoot, 'tmp', 'zeta.house'),
+        'dir',
+      );
+      await fs.promises.symlink(
+        matrixRoot,
+        path.join(zetaRoot, 'tmp', 'matrix.ai'),
+        'dir',
+      );
+
+      const matchedFiles = resolveFilesFromPatterns(
+        ['./**/*.ts'],
+        ['.ts'],
+        matrixRoot,
+      ).map((p) => p.split(path.sep).join(path.posix.sep));
+
+      expect(matchedFiles).toEqual(['src/matrix.ts']);
+      expect(matchedFiles.some((file) => file.includes('tmp/zeta.house'))).toBe(
+        false,
+      );
     } finally {
       await fs.promises.rm(tmpRoot, { recursive: true, force: true });
     }
