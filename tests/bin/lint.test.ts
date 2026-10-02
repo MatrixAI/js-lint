@@ -176,6 +176,56 @@ describe('matrixai-lint CLI domain semantics', () => {
     expect(normalizedPrettierArgs).not.toContain('README.md');
   });
 
+  test('--sql no longer triggers eslint/shell/markdown domains', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'db'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'db', 'schema.sql'),
+      'SELECT 1;\n',
+      'utf8',
+    );
+
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'sqlfluff'
+            ? 0
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await expect(
+      main(['node', 'matrixai-lint', '--sql', 'db']),
+    ).resolves.toBeUndefined();
+
+    const shellCalls = capturedExecCalls.filter((c) => c.file === 'shellcheck');
+    expect(shellCalls).toHaveLength(0);
+
+    const prettierCalls = capturedExecCalls.filter(
+      (c) =>
+        c.file === 'prettier' ||
+        c.args.some((arg) => /prettier\.cjs$/.test(arg)),
+    );
+    expect(prettierCalls).toHaveLength(0);
+
+    const sqlfluffCall = capturedExecCalls.find((c) => c.file === 'sqlfluff');
+    expect(sqlfluffCall?.args).toEqual(
+      expect.arrayContaining(['lint', 'db/schema.sql']),
+    );
+  });
+
   test('explicit shell request + missing shellcheck fails', async () => {
     jest
       .spyOn(childProcess, 'spawnSync')
@@ -383,6 +433,44 @@ describe('matrixai-lint CLI domain semantics', () => {
 
     const nixfmtCall = capturedExecCalls.find((c) => c.file === 'nixfmt');
     expect(nixfmtCall).toBeUndefined();
+  });
+
+  test('explicit sql request + missing sqlfluff fails', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'db'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'db', 'schema.sql'),
+      'SELECT 1;\n',
+      'utf8',
+    );
+
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'sqlfluff'
+            ? 1
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await expect(
+      main(['node', 'matrixai-lint', '--domain', 'sql', '--sql', 'db']),
+    ).rejects.toBeDefined();
+
+    const sqlfluffCall = capturedExecCalls.find((c) => c.file === 'sqlfluff');
+    expect(sqlfluffCall).toBeUndefined();
   });
 
   test('unknown option handling rejects typoed flags', async () => {

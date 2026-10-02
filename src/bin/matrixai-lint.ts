@@ -25,6 +25,7 @@ const builtinPrettierCfg = path.resolve(
   dirname,
   '../configs/prettier.config.js',
 );
+const builtinSqlfluffCfg = path.resolve(dirname, '../configs/sqlfluff.cfg');
 
 program
   .name('matrixai-lint')
@@ -48,6 +49,7 @@ program
   .option('--markdown <target...>', 'Markdown targets (files, roots, or globs)')
   .option('--svg <target...>', 'SVG targets (files, roots, or globs)')
   .option('--nix <target...>', 'Nix targets (files, roots, or globs)')
+  .option('--sql <target...>', 'SQL targets (files, roots, or globs)')
   .option(
     '--shell <target...>',
     'Shell targets (files, roots, or globs) used to derive shellcheck search roots',
@@ -144,12 +146,14 @@ async function main(argv = process.argv) {
   const markdownPatterns: string[] | undefined = options.markdown;
   const svgPatterns: string[] | undefined = options.svg;
   const nixPatterns: string[] | undefined = options.nix;
+  const sqlPatterns: string[] | undefined = options.sql;
   const shellPatterns: string[] | undefined = options.shell;
   const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
     resolveDomainSelection(options);
 
   const domainRegistry = createBuiltInDomainRegistry({
     prettierConfigPath: builtinPrettierCfg,
+    sqlfluffConfigPath: builtinSqlfluffCfg,
   });
 
   if (listDomainsOnly) {
@@ -205,6 +209,7 @@ async function main(argv = process.argv) {
       markdownPatterns,
       svgPatterns,
       nixPatterns,
+      sqlPatterns,
       shellPatterns,
     },
   });
@@ -225,6 +230,7 @@ async function main(argv = process.argv) {
       markdownPatterns,
       svgPatterns,
       nixPatterns,
+      sqlPatterns,
       shellPatterns,
     },
   });

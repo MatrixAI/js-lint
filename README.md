@@ -8,9 +8,9 @@ for use in Matrix AI JavaScript/TypeScript projects.
 - Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
   rules
 - Supports Prettier formatting for Markdown and SVG, ShellCheck for shell
-  scripts, and nixfmt for Nix files
+  scripts, nixfmt for Nix files, and SQLFluff for SQL files
 - Single command to lint JavaScript/TypeScript, Markdown, SVG, shell scripts,
-  and Nix files
+  Nix files, and SQL files
 - Customizable via `matrixai-lint-config.json` and extensible with your own
   ESLint config
 - CLI options to override config and enable auto-fix
@@ -37,22 +37,23 @@ matrixai-lint --fix
 
 ### CLI Options
 
-| Flag                     | Description                                                                  |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| _(no flag)_              | Uses built-in Matrix AI ESLint config                                        |
-| `--fix`                  | Enables auto-fixing via ESLint and Prettier                                  |
-| `--user-config`          | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
-| `--eslint-config <path>` | Explicitly use a custom ESLint config file                                   |
-| `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection     |
-| `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection |
-| `--svg <targets>`        | SVG targets (files, roots, or globs); implies SVG domain selection           |
-| `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection           |
-| `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection       |
-| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`)      |
-| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`)          |
-| `--list-domains`         | Print available domains and short descriptions, then exit 0                  |
-| `--explain`              | Print per-domain decision details before execution                           |
-| `-v, --verbose`          | Increase log verbosity (repeat for more detail)                              |
+| Flag                     | Description                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| _(no flag)_              | Uses built-in Matrix AI ESLint config                                          |
+| `--fix`                  | Enables auto-fixing via ESLint and Prettier                                    |
+| `--user-config`          | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found   |
+| `--eslint-config <path>` | Explicitly use a custom ESLint config file                                     |
+| `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection       |
+| `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection   |
+| `--svg <targets>`        | SVG targets (files, roots, or globs); implies SVG domain selection             |
+| `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection             |
+| `--sql <targets>`        | SQL targets (files, roots, or globs); implies SQL domain selection             |
+| `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection         |
+| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`) |
+| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`)     |
+| `--list-domains`         | Print available domains and short descriptions, then exit 0                    |
+| `--explain`              | Print per-domain decision details before execution                             |
+| `-v, --verbose`          | Increase log verbosity (repeat for more detail)                                |
 
 Domain selection behavior:
 
@@ -72,12 +73,18 @@ Domain selection behavior:
 - Passing `--nix` implies nix domain selection.
   - `--nix ...` runs nix only.
   - Combined with other target flags, only those targeted domains run.
+- Passing `--sql` implies SQL domain selection.
+  - `--sql ...` runs SQL only.
+  - Combined with other target flags, only those targeted domains run.
 - `shellcheck` is optional only for default auto-run shell execution.
   - If shell is explicitly requested (`--shell ...` or `--domain shell`),
     missing `shellcheck` is a failure.
 - `nixfmt` is optional only for default auto-run nix execution.
   - If nix is explicitly requested (`--nix ...` or `--domain nix`), missing
     `nixfmt` is a failure.
+- `sqlfluff` is optional only for default auto-run SQL execution.
+  - If SQL is explicitly requested (`--sql ...` or `--domain sql`), missing
+    `sqlfluff` is a failure.
 - `--shell` accepts target paths and glob patterns.
   - Directories are used as roots.
   - File paths and glob patterns are reduced to search roots, then `*.sh` files
@@ -101,6 +108,14 @@ Domain selection behavior:
   - By default, nix domain scope is `flake.nix`, `shell.nix`, `default.nix`, and
     `nix/**/*.nix`.
   - When `--nix` is provided, explicit nix targets replace these defaults.
+- `--sql` accepts target paths and glob patterns.
+  - Directories are used as roots.
+  - File paths and glob patterns are reduced to search roots, then `*.sql` files
+    are discovered under those roots.
+  - By default, SQL domain scope is `./src`, `./scripts`, `./tests`, `./sql`,
+    `./migrations`, `./db`, `./database`, `./prisma`, `./supabase`, and
+    root-level `*.sql` files.
+  - When `--sql` is provided, explicit SQL targets replace these defaults.
 
 #### Effective default search scope
 
@@ -122,6 +137,8 @@ its own effective scope:
 - `svg`: `./src`, `./specs`, `./pages`, `./public`, `./static`, `./docs`, and
   `./assets`.
 - `nix`: `./flake.nix`, `./shell.nix`, `./default.nix`, and `./nix/**/*.nix`
+- `sql`: `./src`, `./scripts`, `./tests`, `./sql`, `./migrations`, `./db`,
+  `./database`, `./prisma`, `./supabase`, and root-level `*.sql` files
 
 Use `matrixai-lint --explain` to print the per-domain decision details and see
 which scope was selected at runtime.
@@ -136,7 +153,7 @@ developing this package itself; they are not the generic package defaults.
   and `--shell src scripts tests`.
 - That means this repository's npm scripts override the generic default scope
   for the `eslint` and `shell` domains.
-- In those scripts, `markdown`, `svg`, and `nix` still use their built-in
+- In those scripts, `markdown`, `svg`, `nix`, and `sql` still use their built-in
   default scopes.
 
 #### Targeted workflows
@@ -183,6 +200,12 @@ developing this package itself; they are not the generic package defaults.
   matrixai-lint --nix nix modules flake.nix
   ```
 
+- SQL only under selected roots/patterns:
+
+  ```sh
+  matrixai-lint --sql db migrations './sql/**/*.sql'
+  ```
+
 - Mixed scoped run (ESLint + shell only):
 
   ```sh
@@ -199,13 +222,26 @@ matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
 matrixai-lint --markdown standards templates README.md
 matrixai-lint --svg specs assets public
 matrixai-lint --nix nix flake.nix
-matrixai-lint --domain eslint markdown svg
+matrixai-lint --sql db migrations './sql/**/*.sql'
+matrixai-lint --domain eslint markdown svg sql
 matrixai-lint --domain nix
 matrixai-lint --skip-domain markdown
 matrixai-lint --list-domains
 matrixai-lint --explain --domain eslint
 matrixai-lint -v -v --domain markdown
 ```
+
+### SQLFluff config
+
+`matrixai-lint` runs SQL files through SQLFluff using its built-in shared
+config. The built-in config standardizes style-oriented rules such as two-space
+indentation, 80-character line length, uppercase SQL keywords, lower-case
+identifiers/functions, and no `SELECT *` targets.
+
+The built-in config intentionally does not set a SQL dialect. SQL dialects
+affect lint parsing, not just formatting, so downstream projects should declare
+their dialect in a project-local SQLFluff config such as `.sqlfluff` or
+`pyproject.toml` when needed.
 
 ### ESLint config (ESM / NodeNext)
 
