@@ -29,7 +29,6 @@ class SqlDomainPlugin extends LintDomainPluginBase {
 
   public constructor(
     private readonly defaultSearchPatterns: readonly string[],
-    private readonly sqlfluffConfigPath: string,
   ) {
     super();
   }
@@ -70,8 +69,8 @@ class SqlDomainPlugin extends LintDomainPluginBase {
     }
 
     const sqlfluffArgs = fix
-      ? ['fix', '--force', '--config', this.sqlfluffConfigPath, ...matchedFiles]
-      : ['lint', '--config', this.sqlfluffConfigPath, ...matchedFiles];
+      ? ['fix', '--force', ...matchedFiles]
+      : ['lint', ...matchedFiles];
 
     logger.info(fix ? 'Running sqlfluff fix:' : 'Running sqlfluff lint:');
     logger.info(`Running sqlfluff command: sqlfluff ${sqlfluffArgs.join(' ')}`);

@@ -15,6 +15,7 @@ import {
   evaluateLintDomains,
   runLintDomainDecisions,
 } from '../domains.js';
+import { resolveLintConfig } from '../config.js';
 import * as eslintUtils from '../eslint/utils.js';
 import * as utils from '../utils.js';
 
@@ -25,7 +26,21 @@ const builtinPrettierCfg = path.resolve(
   dirname,
   '../configs/prettier.config.js',
 );
-const builtinSqlfluffCfg = path.resolve(dirname, '../configs/sqlfluff.cfg');
+
+function resolveEffectiveTargets(
+  cliTargets: string[] | undefined,
+  configTargets: readonly string[],
+): string[] | undefined {
+  if (cliTargets != null && cliTargets.length > 0) {
+    return cliTargets;
+  }
+
+  if (configTargets.length > 0) {
+    return [...configTargets];
+  }
+
+  return undefined;
+}
 
 program
   .name('matrixai-lint')
@@ -141,19 +156,37 @@ async function main(argv = process.argv) {
   const explicitConfigPath: string | undefined = options.eslintConfig;
   const listDomainsOnly = Boolean(options.listDomains);
   const explain = Boolean(options.explain);
+  const lintConfig = resolveLintConfig();
 
-  const eslintPatterns: string[] | undefined = options.eslint;
-  const markdownPatterns: string[] | undefined = options.markdown;
-  const svgPatterns: string[] | undefined = options.svg;
-  const nixPatterns: string[] | undefined = options.nix;
-  const sqlPatterns: string[] | undefined = options.sql;
-  const shellPatterns: string[] | undefined = options.shell;
+  const eslintPatterns = resolveEffectiveTargets(
+    options.eslint,
+    lintConfig.domains.eslint.targets,
+  );
+  const markdownPatterns = resolveEffectiveTargets(
+    options.markdown,
+    lintConfig.domains.markdown.targets,
+  );
+  const svgPatterns = resolveEffectiveTargets(
+    options.svg,
+    lintConfig.domains.svg.targets,
+  );
+  const nixPatterns = resolveEffectiveTargets(
+    options.nix,
+    lintConfig.domains.nix.targets,
+  );
+  const sqlPatterns = resolveEffectiveTargets(
+    options.sql,
+    lintConfig.domains.sql.targets,
+  );
+  const shellPatterns = resolveEffectiveTargets(
+    options.shell,
+    lintConfig.domains.shell.targets,
+  );
   const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
     resolveDomainSelection(options);
 
   const domainRegistry = createBuiltInDomainRegistry({
     prettierConfigPath: builtinPrettierCfg,
-    sqlfluffConfigPath: builtinSqlfluffCfg,
   });
 
   if (listDomainsOnly) {

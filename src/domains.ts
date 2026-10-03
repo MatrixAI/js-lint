@@ -139,10 +139,8 @@ function resolveDomainSelection(options: CLIOptions): {
 
 function createBuiltInDomainRegistry({
   prettierConfigPath,
-  sqlfluffConfigPath = './src/configs/sqlfluff.cfg',
 }: {
   prettierConfigPath: string;
-  sqlfluffConfigPath?: string;
 }): Map<LintDomain, LintDomainPlugin> {
   return createLintDomainRegistry([
     new ESLintDomainPlugin(),
@@ -150,7 +148,7 @@ function createBuiltInDomainRegistry({
     new MarkdownDomainPlugin(prettierConfigPath),
     new SvgDomainPlugin(prettierConfigPath, DEFAULT_SVG_SEARCH_ROOTS),
     new NixDomainPlugin(DEFAULT_NIXFMT_SEARCH_PATTERNS),
-    new SqlDomainPlugin(DEFAULT_SQLFLUFF_SEARCH_PATTERNS, sqlfluffConfigPath),
+    new SqlDomainPlugin(DEFAULT_SQLFLUFF_SEARCH_PATTERNS),
   ]);
 }
 

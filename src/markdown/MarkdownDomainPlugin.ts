@@ -13,6 +13,7 @@ import {
   DEFAULT_MARKDOWN_ROOT_FILES,
   DEFAULT_MARKDOWN_SEARCH_ROOTS,
 } from '../constants.js';
+import { resolvePrettierConfigArgs } from '../prettier.js';
 import { resolveFilesFromPatterns } from '../utils.js';
 
 const platform = os.platform();
@@ -68,21 +69,21 @@ class MarkdownDomainPlugin extends LintDomainPluginBase {
     };
   }
 
-  public run(
+  public async run(
     { fix, logger }: LintDomainEngineContext,
     detection: LintDomainDetection,
-  ): LintDomainPluginResult {
+  ): Promise<LintDomainPluginResult> {
     const markdownFiles = detection.matchedFiles ?? [];
     if (markdownFiles.length === 0) {
       return { hadFailure: false };
     }
 
-    const prettierArgs = [
-      '--config',
+    const prettierConfigArgs = await resolvePrettierConfigArgs(
+      markdownFiles,
       this.prettierConfigPath,
-      '--config-precedence',
-      'cli-override',
-      '--no-editorconfig',
+    );
+    const prettierArgs = [
+      ...prettierConfigArgs,
       fix ? '--write' : '--check',
       ...markdownFiles,
     ];

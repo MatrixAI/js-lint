@@ -180,9 +180,29 @@ describe('matrixai-lint CLI domain semantics', () => {
     await fs.promises.mkdir(path.join(dataDir, 'db'), {
       recursive: true,
     });
+    await fs.promises.mkdir(path.join(dataDir, 'configured-sql'), {
+      recursive: true,
+    });
     await fs.promises.writeFile(
       path.join(dataDir, 'db', 'schema.sql'),
       'SELECT 1;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'configured-sql', 'ignored.sql'),
+      'SELECT 2;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'matrixai-lint-config.json'),
+      JSON.stringify(
+        {
+          version: 2,
+          domains: { sql: { targets: ['./configured-sql'] } },
+        },
+        null,
+        2,
+      ) + '\n',
       'utf8',
     );
 
@@ -224,6 +244,66 @@ describe('matrixai-lint CLI domain semantics', () => {
     expect(sqlfluffCall?.args).toEqual(
       expect.arrayContaining(['lint', 'db/schema.sql']),
     );
+    expect(sqlfluffCall?.args).not.toContain('configured-sql/ignored.sql');
+  });
+
+  test('matrix config scopes a domain when no CLI target override is given', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'configured-sql'), {
+      recursive: true,
+    });
+    await fs.promises.mkdir(path.join(dataDir, 'other-sql'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'configured-sql', 'schema.sql'),
+      'SELECT 1;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'other-sql', 'ignored.sql'),
+      'SELECT 2;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'matrixai-lint-config.json'),
+      JSON.stringify(
+        {
+          version: 2,
+          domains: { sql: { targets: ['./configured-sql'] } },
+        },
+        null,
+        2,
+      ) + '\n',
+      'utf8',
+    );
+
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'sqlfluff'
+            ? 0
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await expect(
+      main(['node', 'matrixai-lint', '--domain', 'sql']),
+    ).resolves.toBeUndefined();
+
+    const sqlfluffCall = capturedExecCalls.find((c) => c.file === 'sqlfluff');
+    expect(sqlfluffCall?.args).toEqual(['lint', 'configured-sql/schema.sql']);
+    expect(sqlfluffCall?.args).not.toContain('other-sql/ignored.sql');
   });
 
   test('explicit shell request + missing shellcheck fails', async () => {

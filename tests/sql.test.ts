@@ -65,7 +65,6 @@ describe('sql domain', () => {
 
       const registry = createBuiltInDomainRegistry({
         prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
-        sqlfluffConfigPath: path.join(tmpRoot, 'sqlfluff.cfg'),
       });
 
       const decisions = await evaluateLintDomains({
@@ -157,10 +156,14 @@ describe('sql domain', () => {
         'utf8',
       );
 
-      const sqlfluffConfigPath = path.join(tmpRoot, 'sqlfluff.cfg');
+      const sqlfluffConfigPath = path.join(tmpRoot, '.sqlfluff');
+      await fs.promises.writeFile(
+        sqlfluffConfigPath,
+        '[sqlfluff]\ndialect = sqlite\n',
+        'utf8',
+      );
       const registry = createBuiltInDomainRegistry({
         prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
-        sqlfluffConfigPath,
       });
 
       const decisions = await evaluateLintDomains({
@@ -212,15 +215,18 @@ describe('sql domain', () => {
       const normalizedSqlfluffArgs = (sqlfluffArgs ?? []).map((arg) =>
         arg.split(path.sep).join(path.posix.sep),
       );
-      expect(normalizedSqlfluffArgs).toEqual(
-        expect.arrayContaining([
-          'lint',
-          '--config',
-          sqlfluffConfigPath.split(path.sep).join(path.posix.sep),
-          'db/views/a.sql',
-          'db/views/b.sql',
-        ]),
+      expect(normalizedSqlfluffArgs).toEqual([
+        'lint',
+        'db/views/a.sql',
+        'db/views/b.sql',
+      ]);
+      expect(normalizedSqlfluffArgs).not.toContain('--config');
+      expect(sqlfluffCall?.[2]).toEqual(
+        expect.objectContaining({ cwd: tmpRoot }),
       );
+      await expect(
+        fs.promises.readFile(sqlfluffConfigPath, 'utf8'),
+      ).resolves.toBe('[sqlfluff]\ndialect = sqlite\n');
     } finally {
       spawnSyncMock.mockRestore();
       execFileSyncMock.mockRestore();

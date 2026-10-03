@@ -33,7 +33,7 @@
   },
   "scripts": {
     "prepare": "tsc -p ./tsconfig.build.json",
-    "build": "shx rm -rf ./dist && tsc -p ./tsconfig.build.json && shx cp ./src/configs/sqlfluff.cfg ./dist/configs/sqlfluff.cfg && shx chmod +x ./dist/bin/matrixai-lint.js",
+    "build": "shx rm -rf ./dist && tsc -p ./tsconfig.build.json && shx chmod +x ./dist/bin/matrixai-lint.js",
     "postversion": "npm install --package-lock-only --ignore-scripts --silent",
     "tsx": "tsx",
     "lint": "npm run prepare && node ./dist/bin/matrixai-lint.js",

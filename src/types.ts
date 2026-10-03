@@ -7,10 +7,30 @@ type RawMatrixCfg = {
   root?: unknown;
   domains?: {
     eslint?: {
+      targets?: unknown;
       tsconfigPaths?: unknown;
       forceInclude?: unknown;
     };
+    shell?: {
+      targets?: unknown;
+    };
+    markdown?: {
+      targets?: unknown;
+    };
+    svg?: {
+      targets?: unknown;
+    };
+    nix?: {
+      targets?: unknown;
+    };
+    sql?: {
+      targets?: unknown;
+    };
   };
+};
+
+type MatrixAILintCfgDomainScope = {
+  targets: string[];
 };
 
 type MatrixAILintCfg = {
@@ -19,10 +39,15 @@ type MatrixAILintCfg = {
   source: MatrixAILintCfgSource;
   configFilePath: string;
   domains: {
-    eslint: {
+    eslint: MatrixAILintCfgDomainScope & {
       tsconfigPaths: string[];
       forceInclude: string[];
     };
+    shell: MatrixAILintCfgDomainScope;
+    markdown: MatrixAILintCfgDomainScope;
+    svg: MatrixAILintCfgDomainScope;
+    nix: MatrixAILintCfgDomainScope;
+    sql: MatrixAILintCfgDomainScope;
   };
 };
 
@@ -130,6 +155,7 @@ export type {
   LintDomainRun,
   LintDomainSelectionSource,
   MatrixAILintCfg,
+  MatrixAILintCfgDomainScope,
   MatrixAILintCfgSource,
   MatrixAILintCfgResolved,
   RawMatrixCfg,

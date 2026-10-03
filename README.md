@@ -233,15 +233,14 @@ matrixai-lint -v -v --domain markdown
 
 ### SQLFluff config
 
-`matrixai-lint` runs SQL files through SQLFluff using its built-in shared
-config. The built-in config standardizes style-oriented rules such as two-space
-indentation, 80-character line length, uppercase SQL keywords, lower-case
-identifiers/functions, and no `SELECT *` targets.
+`matrixai-lint` invokes SQLFluff from the downstream project root without an
+explicit `--config` argument. SQLFluff therefore performs its normal native
+configuration discovery, including project files such as `.sqlfluff`,
+`pyproject.toml`, `setup.cfg`, and `tox.ini`.
 
-The built-in config intentionally does not set a SQL dialect. SQL dialects
-affect lint parsing, not just formatting, so downstream projects should declare
-their dialect in a project-local SQLFluff config such as `.sqlfluff` or
-`pyproject.toml` when needed.
+Downstream projects should declare their SQL dialect and rule policy in one of
+those native SQLFluff files. `matrixai-lint --fix` runs `sqlfluff fix --force`,
+while a non-fix run uses `sqlfluff lint`.
 
 ### ESLint config (ESM / NodeNext)
 
@@ -268,12 +267,14 @@ export default matrixai;
 
 ### Lint configuration file
 
-The linter is TypeScript-aware and requires a `tsconfig.json` to determine which
-files to lint and how to parse them. By default it looks for `tsconfig.json` in
-the project root and uses the `include`/`exclude` entries.
+`matrixai-lint-config.json` is an orchestration and scope configuration file. It
+selects the files visible to each domain; it does not contain ESLint, Prettier,
+ShellCheck, nixfmt, or SQLFluff rule settings. Keep rule configuration in each
+tool's native downstream configuration file.
 
-If your project uses more than one `tsconfig.json` or does not have one at the
-root, configure the linter using a `matrixai-lint-config.json` file at the root.
+The ESLint domain is TypeScript-aware and uses `tsconfig.json` to determine how
+to parse files. By default it looks for `tsconfig.json` in the project root. A
+project with multiple TypeScript configurations can list them explicitly.
 
 This config uses a versioned schema and must explicitly declare `"version": 2`:
 
@@ -283,25 +284,51 @@ This config uses a versioned schema and must explicitly declare `"version": 2`:
   "root": ".",
   "domains": {
     "eslint": {
+      "targets": ["./src", "./scripts"],
       "tsconfigPaths": [
         "./tsconfig.base.json",
         "./packages/core/tsconfig.json"
       ],
       "forceInclude": ["scripts", "src/overrides"]
-    }
+    },
+    "shell": { "targets": ["./scripts"] },
+    "markdown": { "targets": ["./docs", "./README.md"] },
+    "svg": { "targets": ["./assets/**/*.svg"] },
+    "nix": { "targets": ["./nix", "./flake.nix"] },
+    "sql": { "targets": ["./db", "./migrations/**/*.sql"] }
   }
 }
 ```
 
-| Field                          | Type       | Description                                                                               |
-| ------------------------------ | ---------- | ----------------------------------------------------------------------------------------- |
-| `version`                      | `2`        | Required schema version marker                                                            |
-| `root`                         | `string`   | Optional lint root (defaults to `.`). `tsconfigPaths` are resolved relative to this root. |
-| `domains.eslint.tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                                |
-| `domains.eslint.forceInclude`  | `string[]` | Paths to always include, even if excluded by tsconfig (must be included by at least one)  |
+| Field                          | Type       | Description                                                                                |
+| ------------------------------ | ---------- | ------------------------------------------------------------------------------------------ |
+| `version`                      | `2`        | Required schema version marker                                                             |
+| `root`                         | `string`   | Optional lint root (defaults to `.`); domain targets and tsconfig paths are relative to it |
+| `domains.<domain>.targets`     | `string[]` | Optional files, directories, or globs defining that domain's scope                         |
+| `domains.eslint.tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                                 |
+| `domains.eslint.forceInclude`  | `string[]` | Paths to include despite tsconfig excludes; each must be included by at least one tsconfig |
+
+Target precedence is: a domain-specific CLI target option, then
+`domains.<domain>.targets`, then that domain's built-in default search scope.
+Config targets affect scope but do not make a domain an explicit CLI request.
 
 Note: If a path in `forceInclude` is not included in any of the `tsconfigPaths`,
 TypeScript will throw a parsing error.
+
+### Native downstream tool configuration
+
+Rule configuration remains owned by each underlying tool:
+
+| Domain           | Downstream rule configuration                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| ESLint           | Use `eslint.config.js` (or another flat-config filename) with `--user-config`, or pass `--eslint-config`          |
+| Markdown and SVG | Prettier discovers native project configs and `.editorconfig`; the shared config is a fallback when none is found |
+| Shell            | ShellCheck discovers `.shellcheckrc`, `shellcheckrc`, and inline shell directives naturally                       |
+| Nix              | nixfmt currently has no project rule configuration layer                                                          |
+| SQL              | SQLFluff discovers `.sqlfluff`, `pyproject.toml`, `setup.cfg`, and `tox.ini` naturally                            |
+
+`--user-config` is ESLint-only. It does not alter configuration for the other
+domains.
 
 ### Public API
 

@@ -160,6 +160,15 @@ describe('markdown domain', () => {
         '# B\n',
         'utf8',
       );
+      const downstreamPrettierConfigPath = path.join(
+        tmpRoot,
+        'prettier.config.cjs',
+      );
+      await fs.promises.writeFile(
+        downstreamPrettierConfigPath,
+        'module.exports = { proseWrap: "never" };\n',
+        'utf8',
+      );
 
       const registry = createBuiltInDomainRegistry({
         prettierConfigPath: path.join(tmpRoot, 'prettier.config.js'),
@@ -226,6 +235,11 @@ describe('markdown domain', () => {
       expect(
         normalizedPrettierArgs.filter((arg) => arg === 'docs/guides/b.mdx'),
       ).toHaveLength(1);
+      expect(normalizedPrettierArgs).not.toContain('--config');
+      expect(normalizedPrettierArgs).not.toContain('--no-editorconfig');
+      await expect(
+        fs.promises.readFile(downstreamPrettierConfigPath, 'utf8'),
+      ).resolves.toContain('proseWrap');
     } finally {
       execFileSyncMock.mockRestore();
       process.chdir(previousCwd);

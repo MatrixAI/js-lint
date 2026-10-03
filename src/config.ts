@@ -66,6 +66,35 @@ function sanitizeForceInclude(rawValue: unknown): string[] {
   );
 }
 
+function sanitizeTargets(
+  rawValue: unknown,
+  root: string,
+  repoRoot: string,
+): string[] {
+  return dedupeAndSort(
+    toStringArray(rawValue)
+      .map((target) => target.trim())
+      .filter((target) => target.length > 0)
+      .map((target) => {
+        const relativeTarget = path.relative(
+          repoRoot,
+          path.resolve(root, target),
+        );
+        return relativeTarget.length > 0
+          ? relativeTarget.split(path.sep).join(path.posix.sep)
+          : '.';
+      }),
+  );
+}
+
+function getRawDomain(
+  domains: Record<string, unknown>,
+  domain: string,
+): Record<string, unknown> {
+  const rawDomain = domains[domain];
+  return isRecord(rawDomain) ? rawDomain : {};
+}
+
 function normalizeLintConfig({
   rawConfig,
   source,
@@ -86,15 +115,48 @@ function normalizeLintConfig({
   const rawDomains: Record<string, unknown> = isRecord(rawConfig.domains)
     ? rawConfig.domains
     : {};
-  const rawEslintDomain = isRecord(rawDomains.eslint)
-    ? rawDomains.eslint
-    : ({} as Record<string, unknown>);
+  const rawEslintDomain = getRawDomain(rawDomains, 'eslint');
+  const rawShellDomain = getRawDomain(rawDomains, 'shell');
+  const rawMarkdownDomain = getRawDomain(rawDomains, 'markdown');
+  const rawSvgDomain = getRawDomain(rawDomains, 'svg');
+  const rawNixDomain = getRawDomain(rawDomains, 'nix');
+  const rawSqlDomain = getRawDomain(rawDomains, 'sql');
 
   let tsconfigPaths = sanitizeTsconfigPaths(
     rawEslintDomain.tsconfigPaths,
     resolvedRoot,
   );
+  const eslintTargets = sanitizeTargets(
+    rawEslintDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
   const forceInclude = sanitizeForceInclude(rawEslintDomain.forceInclude);
+  const shellTargets = sanitizeTargets(
+    rawShellDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const markdownTargets = sanitizeTargets(
+    rawMarkdownDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const svgTargets = sanitizeTargets(
+    rawSvgDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const nixTargets = sanitizeTargets(
+    rawNixDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const sqlTargets = sanitizeTargets(
+    rawSqlDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
 
   if (tsconfigPaths.length === 0) {
     const rootTsconfigPath = path.join(resolvedRoot, 'tsconfig.json');
@@ -112,8 +174,24 @@ function normalizeLintConfig({
     configFilePath,
     domains: {
       eslint: {
+        targets: eslintTargets,
         tsconfigPaths,
         forceInclude,
+      },
+      shell: {
+        targets: shellTargets,
+      },
+      markdown: {
+        targets: markdownTargets,
+      },
+      svg: {
+        targets: svgTargets,
+      },
+      nix: {
+        targets: nixTargets,
+      },
+      sql: {
+        targets: sqlTargets,
       },
     },
   };
