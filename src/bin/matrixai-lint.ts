@@ -57,7 +57,7 @@ program
   .option('--explain', 'Print per-domain selection and execution decisions')
   .option(
     '--user-config',
-    'Use user-provided ESLint config instead of built-in one',
+    'Deprecated ESLint-only alias; use --eslint-config <path>',
   )
   .option('--eslint-config <path>', 'Path to explicit ESLint config file')
   .option('--eslint <target...>', 'ESLint targets (files, roots, or globs)')
@@ -205,6 +205,12 @@ async function main(argv = process.argv) {
   // Resolve which config file to use
   let chosenConfig: string | undefined;
   let isConfigValid = true;
+
+  if (useUserConfig) {
+    logger.warn(
+      '--user-config is deprecated and ESLint-only. Use --eslint-config <path>; keep lint scope in matrixai-lint-config.json.',
+    );
+  }
 
   if (explicitConfigPath !== undefined) {
     const absolutePath = path.resolve(explicitConfigPath);

@@ -37,23 +37,23 @@ matrixai-lint --fix
 
 ### CLI Options
 
-| Flag                     | Description                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| _(no flag)_              | Uses built-in Matrix AI ESLint config                                          |
-| `--fix`                  | Enables auto-fixing via ESLint and Prettier                                    |
-| `--user-config`          | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found   |
-| `--eslint-config <path>` | Explicitly use a custom ESLint config file                                     |
-| `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection       |
-| `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection   |
-| `--svg <targets>`        | SVG targets (files, roots, or globs); implies SVG domain selection             |
-| `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection             |
-| `--sql <targets>`        | SQL targets (files, roots, or globs); implies SQL domain selection             |
-| `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection         |
-| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`) |
-| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`)     |
-| `--list-domains`         | Print available domains and short descriptions, then exit 0                    |
-| `--explain`              | Print per-domain decision details before execution                             |
-| `-v, --verbose`          | Increase log verbosity (repeat for more detail)                                |
+| Flag                     | Description                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| _(no flag)_              | Uses built-in Matrix AI ESLint config                                               |
+| `--fix`                  | Enables auto-fixing via ESLint and Prettier                                         |
+| `--user-config`          | Deprecated ESLint-only alias that detects a root flat config; use `--eslint-config` |
+| `--eslint-config <path>` | Explicitly use a custom ESLint config file                                          |
+| `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection            |
+| `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection        |
+| `--svg <targets>`        | SVG targets (files, roots, or globs); implies SVG domain selection                  |
+| `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection                  |
+| `--sql <targets>`        | SQL targets (files, roots, or globs); implies SQL domain selection                  |
+| `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection              |
+| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`)      |
+| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`)          |
+| `--list-domains`         | Print available domains and short descriptions, then exit 0                         |
+| `--explain`              | Print per-domain decision details before execution                                  |
+| `-v, --verbose`          | Increase log verbosity (repeat for more detail)                                     |
 
 Domain selection behavior:
 
@@ -216,7 +216,6 @@ developing this package itself; they are not the generic package defaults.
 
 ```sh
 matrixai-lint --fix
-matrixai-lint --user-config
 matrixai-lint --eslint-config ./eslint.config.js --fix
 matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
 matrixai-lint --markdown standards templates README.md
@@ -321,14 +320,17 @@ Rule configuration remains owned by each underlying tool:
 
 | Domain           | Downstream rule configuration                                                                                     |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------- |
-| ESLint           | Use `eslint.config.js` (or another flat-config filename) with `--user-config`, or pass `--eslint-config`          |
+| ESLint           | Keep rules in `eslint.config.js` (or another flat-config file) and pass its path with `--eslint-config`           |
 | Markdown and SVG | Prettier discovers native project configs and `.editorconfig`; the shared config is a fallback when none is found |
 | Shell            | ShellCheck discovers `.shellcheckrc`, `shellcheckrc`, and inline shell directives naturally                       |
 | Nix              | nixfmt currently has no project rule configuration layer                                                          |
 | SQL              | SQLFluff discovers `.sqlfluff`, `pyproject.toml`, `setup.cfg`, and `tox.ini` naturally                            |
 
-`--user-config` is ESLint-only. It does not alter configuration for the other
-domains.
+`--user-config` is a deprecated ESLint-only compatibility alias. Existing
+scripts continue to work, but emit a warning. Migrate to
+`--eslint-config ./eslint.config.js`; keep domain targets in
+`matrixai-lint-config.json`. Neither ESLint option alters configuration for the
+other domains.
 
 ### Public API
 

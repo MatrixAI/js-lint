@@ -1,6 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
+import Logger from '@matrixai/logger';
 import { jest } from '@jest/globals';
 import main from '#bin/matrixai-lint.js';
 
@@ -415,6 +416,20 @@ describe('matrixai-lint CLI domain semantics', () => {
     expect(capturedExecCalls).toHaveLength(0);
     expect(stderrWriteSpy).toHaveBeenCalledWith(
       expect.stringContaining('INFO:matrixai-lint:Available lint domains:'),
+    );
+  });
+
+  test('--user-config remains compatible and emits an ESLint-only deprecation warning', async () => {
+    const warnMock = jest.spyOn(Logger.prototype, 'warn');
+
+    await expect(
+      main(['node', 'matrixai-lint', '--user-config', '--domain', 'sql']),
+    ).resolves.toBeUndefined();
+
+    expect(warnMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        '--user-config is deprecated and ESLint-only. Use --eslint-config <path>',
+      ),
     );
   });
 
