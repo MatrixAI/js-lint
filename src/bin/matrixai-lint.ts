@@ -15,6 +15,7 @@ import {
   evaluateLintDomains,
   runLintDomainDecisions,
 } from '../domains.js';
+import { resolveLintConfig } from '../config.js';
 import * as eslintUtils from '../eslint/utils.js';
 import * as utils from '../utils.js';
 
@@ -25,6 +26,21 @@ const builtinPrettierCfg = path.resolve(
   dirname,
   '../configs/prettier.config.js',
 );
+
+function resolveEffectiveTargets(
+  cliTargets: string[] | undefined,
+  configTargets: readonly string[],
+): string[] | undefined {
+  if (cliTargets != null && cliTargets.length > 0) {
+    return cliTargets;
+  }
+
+  if (configTargets.length > 0) {
+    return [...configTargets];
+  }
+
+  return undefined;
+}
 
 program
   .name('matrixai-lint')
@@ -41,13 +57,14 @@ program
   .option('--explain', 'Print per-domain selection and execution decisions')
   .option(
     '--user-config',
-    'Use user-provided ESLint config instead of built-in one',
+    'Deprecated ESLint-only alias; use --eslint-config <path>',
   )
   .option('--eslint-config <path>', 'Path to explicit ESLint config file')
   .option('--eslint <target...>', 'ESLint targets (files, roots, or globs)')
   .option('--markdown <target...>', 'Markdown targets (files, roots, or globs)')
   .option('--svg <target...>', 'SVG targets (files, roots, or globs)')
   .option('--nix <target...>', 'Nix targets (files, roots, or globs)')
+  .option('--sql <target...>', 'SQL targets (files, roots, or globs)')
   .option(
     '--shell <target...>',
     'Shell targets (files, roots, or globs) used to derive shellcheck search roots',
@@ -139,12 +156,32 @@ async function main(argv = process.argv) {
   const explicitConfigPath: string | undefined = options.eslintConfig;
   const listDomainsOnly = Boolean(options.listDomains);
   const explain = Boolean(options.explain);
+  const lintConfig = resolveLintConfig();
 
-  const eslintPatterns: string[] | undefined = options.eslint;
-  const markdownPatterns: string[] | undefined = options.markdown;
-  const svgPatterns: string[] | undefined = options.svg;
-  const nixPatterns: string[] | undefined = options.nix;
-  const shellPatterns: string[] | undefined = options.shell;
+  const eslintPatterns = resolveEffectiveTargets(
+    options.eslint,
+    lintConfig.domains.eslint.targets,
+  );
+  const markdownPatterns = resolveEffectiveTargets(
+    options.markdown,
+    lintConfig.domains.markdown.targets,
+  );
+  const svgPatterns = resolveEffectiveTargets(
+    options.svg,
+    lintConfig.domains.svg.targets,
+  );
+  const nixPatterns = resolveEffectiveTargets(
+    options.nix,
+    lintConfig.domains.nix.targets,
+  );
+  const sqlPatterns = resolveEffectiveTargets(
+    options.sql,
+    lintConfig.domains.sql.targets,
+  );
+  const shellPatterns = resolveEffectiveTargets(
+    options.shell,
+    lintConfig.domains.shell.targets,
+  );
   const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
     resolveDomainSelection(options);
 
@@ -168,6 +205,12 @@ async function main(argv = process.argv) {
   // Resolve which config file to use
   let chosenConfig: string | undefined;
   let isConfigValid = true;
+
+  if (useUserConfig) {
+    logger.warn(
+      '--user-config is deprecated and ESLint-only. Use --eslint-config <path>; keep lint scope in matrixai-lint-config.json.',
+    );
+  }
 
   if (explicitConfigPath !== undefined) {
     const absolutePath = path.resolve(explicitConfigPath);
@@ -205,6 +248,7 @@ async function main(argv = process.argv) {
       markdownPatterns,
       svgPatterns,
       nixPatterns,
+      sqlPatterns,
       shellPatterns,
     },
   });
@@ -225,6 +269,7 @@ async function main(argv = process.argv) {
       markdownPatterns,
       svgPatterns,
       nixPatterns,
+      sqlPatterns,
       shellPatterns,
     },
   });

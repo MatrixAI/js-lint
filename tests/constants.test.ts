@@ -1,0 +1,60 @@
+import {
+  DEFAULT_ESLINT_SEARCH_ROOTS,
+  DEFAULT_SHELLCHECK_SEARCH_ROOTS,
+  DEFAULT_MARKDOWN_ROOT_FILES,
+  DEFAULT_MARKDOWN_SEARCH_ROOTS,
+  DEFAULT_SVG_SEARCH_ROOTS,
+  DEFAULT_NIXFMT_SEARCH_PATTERNS,
+  DEFAULT_SQLFLUFF_SEARCH_PATTERNS,
+} from '#constants.js';
+
+describe('constants domain', () => {
+  test('shared default search patterns are stable and explicit', () => {
+    expect(DEFAULT_ESLINT_SEARCH_ROOTS).toStrictEqual([
+      './src',
+      './scripts',
+      './tests',
+    ]);
+    expect(DEFAULT_SHELLCHECK_SEARCH_ROOTS).toStrictEqual([
+      './src',
+      './scripts',
+      './tests',
+    ]);
+    expect(DEFAULT_MARKDOWN_ROOT_FILES).toStrictEqual([
+      'README.md',
+      'AGENTS.md',
+    ]);
+    expect(DEFAULT_MARKDOWN_SEARCH_ROOTS).toStrictEqual([
+      './README.md',
+      './AGENTS.md',
+      './specs',
+      './pages',
+      './blog',
+      './docs',
+    ]);
+    expect(DEFAULT_SVG_SEARCH_ROOTS).toStrictEqual([
+      './src',
+      './specs',
+      './pages',
+      './docs',
+    ]);
+    expect(DEFAULT_NIXFMT_SEARCH_PATTERNS).toStrictEqual([
+      './flake.nix',
+      './shell.nix',
+      './default.nix',
+      './nix/**/*.nix',
+    ]);
+    expect(DEFAULT_SQLFLUFF_SEARCH_PATTERNS).toStrictEqual([
+      './src',
+      './scripts',
+      './tests',
+      './sql',
+      './migrations',
+      './db',
+      './database',
+      './prisma',
+      './supabase',
+      './*.sql',
+    ]);
+  });
+});

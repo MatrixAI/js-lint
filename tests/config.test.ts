@@ -24,6 +24,12 @@ describe('lint config schema', () => {
         tsconfigPath,
       ]);
       expect(resolved.domains.eslint.forceInclude).toStrictEqual([]);
+      expect(resolved.domains.eslint.targets).toStrictEqual([]);
+      expect(resolved.domains.shell.targets).toStrictEqual([]);
+      expect(resolved.domains.markdown.targets).toStrictEqual([]);
+      expect(resolved.domains.svg.targets).toStrictEqual([]);
+      expect(resolved.domains.nix.targets).toStrictEqual([]);
+      expect(resolved.domains.sql.targets).toStrictEqual([]);
     } finally {
       await fs.promises.rm(tmpRoot, { recursive: true, force: true });
     }
@@ -62,6 +68,7 @@ describe('lint config schema', () => {
           root: './workspace',
           domains: {
             eslint: {
+              targets: ['./src', './scripts', './src', ''],
               tsconfigPaths: [
                 './tsconfig.json',
                 './packages/core/tsconfig.json',
@@ -69,6 +76,21 @@ describe('lint config schema', () => {
                 './missing/tsconfig.json',
               ],
               forceInclude: ['./scripts', './src/overrides', './scripts', ''],
+            },
+            shell: {
+              targets: ['./scripts/**/*.sh', './scripts/**/*.sh'],
+            },
+            markdown: {
+              targets: './docs',
+            },
+            svg: {
+              targets: ['./assets/**/*.svg'],
+            },
+            nix: {
+              targets: ['./nix', 1, null],
+            },
+            sql: {
+              targets: [' ./db/**/*.sql ', './migrations'],
             },
           },
         },
@@ -85,6 +107,24 @@ describe('lint config schema', () => {
       expect(resolved.domains.eslint.forceInclude).toStrictEqual([
         'scripts',
         'src/overrides',
+      ]);
+      expect(resolved.domains.eslint.targets).toStrictEqual([
+        'workspace/scripts',
+        'workspace/src',
+      ]);
+      expect(resolved.domains.shell.targets).toStrictEqual([
+        'workspace/scripts/**/*.sh',
+      ]);
+      expect(resolved.domains.markdown.targets).toStrictEqual([
+        'workspace/docs',
+      ]);
+      expect(resolved.domains.svg.targets).toStrictEqual([
+        'workspace/assets/**/*.svg',
+      ]);
+      expect(resolved.domains.nix.targets).toStrictEqual(['workspace/nix']);
+      expect(resolved.domains.sql.targets).toStrictEqual([
+        'workspace/db/**/*.sql',
+        'workspace/migrations',
       ]);
     } finally {
       await fs.promises.rm(repoRoot, { recursive: true, force: true });

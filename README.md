@@ -8,9 +8,9 @@ for use in Matrix AI JavaScript/TypeScript projects.
 - Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
   rules
 - Supports Prettier formatting for Markdown and SVG, ShellCheck for shell
-  scripts, and nixfmt for Nix files
+  scripts, nixfmt for Nix files, and SQLFluff for SQL files
 - Single command to lint JavaScript/TypeScript, Markdown, SVG, shell scripts,
-  and Nix files
+  Nix files, and SQL files
 - Customizable via `matrixai-lint-config.json` and extensible with your own
   ESLint config
 - CLI options to override config and enable auto-fix
@@ -37,22 +37,23 @@ matrixai-lint --fix
 
 ### CLI Options
 
-| Flag                     | Description                                                                  |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| _(no flag)_              | Uses built-in Matrix AI ESLint config                                        |
-| `--fix`                  | Enables auto-fixing via ESLint and Prettier                                  |
-| `--user-config`          | Uses detected `eslint.config.[js,mjs,cjs,ts]` from the project root if found |
-| `--eslint-config <path>` | Explicitly use a custom ESLint config file                                   |
-| `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection     |
-| `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection |
-| `--svg <targets>`        | SVG targets (files, roots, or globs); implies SVG domain selection           |
-| `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection           |
-| `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection       |
-| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`)      |
-| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`)          |
-| `--list-domains`         | Print available domains and short descriptions, then exit 0                  |
-| `--explain`              | Print per-domain decision details before execution                           |
-| `-v, --verbose`          | Increase log verbosity (repeat for more detail)                              |
+| Flag                     | Description                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| _(no flag)_              | Uses built-in Matrix AI ESLint config                                               |
+| `--fix`                  | Enables auto-fixing via ESLint and Prettier                                         |
+| `--user-config`          | Deprecated ESLint-only alias that detects a root flat config; use `--eslint-config` |
+| `--eslint-config <path>` | Explicitly use a custom ESLint config file                                          |
+| `--eslint <targets>`     | ESLint targets (files, roots, or globs); implies ESLint domain selection            |
+| `--markdown <targets>`   | Markdown targets (files, roots, or globs); implies markdown domain selection        |
+| `--svg <targets>`        | SVG targets (files, roots, or globs); implies SVG domain selection                  |
+| `--nix <targets>`        | Nix targets (files, roots, or globs); implies nix domain selection                  |
+| `--sql <targets>`        | SQL targets (files, roots, or globs); implies SQL domain selection                  |
+| `--shell <targets>`      | Shell targets (files, roots, or globs); implies shell domain selection              |
+| `--domain <id...>`       | Run only selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`)      |
+| `--skip-domain <id...>`  | Skip selected domains (`eslint`, `shell`, `markdown`, `svg`, `nix`, `sql`)          |
+| `--list-domains`         | Print available domains and short descriptions, then exit 0                         |
+| `--explain`              | Print per-domain decision details before execution                                  |
+| `-v, --verbose`          | Increase log verbosity (repeat for more detail)                                     |
 
 Domain selection behavior:
 
@@ -72,12 +73,18 @@ Domain selection behavior:
 - Passing `--nix` implies nix domain selection.
   - `--nix ...` runs nix only.
   - Combined with other target flags, only those targeted domains run.
+- Passing `--sql` implies SQL domain selection.
+  - `--sql ...` runs SQL only.
+  - Combined with other target flags, only those targeted domains run.
 - `shellcheck` is optional only for default auto-run shell execution.
   - If shell is explicitly requested (`--shell ...` or `--domain shell`),
     missing `shellcheck` is a failure.
 - `nixfmt` is optional only for default auto-run nix execution.
   - If nix is explicitly requested (`--nix ...` or `--domain nix`), missing
     `nixfmt` is a failure.
+- `sqlfluff` is optional only for default auto-run SQL execution.
+  - If SQL is explicitly requested (`--sql ...` or `--domain sql`), missing
+    `sqlfluff` is a failure.
 - `--shell` accepts target paths and glob patterns.
   - Directories are used as roots.
   - File paths and glob patterns are reduced to search roots, then `*.sh` files
@@ -101,6 +108,14 @@ Domain selection behavior:
   - By default, nix domain scope is `flake.nix`, `shell.nix`, `default.nix`, and
     `nix/**/*.nix`.
   - When `--nix` is provided, explicit nix targets replace these defaults.
+- `--sql` accepts target paths and glob patterns.
+  - Directories are used as roots.
+  - File paths and glob patterns are reduced to search roots, then `*.sql` files
+    are discovered under those roots.
+  - By default, SQL domain scope is `./src`, `./scripts`, `./tests`, `./sql`,
+    `./migrations`, `./db`, `./database`, `./prisma`, `./supabase`, and
+    root-level `*.sql` files.
+  - When `--sql` is provided, explicit SQL targets replace these defaults.
 
 #### Effective default search scope
 
@@ -122,6 +137,8 @@ its own effective scope:
 - `svg`: `./src`, `./specs`, `./pages`, `./public`, `./static`, `./docs`, and
   `./assets`.
 - `nix`: `./flake.nix`, `./shell.nix`, `./default.nix`, and `./nix/**/*.nix`
+- `sql`: `./src`, `./scripts`, `./tests`, `./sql`, `./migrations`, `./db`,
+  `./database`, `./prisma`, `./supabase`, and root-level `*.sql` files
 
 Use `matrixai-lint --explain` to print the per-domain decision details and see
 which scope was selected at runtime.
@@ -136,7 +153,7 @@ developing this package itself; they are not the generic package defaults.
   and `--shell src scripts tests`.
 - That means this repository's npm scripts override the generic default scope
   for the `eslint` and `shell` domains.
-- In those scripts, `markdown`, `svg`, and `nix` still use their built-in
+- In those scripts, `markdown`, `svg`, `nix`, and `sql` still use their built-in
   default scopes.
 
 #### Targeted workflows
@@ -183,6 +200,12 @@ developing this package itself; they are not the generic package defaults.
   matrixai-lint --nix nix modules flake.nix
   ```
 
+- SQL only under selected roots/patterns:
+
+  ```sh
+  matrixai-lint --sql db migrations './sql/**/*.sql'
+  ```
+
 - Mixed scoped run (ESLint + shell only):
 
   ```sh
@@ -193,19 +216,30 @@ developing this package itself; they are not the generic package defaults.
 
 ```sh
 matrixai-lint --fix
-matrixai-lint --user-config
 matrixai-lint --eslint-config ./eslint.config.js --fix
 matrixai-lint --eslint "src/**/*.{ts,tsx}" --shell scripts
 matrixai-lint --markdown standards templates README.md
 matrixai-lint --svg specs assets public
 matrixai-lint --nix nix flake.nix
-matrixai-lint --domain eslint markdown svg
+matrixai-lint --sql db migrations './sql/**/*.sql'
+matrixai-lint --domain eslint markdown svg sql
 matrixai-lint --domain nix
 matrixai-lint --skip-domain markdown
 matrixai-lint --list-domains
 matrixai-lint --explain --domain eslint
 matrixai-lint -v -v --domain markdown
 ```
+
+### SQLFluff config
+
+`matrixai-lint` invokes SQLFluff from the downstream project root without an
+explicit `--config` argument. SQLFluff therefore performs its normal native
+configuration discovery, including project files such as `.sqlfluff`,
+`pyproject.toml`, `setup.cfg`, and `tox.ini`.
+
+Downstream projects should declare their SQL dialect and rule policy in one of
+those native SQLFluff files. `matrixai-lint --fix` runs `sqlfluff fix --force`,
+while a non-fix run uses `sqlfluff lint`.
 
 ### ESLint config (ESM / NodeNext)
 
@@ -232,12 +266,14 @@ export default matrixai;
 
 ### Lint configuration file
 
-The linter is TypeScript-aware and requires a `tsconfig.json` to determine which
-files to lint and how to parse them. By default it looks for `tsconfig.json` in
-the project root and uses the `include`/`exclude` entries.
+`matrixai-lint-config.json` is an orchestration and scope configuration file. It
+selects the files visible to each domain; it does not contain ESLint, Prettier,
+ShellCheck, nixfmt, or SQLFluff rule settings. Keep rule configuration in each
+tool's native downstream configuration file.
 
-If your project uses more than one `tsconfig.json` or does not have one at the
-root, configure the linter using a `matrixai-lint-config.json` file at the root.
+The ESLint domain is TypeScript-aware and uses `tsconfig.json` to determine how
+to parse files. By default it looks for `tsconfig.json` in the project root. A
+project with multiple TypeScript configurations can list them explicitly.
 
 This config uses a versioned schema and must explicitly declare `"version": 2`:
 
@@ -247,25 +283,54 @@ This config uses a versioned schema and must explicitly declare `"version": 2`:
   "root": ".",
   "domains": {
     "eslint": {
+      "targets": ["./src", "./scripts"],
       "tsconfigPaths": [
         "./tsconfig.base.json",
         "./packages/core/tsconfig.json"
       ],
       "forceInclude": ["scripts", "src/overrides"]
-    }
+    },
+    "shell": { "targets": ["./scripts"] },
+    "markdown": { "targets": ["./docs", "./README.md"] },
+    "svg": { "targets": ["./assets/**/*.svg"] },
+    "nix": { "targets": ["./nix", "./flake.nix"] },
+    "sql": { "targets": ["./db", "./migrations/**/*.sql"] }
   }
 }
 ```
 
-| Field                          | Type       | Description                                                                               |
-| ------------------------------ | ---------- | ----------------------------------------------------------------------------------------- |
-| `version`                      | `2`        | Required schema version marker                                                            |
-| `root`                         | `string`   | Optional lint root (defaults to `.`). `tsconfigPaths` are resolved relative to this root. |
-| `domains.eslint.tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                                |
-| `domains.eslint.forceInclude`  | `string[]` | Paths to always include, even if excluded by tsconfig (must be included by at least one)  |
+| Field                          | Type       | Description                                                                                |
+| ------------------------------ | ---------- | ------------------------------------------------------------------------------------------ |
+| `version`                      | `2`        | Required schema version marker                                                             |
+| `root`                         | `string`   | Optional lint root (defaults to `.`); domain targets and tsconfig paths are relative to it |
+| `domains.<domain>.targets`     | `string[]` | Optional files, directories, or globs defining that domain's scope                         |
+| `domains.eslint.tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                                 |
+| `domains.eslint.forceInclude`  | `string[]` | Paths to include despite tsconfig excludes; each must be included by at least one tsconfig |
+
+Target precedence is: a domain-specific CLI target option, then
+`domains.<domain>.targets`, then that domain's built-in default search scope.
+Config targets affect scope but do not make a domain an explicit CLI request.
 
 Note: If a path in `forceInclude` is not included in any of the `tsconfigPaths`,
 TypeScript will throw a parsing error.
+
+### Native downstream tool configuration
+
+Rule configuration remains owned by each underlying tool:
+
+| Domain           | Downstream rule configuration                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| ESLint           | Keep rules in `eslint.config.js` (or another flat-config file) and pass its path with `--eslint-config`           |
+| Markdown and SVG | Prettier discovers native project configs and `.editorconfig`; the shared config is a fallback when none is found |
+| Shell            | ShellCheck discovers `.shellcheckrc`, `shellcheckrc`, and inline shell directives naturally                       |
+| Nix              | nixfmt currently has no project rule configuration layer                                                          |
+| SQL              | SQLFluff discovers `.sqlfluff`, `pyproject.toml`, `setup.cfg`, and `tox.ini` naturally                            |
+
+`--user-config` is a deprecated ESLint-only compatibility alias. Existing
+scripts continue to work, but emit a warning. Migrate to
+`--eslint-config ./eslint.config.js`; keep domain targets in
+`matrixai-lint-config.json`. Neither ESLint option alters configuration for the
+other domains.
 
 ### Public API
 

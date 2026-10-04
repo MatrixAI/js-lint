@@ -31,6 +31,19 @@ const DEFAULT_NIXFMT_SEARCH_PATTERNS = [
   './nix/**/*.nix',
 ] as const;
 
+const DEFAULT_SQLFLUFF_SEARCH_PATTERNS = [
+  './src',
+  './scripts',
+  './tests',
+  './sql',
+  './migrations',
+  './db',
+  './database',
+  './prisma',
+  './supabase',
+  './*.sql',
+] as const;
+
 export {
   DEFAULT_ESLINT_SEARCH_ROOTS,
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,
@@ -38,4 +51,5 @@ export {
   DEFAULT_MARKDOWN_SEARCH_ROOTS,
   DEFAULT_SVG_SEARCH_ROOTS,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
+  DEFAULT_SQLFLUFF_SEARCH_PATTERNS,
 };
