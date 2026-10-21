@@ -8,6 +8,7 @@ import process from 'node:process';
 import childProcess from 'node:child_process';
 import { createRequire } from 'node:module';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
+import { resolvePrettierConfigArgs } from '../prettier.js';
 import { resolveFilesFromPatterns } from '../utils.js';
 
 const platform = os.platform();
@@ -53,21 +54,21 @@ class SvgDomainPlugin extends LintDomainPluginBase {
     };
   }
 
-  public run(
+  public async run(
     { fix, logger }: LintDomainEngineContext,
     detection: LintDomainDetection,
-  ): LintDomainPluginResult {
+  ): Promise<LintDomainPluginResult> {
     const svgFiles = detection.matchedFiles ?? [];
     if (svgFiles.length === 0) {
       return { hadFailure: false };
     }
 
-    const prettierArgs = [
-      '--config',
+    const prettierConfigArgs = await resolvePrettierConfigArgs(
+      svgFiles,
       this.prettierConfigPath,
-      '--config-precedence',
-      'cli-override',
-      '--no-editorconfig',
+    );
+    const prettierArgs = [
+      ...prettierConfigArgs,
       '--parser',
       'html',
       fix ? '--write' : '--check',

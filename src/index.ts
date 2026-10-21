@@ -4,4 +4,5 @@ export type {
   LintDomain,
   MatrixAILintCfg,
   RawMatrixCfg,
+  TailwindMode,
 } from './types.js';

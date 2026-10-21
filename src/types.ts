@@ -2,15 +2,38 @@ import type Logger from '@matrixai/logger';
 
 type MatrixAILintCfgSource = 'default' | 'config';
 
+type TailwindMode = 'auto' | 'enabled' | 'disabled';
+
 type RawMatrixCfg = {
   version: 2;
   root?: unknown;
   domains?: {
     eslint?: {
+      targets?: unknown;
       tsconfigPaths?: unknown;
       forceInclude?: unknown;
+      tailwind?: unknown;
+    };
+    shell?: {
+      targets?: unknown;
+    };
+    markdown?: {
+      targets?: unknown;
+    };
+    svg?: {
+      targets?: unknown;
+    };
+    nix?: {
+      targets?: unknown;
+    };
+    sql?: {
+      targets?: unknown;
     };
   };
+};
+
+type MatrixAILintCfgDomainScope = {
+  targets: string[];
 };
 
 type MatrixAILintCfg = {
@@ -19,16 +42,23 @@ type MatrixAILintCfg = {
   source: MatrixAILintCfgSource;
   configFilePath: string;
   domains: {
-    eslint: {
+    eslint: MatrixAILintCfgDomainScope & {
       tsconfigPaths: string[];
       forceInclude: string[];
+      tailwind: TailwindMode;
+      tailwindEnabled: boolean;
     };
+    shell: MatrixAILintCfgDomainScope;
+    markdown: MatrixAILintCfgDomainScope;
+    svg: MatrixAILintCfgDomainScope;
+    nix: MatrixAILintCfgDomainScope;
+    sql: MatrixAILintCfgDomainScope;
   };
 };
 
 type MatrixAILintCfgResolved = MatrixAILintCfg;
 
-type LintDomain = 'eslint' | 'shell' | 'markdown' | 'svg' | 'nix';
+type LintDomain = 'eslint' | 'shell' | 'markdown' | 'svg' | 'nix' | 'sql';
 
 type CLIOptions = {
   fix: boolean;
@@ -40,6 +70,7 @@ type CLIOptions = {
   markdown?: string[];
   svg?: string[];
   nix?: string[];
+  sql?: string[];
   domain?: LintDomain[];
   skipDomain?: LintDomain[];
   listDomains?: boolean;
@@ -56,6 +87,7 @@ type LintDomainEngineContext = {
   markdownPatterns?: string[];
   svgPatterns?: string[];
   nixPatterns?: string[];
+  sqlPatterns?: string[];
 };
 
 type LintDomainAvailabilityKind = 'required' | 'optional';
@@ -128,7 +160,9 @@ export type {
   LintDomainRun,
   LintDomainSelectionSource,
   MatrixAILintCfg,
+  MatrixAILintCfgDomainScope,
   MatrixAILintCfgSource,
   MatrixAILintCfgResolved,
   RawMatrixCfg,
+  TailwindMode,
 };

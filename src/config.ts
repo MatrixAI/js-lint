@@ -2,6 +2,7 @@ import type {
   MatrixAILintCfgSource,
   MatrixAILintCfgResolved,
   RawMatrixCfg,
+  TailwindMode,
 } from './types.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,6 +10,20 @@ import process from 'node:process';
 import ts from 'typescript';
 
 const MATRIXAI_LINT_CONFIG_FILENAME = 'matrixai-lint-config.json';
+const TAILWIND_CONFIG_FILENAMES = [
+  'tailwind.config.js',
+  'tailwind.config.cjs',
+  'tailwind.config.mjs',
+  'tailwind.config.ts',
+  'tailwind.config.cts',
+  'tailwind.config.mts',
+] as const;
+const PACKAGE_DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -32,6 +47,79 @@ function stripLeadingDotSlash(value: string): string {
 
 function dedupeAndSort(values: readonly string[]): string[] {
   return [...new Set(values)].sort();
+}
+
+function sanitizeTailwindMode(value: unknown): TailwindMode {
+  if (value == null) {
+    return 'auto';
+  }
+
+  if (value === 'auto' || value === 'enabled' || value === 'disabled') {
+    return value;
+  }
+
+  throw new Error(
+    '[matrixai-lint]  ✖  domains.eslint.tailwind must be "auto", "enabled", or "disabled".',
+  );
+}
+
+function isFile(filePath: string): boolean {
+  try {
+    return fs.statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function isTailwindPackage(packageName: string): boolean {
+  return (
+    packageName === 'tailwindcss' || packageName.startsWith('@tailwindcss/')
+  );
+}
+
+function packageDeclaresTailwind(root: string): boolean {
+  const packagePath = path.join(root, 'package.json');
+  let packageJson: unknown;
+
+  try {
+    packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  } catch {
+    return false;
+  }
+
+  if (!isRecord(packageJson)) {
+    return false;
+  }
+
+  const packageRecord = packageJson;
+
+  return PACKAGE_DEPENDENCY_FIELDS.some((field) => {
+    const dependencies = packageRecord[field];
+    return (
+      isRecord(dependencies) &&
+      Object.keys(dependencies).some((packageName) =>
+        isTailwindPackage(packageName),
+      )
+    );
+  });
+}
+
+function rootHasTailwindConfig(root: string): boolean {
+  return TAILWIND_CONFIG_FILENAMES.some((filename) =>
+    isFile(path.join(root, filename)),
+  );
+}
+
+function resolveTailwindEnabled(mode: TailwindMode, root: string): boolean {
+  if (mode === 'enabled') {
+    return true;
+  }
+
+  if (mode === 'disabled') {
+    return false;
+  }
+
+  return packageDeclaresTailwind(root) || rootHasTailwindConfig(root);
 }
 
 function isReadableTsconfigPath(tsconfigPath: string): boolean {
@@ -66,6 +154,35 @@ function sanitizeForceInclude(rawValue: unknown): string[] {
   );
 }
 
+function sanitizeTargets(
+  rawValue: unknown,
+  root: string,
+  repoRoot: string,
+): string[] {
+  return dedupeAndSort(
+    toStringArray(rawValue)
+      .map((target) => target.trim())
+      .filter((target) => target.length > 0)
+      .map((target) => {
+        const relativeTarget = path.relative(
+          repoRoot,
+          path.resolve(root, target),
+        );
+        return relativeTarget.length > 0
+          ? relativeTarget.split(path.sep).join(path.posix.sep)
+          : '.';
+      }),
+  );
+}
+
+function getRawDomain(
+  domains: Record<string, unknown>,
+  domain: string,
+): Record<string, unknown> {
+  const rawDomain = domains[domain];
+  return isRecord(rawDomain) ? rawDomain : {};
+}
+
 function normalizeLintConfig({
   rawConfig,
   source,
@@ -86,15 +203,50 @@ function normalizeLintConfig({
   const rawDomains: Record<string, unknown> = isRecord(rawConfig.domains)
     ? rawConfig.domains
     : {};
-  const rawEslintDomain = isRecord(rawDomains.eslint)
-    ? rawDomains.eslint
-    : ({} as Record<string, unknown>);
+  const rawEslintDomain = getRawDomain(rawDomains, 'eslint');
+  const rawShellDomain = getRawDomain(rawDomains, 'shell');
+  const rawMarkdownDomain = getRawDomain(rawDomains, 'markdown');
+  const rawSvgDomain = getRawDomain(rawDomains, 'svg');
+  const rawNixDomain = getRawDomain(rawDomains, 'nix');
+  const rawSqlDomain = getRawDomain(rawDomains, 'sql');
 
   let tsconfigPaths = sanitizeTsconfigPaths(
     rawEslintDomain.tsconfigPaths,
     resolvedRoot,
   );
+  const eslintTargets = sanitizeTargets(
+    rawEslintDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
   const forceInclude = sanitizeForceInclude(rawEslintDomain.forceInclude);
+  const tailwind = sanitizeTailwindMode(rawEslintDomain.tailwind);
+  const tailwindEnabled = resolveTailwindEnabled(tailwind, resolvedRoot);
+  const shellTargets = sanitizeTargets(
+    rawShellDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const markdownTargets = sanitizeTargets(
+    rawMarkdownDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const svgTargets = sanitizeTargets(
+    rawSvgDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const nixTargets = sanitizeTargets(
+    rawNixDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
+  const sqlTargets = sanitizeTargets(
+    rawSqlDomain.targets,
+    resolvedRoot,
+    repoRoot,
+  );
 
   if (tsconfigPaths.length === 0) {
     const rootTsconfigPath = path.join(resolvedRoot, 'tsconfig.json');
@@ -112,8 +264,26 @@ function normalizeLintConfig({
     configFilePath,
     domains: {
       eslint: {
+        targets: eslintTargets,
         tsconfigPaths,
         forceInclude,
+        tailwind,
+        tailwindEnabled,
+      },
+      shell: {
+        targets: shellTargets,
+      },
+      markdown: {
+        targets: markdownTargets,
+      },
+      svg: {
+        targets: svgTargets,
+      },
+      nix: {
+        targets: nixTargets,
+      },
+      sql: {
+        targets: sqlTargets,
       },
     },
   };
@@ -180,6 +350,7 @@ function resolveLintConfig(repoRoot = process.cwd()): MatrixAILintCfgResolved {
 
 export {
   MATRIXAI_LINT_CONFIG_FILENAME,
+  TAILWIND_CONFIG_FILENAMES,
   normalizeLintConfig,
   parseLintConfig,
   resolveLintConfig,
