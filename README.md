@@ -5,8 +5,8 @@ for use in Matrix AI JavaScript/TypeScript projects.
 
 - Type-aware linting powered by `@typescript-eslint` using one or more
   `tsconfig.json` files
-- Built-in support for React, Tailwind, JSX a11y, Prettier, and Matrix AI custom
-  rules
+- Built-in support for React, conditionally enabled Tailwind, JSX a11y,
+  Prettier, and Matrix AI custom rules
 - Supports Prettier formatting for Markdown and SVG, ShellCheck for shell
   scripts, nixfmt for Nix files, and SQLFluff for SQL files
 - Single command to lint JavaScript/TypeScript, Markdown, SVG, shell scripts,
@@ -288,7 +288,8 @@ This config uses a versioned schema and must explicitly declare `"version": 2`:
         "./tsconfig.base.json",
         "./packages/core/tsconfig.json"
       ],
-      "forceInclude": ["scripts", "src/overrides"]
+      "forceInclude": ["scripts", "src/overrides"],
+      "tailwind": "auto"
     },
     "shell": { "targets": ["./scripts"] },
     "markdown": { "targets": ["./docs", "./README.md"] },
@@ -306,6 +307,13 @@ This config uses a versioned schema and must explicitly declare `"version": 2`:
 | `domains.<domain>.targets`     | `string[]` | Optional files, directories, or globs defining that domain's scope                         |
 | `domains.eslint.tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                                 |
 | `domains.eslint.forceInclude`  | `string[]` | Paths to include despite tsconfig excludes; each must be included by at least one tsconfig |
+| `domains.eslint.tailwind`      | `string`   | Tailwind lint mode: `auto` (default), `enabled`, or `disabled`                             |
+
+Tailwind linting defaults to `auto`. It is enabled when the configured root's
+`package.json` directly declares `tailwindcss` or an `@tailwindcss/*` package,
+or when the root contains a recognized `tailwind.config.*` file. Installed
+transitive dependencies do not activate it. Use `enabled` for configless
+Tailwind projects and `disabled` to override detection explicitly.
 
 Target precedence is: a domain-specific CLI target option, then
 `domains.<domain>.targets`, then that domain's built-in default search scope.
@@ -337,7 +345,7 @@ other domains.
 Supported imports:
 
 - `@matrixai/lint`: named export `config`; types `MatrixAILintCfg`,
-  `RawMatrixCfg`, `CLIOptions`.
+  `RawMatrixCfg`, `CLIOptions`, and `TailwindMode`.
 - `@matrixai/lint/configs/eslint.js`: default export of the ESLint Flat Config
   array (same shape as `config`).
 - `@matrixai/lint/configs/prettier.config.js`: reusable Prettier options object.

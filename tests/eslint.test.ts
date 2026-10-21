@@ -1,11 +1,39 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import Logger, { LogLevel } from '@matrixai/logger';
+import { parseLintConfig } from '#config.js';
 import { createBuiltInDomainRegistry, evaluateLintDomains } from '#domains.js';
 import { DEFAULT_TAILWIND_CSS_FILES } from '#utils.js';
-import eslintConfig from '#configs/eslint.js';
+import eslintConfig, { createEslintConfig } from '#configs/eslint.js';
 
 const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
+
+function resolvedConfig(tailwind: 'enabled' | 'disabled') {
+  return parseLintConfig({
+    rawConfig: {
+      version: 2,
+      domains: { eslint: { tailwind } },
+    },
+    repoRoot: process.cwd(),
+    configFilePath: path.join(process.cwd(), 'matrixai-lint-config.json'),
+  });
+}
+
+function hasTailwindRules(config: ReturnType<typeof createEslintConfig>) {
+  return config.some((configEntry) =>
+    Object.keys(configEntry.rules ?? {}).some((ruleName) =>
+      ruleName.startsWith('tailwindcss/'),
+    ),
+  );
+}
+
+function tailwindSettings(config: ReturnType<typeof createEslintConfig>) {
+  return config
+    .map((configEntry) => configEntry.settings?.tailwindcss)
+    .find((settings) => settings != null) as
+    | { cssFiles?: readonly string[] }
+    | undefined;
+}
 
 describe('eslint domain', () => {
   test('eslint detection derives scope from canonical multi-tsconfig union', async () => {
@@ -102,16 +130,22 @@ describe('eslint domain', () => {
     }
   });
 
-  test('shared eslint config bounds tailwind css discovery', () => {
-    const tailwindSettings = eslintConfig
-      .map((configEntry) => configEntry.settings?.tailwindcss)
-      .find((settings) => settings != null) as
-      | { cssFiles?: readonly string[] }
-      | undefined;
+  test('shared eslint config omits tailwind composition when auto detection is false', () => {
+    expect(hasTailwindRules(eslintConfig)).toBe(false);
+    expect(tailwindSettings(eslintConfig)).toBeUndefined();
+  });
 
-    expect(tailwindSettings?.cssFiles).toStrictEqual([
+  test('shared eslint config conditionally composes bounded tailwind support', () => {
+    const enabledConfig = createEslintConfig(resolvedConfig('enabled'));
+    const disabledConfig = createEslintConfig(resolvedConfig('disabled'));
+    const enabledSettings = tailwindSettings(enabledConfig);
+
+    expect(hasTailwindRules(enabledConfig)).toBe(true);
+    expect(enabledSettings?.cssFiles).toStrictEqual([
       ...DEFAULT_TAILWIND_CSS_FILES,
     ]);
-    expect(tailwindSettings?.cssFiles).not.toContain('**/*.css');
+    expect(enabledSettings?.cssFiles).not.toContain('**/*.css');
+    expect(hasTailwindRules(disabledConfig)).toBe(false);
+    expect(tailwindSettings(disabledConfig)).toBeUndefined();
   });
 });

@@ -2,6 +2,8 @@ import type Logger from '@matrixai/logger';
 
 type MatrixAILintCfgSource = 'default' | 'config';
 
+type TailwindMode = 'auto' | 'enabled' | 'disabled';
+
 type RawMatrixCfg = {
   version: 2;
   root?: unknown;
@@ -10,6 +12,7 @@ type RawMatrixCfg = {
       targets?: unknown;
       tsconfigPaths?: unknown;
       forceInclude?: unknown;
+      tailwind?: unknown;
     };
     shell?: {
       targets?: unknown;
@@ -42,6 +45,8 @@ type MatrixAILintCfg = {
     eslint: MatrixAILintCfgDomainScope & {
       tsconfigPaths: string[];
       forceInclude: string[];
+      tailwind: TailwindMode;
+      tailwindEnabled: boolean;
     };
     shell: MatrixAILintCfgDomainScope;
     markdown: MatrixAILintCfgDomainScope;
@@ -159,4 +164,5 @@ export type {
   MatrixAILintCfgSource,
   MatrixAILintCfgResolved,
   RawMatrixCfg,
+  TailwindMode,
 };
