@@ -17,6 +17,9 @@ for use in Matrix AI JavaScript/TypeScript projects.
 
 ## Installation
 
+Requires Node.js 24 or newer. Tailwind linting supports Tailwind CSS v4 only;
+see the [breaking migration notes](MIGRATION.md).
+
 ```sh
 npm install --save-dev @matrixai/lint
 ```
@@ -148,13 +151,11 @@ which scope was selected at runtime.
 The scripts in this repository's [`package.json`](package.json) are wrappers for
 developing this package itself; they are not the generic package defaults.
 
-- [`npm run lint`](package.json) and [`npm run lintfix`](package.json)
-  explicitly pass `--eslint "{src,scripts,tests}/**/*.{js,mjs,ts,mts,jsx,tsx}"`
-  and `--shell src scripts tests`.
-- That means this repository's npm scripts override the generic default scope
-  for the `eslint` and `shell` domains.
-- In those scripts, `markdown`, `svg`, `nix`, and `sql` still use their built-in
-  default scopes.
+- [`npm run lint`](package.json) and [`npm run lintfix`](package.json) compile
+  the package before invoking its CLI without target flags.
+- These scripts use the generic domain scopes described above, including the
+  TypeScript-derived ESLint scope. Pass explicit domain targets when a narrower
+  run is needed.
 
 #### Targeted workflows
 
@@ -264,6 +265,76 @@ import matrixai from '@matrixai/lint/configs/eslint.js';
 export default matrixai;
 ```
 
+### Tailwind CSS v4 and mixed styling
+
+The shared preset uses `eslint-plugin-tailwindcss` 4.4.0's recommended flat
+configuration. It keeps compiler-based utility ordering and contradictory-class
+diagnostics, then explicitly disables `tailwindcss/no-custom-classname`. Custom
+classes, CSS Modules, forwarded class-name values and other styling systems can
+coexist with Tailwind without allowlists or per-file suppressions. No framework
+packages or stylesheet-scanning rules are required.
+
+Tailwind v4 uses a consumer-owned CSS entrypoint, not a legacy JavaScript
+Tailwind configuration. Set `settings.tailwindcss.cssConfigPath` in your native
+ESLint configuration to the stylesheet your application uses. The stylesheet
+normally imports `tailwindcss` and may define `@theme` or `@utility` directives.
+This package neither discovers nor chooses that stylesheet for you.
+
+Resolve the stylesheet location against the **directory containing your ESLint
+configuration**, not the current working directory or each linted file's nearest
+package. Pass an absolute filesystem path to the adapter:
+
+```js
+// eslint.config.mjs
+import { fileURLToPath } from 'node:url';
+import { createConfig } from '@matrixai/lint';
+
+export default [
+  ...createConfig({ root: fileURLToPath(new URL('.', import.meta.url)) }),
+  {
+    files: ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'],
+    settings: {
+      tailwindcss: {
+        cssConfigPath: fileURLToPath(
+          new URL('./styles/utilities.css', import.meta.url),
+        ),
+      },
+    },
+  },
+];
+```
+
+The stylesheet location above is illustrative: replace it with your site's
+actual entrypoint. This works for repository-root and nested-package ESLint
+configurations even when ESLint runs from another directory. `createConfig`
+anchors MatrixAI orchestration lookup, TypeScript project lookup and Tailwind
+auto-detection to the supplied root. Keep the CLI's targets and orchestration
+selection rooted as documented under
+[lint configuration](#lint-configuration-file). Use `--eslint-config` when
+running the MatrixAI CLI with this native config.
+
+Do not pass an unresolved relative `cssConfigPath`: upstream 4.4.0 resolves it
+against each linted file's nearest package, which is not the policy above. No
+CSS entrypoint is required for ordinary non-Tailwind consumers. Auto mode does
+not activate from the adapter's transitive Tailwind installation. An explicitly
+enabled Tailwind project needs its real entrypoint when linting class-bearing
+code; importing the preset or linting ordinary configuration code does not load
+a theme by itself.
+
+Tailwind-only consumers can opt back into strict class enforcement with a later
+ordinary ESLint override using the same source scope:
+
+```js
+{
+  files: ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'],
+  rules: { 'tailwindcss/no-custom-classname': 'error' },
+}
+```
+
+Keep settings and Tailwind rule overrides within the supported source scope.
+Plugin registration and MatrixAI's default override cover these extensions,
+including module and configuration files. Other MatrixAI rules are unchanged.
+
 ### Lint configuration file
 
 `matrixai-lint-config.json` is an orchestration and scope configuration file. It
@@ -344,10 +415,10 @@ other domains.
 
 Supported imports:
 
-- `@matrixai/lint`: named export `config`; types `MatrixAILintCfg`,
-  `RawMatrixCfg`, `CLIOptions`, and `TailwindMode`.
+- `@matrixai/lint`: named exports `config` and `createConfig({ root })`; types
+  `MatrixAILintCfg`, `RawMatrixCfg`, `CLIOptions`, and `TailwindMode`.
 - `@matrixai/lint/configs/eslint.js`: default export of the ESLint Flat Config
-  array (same shape as `config`).
+  array (same shape as `config`) and named `createConfig` factory.
 - `@matrixai/lint/configs/prettier.config.js`: reusable Prettier options object.
 
 The exported `config` is intended as a composable base preset for downstream
@@ -358,12 +429,38 @@ API.
 
 ## Contributing
 
+The committed [flake](flake.nix) defines the integrated flake-parts/devenv
+shell; [`.envrc`](.envrc) watches the flake and lockfile and activates it
+through direnv. Run `direnv allow` after reviewing the configuration. The shell
+provides Node 24 and domain tools, adds compiled/package executables to PATH,
+and serializes npm installation. It does not load credentials. Run commands
+directly once this environment is active; no additional `direnv exec` wrapper is
+needed.
+
 Golden commands:
 
 - `npm run build`
 - `npm run lint`
 - `npm run lintfix`
+- `npm test` (build, development-config typecheck, then Jest)
 - `npm run docs`
+
+Tests mirror the exported domains in corresponding test directories, use
+compiled package imports and retain the Jest/SWC ESM setup hooks. JUnit and
+coverage artifacts are written under `tmp/junit` and `tmp/coverage`.
+
+Canonical Nix checks are independent of direnv/devenv activation:
+
+```sh
+nix build '.#checks.x86_64-linux.default'
+nix build '.#checks.x86_64-linux.unit-js'
+```
+
+Substitute the supported host system when appropriate. The default gate
+aggregates the unit suite. Each output contains a machine-readable `report.json`
+and an `artifacts` directory; the unit check preserves JUnit and coverage.
+Benchmark checks are not defined because this package has no benchmark command.
+See the [check adapters](nix/checks/default.nix).
 
 Notes:
 

@@ -1,4 +1,5 @@
 import type { EcmaVersion } from '@typescript-eslint/utils/ts-eslint';
+import type { Linter } from 'eslint';
 import type { MatrixAILintCfgResolved } from '../types.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,12 +7,12 @@ import globals from 'globals';
 import _import from 'eslint-plugin-import';
 import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
+import tailwindcss from 'eslint-plugin-tailwindcss';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
 import prettierOptions from './prettier.config.js';
 import noAliasedImportsRule from '../eslint/rules/no-aliased-imports.js';
 import { resolveLintConfig } from '../config.js';
-import { DEFAULT_TAILWIND_CSS_FILES } from '../utils.js';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -22,6 +23,8 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
+const TAILWIND_FILES = ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'];
+
 function createEslintConfig(resolvedLintConfig: MatrixAILintCfgResolved) {
   const sharedExtensions = [
     'eslint:recommended',
@@ -29,14 +32,35 @@ function createEslintConfig(resolvedLintConfig: MatrixAILintCfgResolved) {
     'plugin:prettier/recommended',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    ...(resolvedLintConfig.domains.eslint.tailwindEnabled
-      ? ['plugin:tailwindcss/recommended']
-      : []),
     'plugin:jsx-a11y/recommended',
   ];
+  // The adapter carries its own typescript-eslint types. Normalize the public
+  // ESLint boundary rather than leaking that nested dependency into our types.
+  const recommended = tailwindcss.configs.recommended as
+    | Linter.Config
+    | Linter.Config[];
+  const tailwindConfigs = resolvedLintConfig.domains.eslint.tailwindEnabled
+    ? (Array.isArray(recommended) ? recommended : [recommended]).map(
+        (entry) => ({ ...entry, files: TAILWIND_FILES }),
+      )
+    : [];
 
   return [
     ...compat.extends(...sharedExtensions),
+    ...tailwindConfigs,
+    ...(resolvedLintConfig.domains.eslint.tailwindEnabled
+      ? [
+          {
+            name: 'matrixai/tailwind-mixed-styling',
+            files: TAILWIND_FILES,
+            rules: {
+              // Custom classes are intentional in mixed styling systems.
+              // Consumers can opt back in with a later ESLint override.
+              'tailwindcss/no-custom-classname': 'off' as const,
+            },
+          },
+        ]
+      : []),
     {
       plugins: {
         import: fixupPluginRules(_import),
@@ -51,19 +75,6 @@ function createEslintConfig(resolvedLintConfig: MatrixAILintCfgResolved) {
         react: {
           version: 'detect',
         },
-        ...(resolvedLintConfig.domains.eslint.tailwindEnabled
-          ? {
-              tailwindcss: {
-                // eslint-plugin-tailwindcss defaults cssFiles to **/*.css,
-                // which makes the rule perform its own CWD-wide fast-glob
-                // traversal outside our domain discovery guards. Keep this
-                // bounded to source-style roots so generated scratch trees
-                // like tmp/ and .direnv/ are never scanned by plugin side
-                // effects.
-                cssFiles: [...DEFAULT_TAILWIND_CSS_FILES],
-              },
-            }
-          : {}),
       },
 
       languageOptions: {
@@ -316,6 +327,14 @@ function createEslintConfig(resolvedLintConfig: MatrixAILintCfgResolved) {
 
 const config = createEslintConfig(resolveLintConfig());
 
+/**
+ * Create a preset using an explicit configuration root rather than the CWD.
+ * Pass the directory containing the consumer's ESLint configuration.
+ */
+function createConfig({ root = process.cwd() }: { root?: string } = {}) {
+  return createEslintConfig(resolveLintConfig(root));
+}
+
 export default config;
 
-export { createEslintConfig };
+export { createConfig, createEslintConfig };

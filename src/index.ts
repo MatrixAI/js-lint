@@ -1,4 +1,4 @@
-export { default as config } from './configs/eslint.js';
+export { default as config, createConfig } from './configs/eslint.js';
 export type {
   CLIOptions,
   LintDomain,

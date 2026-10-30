@@ -1,47 +1,95 @@
 {
   inputs = {
-    nixpkgs-matrix = {
+    nixpkgs-matrixai = {
       type = "indirect";
-      id = "nixpkgs-matrix";
+      id = "nixpkgs-matrixai";
     };
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.follows = "nixpkgs-matrixai/nixpkgs";
+    flake-parts.follows = "nixpkgs-matrixai/flake-parts";
+    devenv = {
+      url = "github:cachix/devenv";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { nixpkgs-matrix, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs-matrix.legacyPackages.${system};
-        shell = { ci ? false }:
-          with pkgs;
-          pkgs.mkShell {
-            nativeBuildInputs = [ nodejs_20 shellcheck nixfmt sqlfluff gh ];
-            shellHook = ''
-              echo "Entering $(npm pkg get name)"
-              set -o allexport
-              . <(polykey secrets env js-eslint)
-              set +o allexport
-              set -v
-              ${lib.optionalString ci ''
-                set -o errexit
-                set -o nounset
-                set -o pipefail
-                shopt -s inherit_errexit
-              ''}
-              mkdir --parents "$PWD/tmp"
+  outputs =
+    inputs@{
+      devenv,
+      flake-parts,
+      nixpkgs-matrixai,
+      ...
+    }:
+    let
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        devenv.flakeModule
+      ];
 
-              # Built executables and NPM executables
-              export PATH="$PWD/dist/bin:$PWD/node_modules/.bin:$PATH"
+      # Declared systems are support claims. Keep this set conservative and
+      # expand only when evaluation/build evidence exists.
+      systems = systems;
 
-              flock -x tmp/npm-install.lock \
-                npm install --ignore-scripts --no-audit --fund=false --prefer-offline
-
-              set +v
-            '';
+      perSystem =
+        { config, system, ... }:
+        let
+          pkgs = nixpkgs-matrixai.legacyPackages.${system};
+        in
+        {
+          checks = import ./nix/checks/default.nix {
+            inherit pkgs system;
+            gitignore = nixpkgs-matrixai.lib.gitignore;
           };
-      in {
-        devShells = {
-          default = shell { ci = false; };
-          ci = shell { ci = true; };
+
+          formatter = pkgs.nixfmt;
+
+          # Preserve callers of the previous development-shell name.
+          devShells.ci = config.devShells.default;
+
+          devenv.shells.default =
+            { lib, ... }:
+            {
+              containers = lib.mkForce { };
+              devenv.root = lib.mkForce (
+                let
+                  root = builtins.getEnv "PWD";
+                in
+                if root == "" then toString ./. else root
+              );
+
+              packages = [
+                pkgs.nodejs_24
+                pkgs.shellcheck
+                pkgs.nixfmt
+                pkgs.sqlfluff
+                pkgs.gh
+                pkgs.structured-madr
+              ];
+
+              enterShell = ''
+                echo "Entering $(npm pkg get name) via devenv"
+                mkdir --parents "$PWD/tmp"
+
+                export PATH="$PWD/dist/bin:$PWD/node_modules/.bin:$PATH"
+
+                exec 8>"$PWD/tmp/npm-install.lock"
+                flock -x 8
+                npm install --no-audit --fund=false --prefer-offline
+                flock -u 8
+              '';
+            };
         };
-      });
+
+      # If this repo vendors matrixai-standards at
+      # `./.matrixai/matrixai-standards/`, materialize runtime skills with:
+      # nix run './.matrixai/matrixai-standards#skills-materializer' -- \
+      #   --standards-root ./.matrixai/matrixai-standards \
+      #   --output ./.agents/skills
+    };
 }

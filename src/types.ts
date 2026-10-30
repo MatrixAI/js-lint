@@ -1,5 +1,6 @@
 import type Logger from '@matrixai/logger';
 
+/** @inline */
 type MatrixAILintCfgSource = 'default' | 'config';
 
 type TailwindMode = 'auto' | 'enabled' | 'disabled';
@@ -32,6 +33,7 @@ type RawMatrixCfg = {
   };
 };
 
+/** @inline */
 type MatrixAILintCfgDomainScope = {
   targets: string[];
 };
