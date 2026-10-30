@@ -1,0 +1,59 @@
+{
+  pkgs,
+  system,
+  gitignore,
+}:
+let
+  src = gitignore.gitignoreSource ../..;
+  npmDepsFetcherVersion = 2;
+  npmFlags = [ "--ignore-scripts=false" ];
+  npmScriptShell = pkgs.writeShellScript "npm-script-shell" ''
+    for candidate in "$PWD"/node_modules/.bin/*; do
+      [ -e "$candidate" ] || continue
+      target="$(readlink -f "$candidate")"
+      [ -f "$target" ] || continue
+      [ "$(head -c 2 "$target")" = "#!" ] || continue
+      if [ "$(head -n 1 "$target")" = "#!/usr/bin/env node" ]; then
+        sed -i '1c #!${pkgs.nodejs_24}/bin/node' "$target"
+      fi
+    done
+    exec ${pkgs.bash}/bin/bash "$@"
+  '';
+  npmDeps = pkgs.fetchNpmDeps {
+    name = "matrixai-lint-npm-deps";
+    inherit src;
+    fetcherVersion = npmDepsFetcherVersion;
+    hash = "sha256-pkIpqfgoAWhoFBaZibQYHb8wEIn7bdwPsCMxBDnFJ+g=";
+  };
+  unit-js = import ./unit-js.nix {
+    inherit
+      pkgs
+      system
+      src
+      npmDeps
+      npmDepsFetcherVersion
+      npmFlags
+      npmScriptShell
+      ;
+  };
+  default = pkgs.runCommand "check-default" { } ''
+    mkdir -p "$out/artifacts"
+    cat > "$out/report.json" <<EOF
+    {
+      "schemaVersion": 1,
+      "name": "default",
+      "kind": "aggregate",
+      "status": "passed",
+      "system": "${system}",
+      "summary": "Routine check gate passed",
+      "artifacts": { "members": "artifacts/members.json" }
+    }
+    EOF
+    cat > "$out/artifacts/members.json" <<EOF
+    { "unit-js": "${unit-js}" }
+    EOF
+  '';
+in
+{
+  inherit default unit-js;
+}
