@@ -1,6 +1,6 @@
 {
   "name": "@matrixai/lint",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Roger Qiu",
   "description": "Org wide custom eslint rules",
   "license": "Apache-2.0",
@@ -9,6 +9,10 @@
     "url": "git+https://github.com/MatrixAI/js-eslint.git"
   },
   "type": "module",
+  "files": [
+    "dist",
+    "!dist/tsbuildinfo"
+  ],
   "engines": {
     "node": ">=24.0.0"
   },
@@ -41,7 +45,6 @@
     "tsx": "tsx",
     "lint": "npm run prepare && node ./dist/bin/matrixai-lint.js",
     "lintfix": "npm run prepare && node ./dist/bin/matrixai-lint.js --fix",
-    "docs": "shx rm -rf ./docs && typedoc --disableSources --tsconfig ./tsconfig.build.json --out ./docs ./src/index.ts",
     "test": "node ./scripts/test.mjs"
   },
   "dependencies": {
@@ -75,7 +78,6 @@
     "jest-junit": "^16.0.0",
     "shx": "^0.3.4",
     "tsx": "^4.19.3",
-    "typedoc": "^0.28.14",
     "typescript": "^5.8.3"
   }
 }

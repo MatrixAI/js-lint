@@ -427,6 +427,31 @@ The exported `config` is intended as a composable base preset for downstream
 Any package import path not listed above is internal and not a stable public
 API.
 
+## Prepared npm package from Nix
+
+The flake exposes a prepared npm archive on `x86_64-linux`, the system provided
+by its pinned MatrixAI package set:
+
+```sh
+nix build '.#npm-package'
+nix build '.#npm-package-unpacked'
+```
+
+The default package and `npm-package` outputs are the archive file itself, not a
+directory containing a tarball. `npm-package-unpacked` contains the exact
+package contents directly at its root. The archive includes compiled modules,
+declarations, runtime assets, metadata, README, and license, without bundling
+dependencies or Node.js. Ordinary npm preparation remains supported.
+
+The archive derivation exposes evaluation-visible `npmPackage` and
+`npmDistribution` descriptors, both at schema version 1. `npmPackage` derives
+identity and runtime declarations from the canonical manifest and includes
+clean, dirty, or unknown source provenance. Its source snapshot hash is not an
+archive checksum or complete toolchain attestation. `npmDistribution` selects
+the `npm-package` output and currently advertises no runtime artifact providers;
+this does not mean the package has no runtime dependencies. See the
+[producer recipe](nix/npm-package.nix) for the descriptor fields.
+
 ## Contributing
 
 The committed [flake](flake.nix) defines the integrated flake-parts/devenv
@@ -443,7 +468,6 @@ Golden commands:
 - `npm run lint`
 - `npm run lintfix`
 - `npm test` (build, development-config typecheck, then Jest)
-- `npm run docs`
 
 Tests mirror the exported domains in corresponding test directories, use
 compiled package imports and retain the Jest/SWC ESM setup hooks. JUnit and

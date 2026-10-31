@@ -22,9 +22,6 @@
     let
       systems = [
         "x86_64-linux"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
       ];
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -40,8 +37,33 @@
         { config, system, ... }:
         let
           pkgs = nixpkgs-matrixai.legacyPackages.${system};
+          npmPackage = import ./nix/npm-package.nix {
+            inherit pkgs;
+            nodejs = pkgs.nodejs_24;
+            gitignore = nixpkgs-matrixai.lib.gitignore;
+            sourceProvenance = {
+              rev = inputs.self.rev or null;
+              dirtyRev = inputs.self.dirtyRev or null;
+              narHash = inputs.self.narHash or null;
+              dirty =
+                if inputs.self ? dirtyRev then
+                  true
+                else if inputs.self ? rev then
+                  false
+                else
+                  null;
+            };
+          };
         in
         {
+          # The default is the archive file itself; the unpacked view is separate.
+          # Both outputs share one build, with no bundled dependency tree.
+          packages = {
+            default = npmPackage.out;
+            npm-package = npmPackage.out;
+            npm-package-unpacked = npmPackage.unpacked;
+          };
+
           checks = import ./nix/checks/default.nix {
             inherit pkgs system;
             gitignore = nixpkgs-matrixai.lib.gitignore;

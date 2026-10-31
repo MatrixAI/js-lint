@@ -23,7 +23,7 @@ let
     name = "matrixai-lint-npm-deps";
     inherit src;
     fetcherVersion = npmDepsFetcherVersion;
-    hash = "sha256-pkIpqfgoAWhoFBaZibQYHb8wEIn7bdwPsCMxBDnFJ+g=";
+    hash = import ../npm-deps-hash.nix;
   };
   unit-js = import ./unit-js.nix {
     inherit

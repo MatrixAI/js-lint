@@ -88,7 +88,7 @@
   - Test: `npm test` (build and development-config typecheck before Jest).
   - Active development: `npm run lintfix` first.
   - Non-mutating lint verification: `npm run lint`.
-  - Documentation: `npm run docs`.
+  - Documentation: maintained in Markdown; TypeDoc generation is not used.
   - Benchmarks: not defined in this package.
 - Keep domain tests under matching directories in [`tests`](tests), retain
   Jest/SWC ESM transforms and setup hooks, and emit JUnit/coverage under `tmp`.
