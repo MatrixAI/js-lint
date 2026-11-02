@@ -69,8 +69,6 @@
             gitignore = nixpkgs-matrixai.lib.gitignore;
           };
 
-          formatter = pkgs.nixfmt;
-
           # Preserve callers of the previous development-shell name.
           devShells.ci = config.devShells.default;
 
@@ -87,9 +85,11 @@
 
               packages = [
                 pkgs.nodejs_24
+                # External backends invoked through the npm lint scripts.
                 pkgs.shellcheck
                 pkgs.nixfmt
                 pkgs.sqlfluff
+                pkgs.util-linux
                 pkgs.gh
                 pkgs.structured-madr
               ];
@@ -100,10 +100,10 @@
 
                 export PATH="$PWD/dist/bin:$PWD/node_modules/.bin:$PATH"
 
-                exec 8>"$PWD/tmp/npm-install.lock"
-                flock -x 8
-                npm install --no-audit --fund=false --prefer-offline
-                flock -u 8
+                (
+                  flock -x 8 || exit "$?"
+                  npm install --no-audit --fund=false --prefer-offline
+                ) 8>"$PWD/tmp/npm-install.lock" || return "$?"
               '';
             };
         };

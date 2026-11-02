@@ -102,3 +102,15 @@
 - For completed implementation slices, provide a conventional commit command as
   a suggestion, but do not execute Git commits, tags, pushes, versioning or
   publication without authorization.
+
+## Development environment and lint
+
+- Enter the integrated devenv environment and use npm scripts directly; no
+  devenv tasks or persistent library processes are required.
+- Provision ShellCheck, nixfmt, and SQLFluff as external MatrixAI lint backends
+  in both the development shell and checks that exercise them. ESLint and
+  Prettier come from locked npm dependencies.
+- Use `npm run lintfix` for development and `npm run lint` for verification,
+  including Nix formatting. Do not add a separate flake formatter entrypoint.
+- Relevant domains must not rely on user-profile tools or skip because a backend
+  is absent. Use `npm run lintfix -- --explain` to inspect domain decisions.
