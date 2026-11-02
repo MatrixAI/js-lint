@@ -1,7 +1,39 @@
-# Breaking migration: Tailwind CSS v4 and Node 24
+# Migration to v2.0.0
 
-These changes require a breaking release. The package version has not been
-changed or published as part of this implementation.
+Version 2.0.0 introduces the ecosystem-neutral Nix lint executable, layered
+source scopes, Rust formatting and offline Clippy, and structured lint reports.
+
+## Breaking distribution changes
+
+- The default Nix package is now the executable, not an npm archive. Consumers
+  composing npm dependencies must select `npm-package` or
+  `npm-package-unpacked` explicitly. Existing named archive outputs remain.
+- Typed ESLint uses the consumer project's installed TypeScript. Install a
+  version supported by the bundled parser; missing or unsupported project
+  compilers fail explicitly. The Nix executable does not bundle a fallback
+  compiler. Non-JavaScript repositories do not require TypeScript.
+- The Nix executable fails when a relevant backend is unavailable. Compose the
+  project's native tools through `withTools` instead of relying on ambient
+  user-profile executables.
+- Explicit domain targets no longer silently expand to default roots. Default
+  Markdown discovery still includes root documentation, but explicit Markdown
+  scopes do not add unrelated root documents.
+
+Lint execution does not launch a standalone TypeScript compiler. Building this
+package, its existing producer npm wrappers, and development-shell preparation
+are separate operations that can compile TypeScript.
+
+## Release evidence
+
+Before the version-only release update, 108 tests in 17 suites passed, the Nix
+executable and hermetic lint check built, the prepared archive built with the
+shared dependency cache, and full js-container lint passed using project
+TypeScript. ObjLog executed the Rust adapter without npm or TypeScript and
+propagated existing Clippy diagnostics. These results are not a claim that
+ObjLog's Rust sources are lint-clean.
+
+Tests and builds were not rerun for the release metadata update, as requested.
+Distribution remains Git-only; this release does not publish to npm.
 
 ## Compatibility
 
