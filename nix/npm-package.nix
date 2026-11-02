@@ -1,6 +1,7 @@
 {
   pkgs,
   nodejs,
+  npmDeps,
   gitignore,
   sourceProvenance,
 }:
@@ -12,14 +13,6 @@ let
   npmDepsFetcherVersion = 2;
   npmFlags = [ "--ignore-scripts=false" ];
 
-  # Use the existing check acquisition strategy without changing its wiring.
-  # This hash includes the current lockfile, including the root package version.
-  npmDeps = pkgs.fetchNpmDeps {
-    name = "matrixai-lint-npm-deps";
-    inherit src;
-    fetcherVersion = npmDepsFetcherVersion;
-    hash = import ./npm-deps-hash.nix;
-  };
   npmScriptShell = pkgs.writeShellScript "npm-script-shell" ''
     for candidate in "$PWD"/node_modules/.bin/*; do
       [ -e "$candidate" ] || continue

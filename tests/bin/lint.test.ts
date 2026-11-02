@@ -1,9 +1,12 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
+import { createRequire } from 'node:module';
 import Logger from '@matrixai/logger';
 import { jest } from '@jest/globals';
 import main from '#bin/matrixai-lint.js';
+
+const require = createRequire(import.meta.url);
 
 describe('matrixai-lint CLI domain semantics', () => {
   let capturedExecCalls: Array<{
@@ -18,6 +21,11 @@ describe('matrixai-lint CLI domain semantics', () => {
     previousCwd = process.cwd();
     dataDir = await fs.promises.mkdtemp(
       path.join(globalThis.tmpDir, 'lint-test-'),
+    );
+    await fs.promises.mkdir(path.join(dataDir, 'node_modules'));
+    await fs.promises.symlink(
+      path.dirname(require.resolve('typescript/package.json')),
+      path.join(dataDir, 'node_modules/typescript'),
     );
     process.chdir(dataDir);
 
@@ -136,8 +144,10 @@ describe('matrixai-lint CLI domain semantics', () => {
       .map((arg) => arg.split(path.sep).join(path.posix.sep));
 
     expect(normalizedPrettierArgs).toEqual(
-      expect.arrayContaining(['README.md', 'AGENTS.md', 'standards/guide.md']),
+      expect.arrayContaining(['standards/guide.md']),
     );
+    expect(normalizedPrettierArgs).not.toContain('README.md');
+    expect(normalizedPrettierArgs).not.toContain('AGENTS.md');
   });
 
   test('--svg no longer triggers eslint/shell/markdown domains', async () => {

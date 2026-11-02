@@ -1,13 +1,15 @@
 import type {
+  MatrixAILintCfgDomainScope,
   MatrixAILintCfgSource,
   MatrixAILintCfgResolved,
   RawMatrixCfg,
   TailwindMode,
 } from './types.js';
+import type { ParseError } from 'jsonc-parser';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import ts from 'typescript';
+import { parse } from 'jsonc-parser';
 
 const MATRIXAI_LINT_CONFIG_FILENAME = 'matrixai-lint-config.json';
 const TAILWIND_CONFIG_FILENAMES = [
@@ -134,8 +136,15 @@ function isReadableTsconfigPath(tsconfigPath: string): boolean {
     return false;
   }
 
-  const readResult = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
-  return readResult.error == null;
+  try {
+    const errors: ParseError[] = [];
+    parse(fs.readFileSync(tsconfigPath, 'utf8'), errors, {
+      allowTrailingComma: true,
+    });
+    return errors.length === 0;
+  } catch {
+    return false;
+  }
 }
 
 function sanitizeTsconfigPaths(rawValue: unknown, root: string): string[] {
@@ -183,6 +192,37 @@ function getRawDomain(
   return isRecord(rawDomain) ? rawDomain : {};
 }
 
+function normalizeDomainScope(
+  raw: Record<string, unknown>,
+  root: string,
+  repoRoot: string,
+): MatrixAILintCfgDomainScope {
+  const result: MatrixAILintCfgDomainScope = {
+    targets: sanitizeTargets(raw.targets, root, repoRoot),
+  };
+  if (raw.enabled !== undefined) {
+    if (typeof raw.enabled !== 'boolean') {
+      throw new Error('Domain enabled must be a boolean.');
+    }
+    result.enabled = raw.enabled;
+  }
+  for (const key of [
+    'replaceTargets',
+    'extendTargets',
+    'excludeTargets',
+  ] as const) {
+    if (raw[key] === undefined) continue;
+    if (
+      !Array.isArray(raw[key]) ||
+      raw[key].some((value) => typeof value !== 'string')
+    ) {
+      throw new Error(`${key} must be an array of strings.`);
+    }
+    result[key] = sanitizeTargets(raw[key], root, repoRoot);
+  }
+  return result;
+}
+
 function normalizeLintConfig({
   rawConfig,
   source,
@@ -209,6 +249,20 @@ function normalizeLintConfig({
   const rawSvgDomain = getRawDomain(rawDomains, 'svg');
   const rawNixDomain = getRawDomain(rawDomains, 'nix');
   const rawSqlDomain = getRawDomain(rawDomains, 'sql');
+  const rawRustDomain = getRawDomain(rawDomains, 'rust');
+  if (
+    rawRustDomain.clippy !== undefined &&
+    typeof rawRustDomain.clippy !== 'boolean'
+  ) {
+    throw new Error('Rust clippy must be a boolean.');
+  }
+  if (
+    rawRustDomain.cargoArgs !== undefined &&
+    (!Array.isArray(rawRustDomain.cargoArgs) ||
+      rawRustDomain.cargoArgs.some((arg) => typeof arg !== 'string'))
+  ) {
+    throw new Error('Rust cargoArgs must be an array of strings.');
+  }
 
   let tsconfigPaths = sanitizeTsconfigPaths(
     rawEslintDomain.tsconfigPaths,
@@ -264,6 +318,7 @@ function normalizeLintConfig({
     configFilePath,
     domains: {
       eslint: {
+        ...normalizeDomainScope(rawEslintDomain, resolvedRoot, repoRoot),
         targets: eslintTargets,
         tsconfigPaths,
         forceInclude,
@@ -271,19 +326,29 @@ function normalizeLintConfig({
         tailwindEnabled,
       },
       shell: {
+        ...normalizeDomainScope(rawShellDomain, resolvedRoot, repoRoot),
         targets: shellTargets,
       },
       markdown: {
+        ...normalizeDomainScope(rawMarkdownDomain, resolvedRoot, repoRoot),
         targets: markdownTargets,
       },
       svg: {
+        ...normalizeDomainScope(rawSvgDomain, resolvedRoot, repoRoot),
         targets: svgTargets,
       },
       nix: {
+        ...normalizeDomainScope(rawNixDomain, resolvedRoot, repoRoot),
         targets: nixTargets,
       },
       sql: {
+        ...normalizeDomainScope(rawSqlDomain, resolvedRoot, repoRoot),
         targets: sqlTargets,
+      },
+      rust: {
+        ...normalizeDomainScope(rawRustDomain, resolvedRoot, repoRoot),
+        clippy: rawRustDomain.clippy !== false,
+        cargoArgs: (rawRustDomain.cargoArgs as string[] | undefined) ?? [],
       },
     },
   };

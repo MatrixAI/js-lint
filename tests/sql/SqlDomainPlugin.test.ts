@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import childProcess from 'node:child_process';
 import Logger, { LogLevel } from '@matrixai/logger';
 import { jest } from '@jest/globals';
+import SqlDomainPlugin from '#sql/SqlDomainPlugin.js';
 import {
   createBuiltInDomainRegistry,
   evaluateLintDomains,
@@ -12,6 +13,33 @@ import {
 const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
 
 describe('sql domain', () => {
+  test('fix mode fails when the internal residual lint pass finds an unfixed violation', () => {
+    const exec = jest
+      .spyOn(childProcess, 'execFileSync')
+      .mockReturnValueOnce(Buffer.from(''))
+      .mockImplementationOnce(() => {
+        throw new Error('unfixed SQL violation');
+      });
+    try {
+      const result = new SqlDomainPlugin([]).run(
+        { fix: true, logger: testLogger, isConfigValid: true },
+        {
+          relevant: true,
+          available: true,
+          availabilityKind: 'required',
+          matchedFiles: ['schema.sql'],
+        },
+      );
+      expect(result.hadFailure).toBe(true);
+      expect(exec.mock.calls.map((call) => call[1])).toStrictEqual([
+        ['fix', '--force', 'schema.sql'],
+        ['lint', 'schema.sql'],
+      ]);
+    } finally {
+      exec.mockRestore();
+    }
+  });
+
   test('sql detection defaults include common SQL roots and root SQL files', async () => {
     const tmpRoot = await fs.promises.mkdtemp(
       path.join(tmpDir, 'domain-sql-default-roots-'),

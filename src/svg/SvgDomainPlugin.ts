@@ -22,9 +22,7 @@ function resolveSvgPatterns(
   svgPatterns: readonly string[] | undefined,
   defaultSearchRoots: readonly string[],
 ): string[] {
-  return svgPatterns != null && svgPatterns.length > 0
-    ? [...svgPatterns]
-    : [...defaultSearchRoots];
+  return svgPatterns != null ? [...svgPatterns] : [...defaultSearchRoots];
 }
 
 class SvgDomainPlugin extends LintDomainPluginBase {

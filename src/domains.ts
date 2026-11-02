@@ -25,6 +25,7 @@ import MarkdownDomainPlugin from './markdown/MarkdownDomainPlugin.js';
 import SvgDomainPlugin from './svg/SvgDomainPlugin.js';
 import NixDomainPlugin from './nix/NixDomainPlugin.js';
 import SqlDomainPlugin from './sql/SqlDomainPlugin.js';
+import RustDomainPlugin from './rust/RustDomainPlugin.js';
 
 const LINT_DOMAINS: LintDomain[] = [
   'eslint',
@@ -33,6 +34,7 @@ const LINT_DOMAINS: LintDomain[] = [
   'svg',
   'nix',
   'sql',
+  'rust',
 ];
 
 function resolveDomainSelection(options: CLIOptions): {
@@ -49,6 +51,7 @@ function resolveDomainSelection(options: CLIOptions): {
   const hasExplicitSvgTargets = (options.svg?.length ?? 0) > 0;
   const hasExplicitNixTargets = (options.nix?.length ?? 0) > 0;
   const hasExplicitSqlTargets = (options.sql?.length ?? 0) > 0;
+  const hasExplicitRustTargets = (options.rust?.length ?? 0) > 0;
   const explicitlyRequestedDomains = new Set<LintDomain>(domainFlags);
   const selectionSources = new Map<LintDomain, LintDomainSelectionSource>();
 
@@ -70,6 +73,7 @@ function resolveDomainSelection(options: CLIOptions): {
   if (hasExplicitSqlTargets) {
     explicitlyRequestedDomains.add('sql');
   }
+  if (hasExplicitRustTargets) explicitlyRequestedDomains.add('rust');
 
   let selectedDomains: Set<LintDomain>;
 
@@ -85,7 +89,8 @@ function resolveDomainSelection(options: CLIOptions): {
       hasExplicitMarkdownTargets ||
       hasExplicitSvgTargets ||
       hasExplicitNixTargets ||
-      hasExplicitSqlTargets)
+      hasExplicitSqlTargets ||
+      hasExplicitRustTargets)
   ) {
     selectedDomains = new Set<LintDomain>();
     if (hasExplicitESLintTargets) {
@@ -111,6 +116,10 @@ function resolveDomainSelection(options: CLIOptions): {
     if (hasExplicitSqlTargets) {
       selectedDomains.add('sql');
       selectionSources.set('sql', 'target-flag');
+    }
+    if (hasExplicitRustTargets) {
+      selectedDomains.add('rust');
+      selectionSources.set('rust', 'target-flag');
     }
   } else {
     selectedDomains = new Set<LintDomain>(LINT_DOMAINS);
@@ -149,6 +158,7 @@ function createBuiltInDomainRegistry({
     new SvgDomainPlugin(prettierConfigPath, DEFAULT_SVG_SEARCH_ROOTS),
     new NixDomainPlugin(DEFAULT_NIXFMT_SEARCH_PATTERNS),
     new SqlDomainPlugin(DEFAULT_SQLFLUFF_SEARCH_PATTERNS),
+    new RustDomainPlugin(),
   ]);
 }
 

@@ -15,6 +15,8 @@ const DEFAULT_MARKDOWN_SEARCH_ROOTS = [
   './pages',
   './blog',
   './docs',
+  './plans',
+  './docs-development',
 ] as const;
 
 const DEFAULT_SVG_SEARCH_ROOTS = [
@@ -44,6 +46,14 @@ const DEFAULT_SQLFLUFF_SEARCH_PATTERNS = [
   './*.sql',
 ] as const;
 
+const DEFAULT_RUST_SEARCH_PATTERNS = [
+  './src',
+  './tests',
+  './examples',
+  './benches',
+  './build.rs',
+] as const;
+
 export {
   DEFAULT_ESLINT_SEARCH_ROOTS,
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,
@@ -52,4 +62,5 @@ export {
   DEFAULT_SVG_SEARCH_ROOTS,
   DEFAULT_NIXFMT_SEARCH_PATTERNS,
   DEFAULT_SQLFLUFF_SEARCH_PATTERNS,
+  DEFAULT_RUST_SEARCH_PATTERNS,
 };

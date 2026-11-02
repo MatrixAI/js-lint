@@ -59,7 +59,7 @@ class ESLintDomainPlugin extends LintDomainPluginBase {
   public detect({
     eslintPatterns,
   }: LintDomainEngineContext): LintDomainDetection {
-    if (eslintPatterns != null && eslintPatterns.length > 0) {
+    if (eslintPatterns != null) {
       const searchRoots = resolveSearchRootsFromPatterns(eslintPatterns);
 
       return {

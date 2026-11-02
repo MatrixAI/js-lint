@@ -12,6 +12,7 @@ describe('domain selection', () => {
       'eslint',
       'markdown',
       'nix',
+      'rust',
       'shell',
       'sql',
       'svg',

@@ -31,6 +31,8 @@ describe('constants domain', () => {
       './pages',
       './blog',
       './docs',
+      './plans',
+      './docs-development',
     ]);
     expect(DEFAULT_SVG_SEARCH_ROOTS).toStrictEqual([
       './src',

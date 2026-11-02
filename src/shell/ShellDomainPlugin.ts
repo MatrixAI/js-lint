@@ -17,9 +17,7 @@ function resolveShellPatterns(
   shellPatterns: readonly string[] | undefined,
   defaultSearchRoots: readonly string[],
 ): string[] {
-  return shellPatterns != null && shellPatterns.length > 0
-    ? [...shellPatterns]
-    : [...defaultSearchRoots];
+  return shellPatterns != null ? [...shellPatterns] : [...defaultSearchRoots];
 }
 
 class ShellDomainPlugin extends LintDomainPluginBase {

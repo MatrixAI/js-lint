@@ -40,6 +40,7 @@
           npmPackage = import ./nix/npm-package.nix {
             inherit pkgs;
             nodejs = pkgs.nodejs_24;
+            npmDeps = lint.npmDependencies.npmDeps;
             gitignore = nixpkgs-matrixai.lib.gitignore;
             sourceProvenance = {
               rev = inputs.self.rev or null;
@@ -54,20 +55,55 @@
                   null;
             };
           };
+          lint =
+            (pkgs.callPackage ./nix/cli.nix {
+              src = nixpkgs-matrixai.lib.gitignore.gitignoreSource ./.;
+            }).withTools
+              [
+                pkgs.shellcheck
+                pkgs.nixfmt
+                pkgs.sqlfluff
+              ];
         in
         {
-          # The default is the archive file itself; the unpacked view is separate.
-          # Both outputs share one build, with no bundled dependency tree.
           packages = {
-            default = npmPackage.out;
+            default = lint;
             npm-package = npmPackage.out;
             npm-package-unpacked = npmPackage.unpacked;
+            matrixai-lint = lint;
           };
 
-          checks = import ./nix/checks/default.nix {
-            inherit pkgs system;
-            gitignore = nixpkgs-matrixai.lib.gitignore;
+          apps.default = config.apps.lint;
+          apps.lint = {
+            type = "app";
+            program = "${lint}/bin/matrixai-lint";
           };
+          formatter = lint.formatter;
+
+          checks =
+            let
+              existing = import ./nix/checks/default.nix {
+                inherit pkgs system;
+                gitignore = nixpkgs-matrixai.lib.gitignore;
+              };
+              lintCheck = lint.mkCheck {
+                src = nixpkgs-matrixai.lib.gitignore.gitignoreSource ./.;
+                npmDependencies = lint.npmDependencies;
+                setup = "npm run prepare";
+              };
+            in
+            existing
+            // {
+              lint = lintCheck;
+              default = pkgs.runCommand "check-default-with-lint" { } ''
+                mkdir -p "$out/artifacts"
+                ln -s ${existing.default} "$out/artifacts/routine"
+                ln -s ${lintCheck} "$out/artifacts/lint"
+                cat > "$out/report.json" <<EOF
+                { "schemaVersion": 1, "name": "default", "kind": "aggregate", "status": "passed", "system": "${system}", "summary": "Routine tests and packaged lint passed", "artifacts": { "routine": "artifacts/routine/report.json", "lint": "artifacts/lint/report.json" } }
+                EOF
+              '';
+            };
 
           # Preserve callers of the previous development-shell name.
           devShells.ci = config.devShells.default;

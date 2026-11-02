@@ -34,8 +34,7 @@ function tailwindSettings(config: ReturnType<typeof createEslintConfig>) {
         : undefined,
     )
     .find((settings) => settings != null) as
-    | { cssConfigPath?: string }
-    | undefined;
+    { cssConfigPath?: string } | undefined;
 }
 
 describe('eslint domain', () => {

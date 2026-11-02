@@ -17,9 +17,7 @@ function resolveSqlPatterns(
   sqlPatterns: readonly string[] | undefined,
   defaultSearchPatterns: readonly string[],
 ): string[] {
-  return sqlPatterns != null && sqlPatterns.length > 0
-    ? [...sqlPatterns]
-    : [...defaultSearchPatterns];
+  return sqlPatterns != null ? [...sqlPatterns] : [...defaultSearchPatterns];
 }
 
 class SqlDomainPlugin extends LintDomainPluginBase {
@@ -83,6 +81,15 @@ class SqlDomainPlugin extends LintDomainPluginBase {
         shell: platform === 'win32',
         cwd: process.cwd(),
       });
+      if (fix) {
+        childProcess.execFileSync('sqlfluff', ['lint', ...matchedFiles], {
+          stdio: 'inherit',
+          windowsHide: true,
+          encoding: 'utf-8',
+          shell: platform === 'win32',
+          cwd: process.cwd(),
+        });
+      }
 
       return { hadFailure: false };
     } catch (err) {

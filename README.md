@@ -427,6 +427,84 @@ The exported `config` is intended as a composable base preset for downstream
 Any package import path not listed above is internal and not a stable public
 API.
 
+## Ecosystem-neutral lint infrastructure
+
+The implementation is evolving under the
+[infrastructure plan](plans/ecosystem-neutral-lint-infrastructure.md). The Nix
+executable wraps the Node driver; native backends are composed from the same
+package set as the project's development toolchain, not bundled as a mandatory
+Rust compiler dependency for every consumer.
+
+The [Nix package](nix/cli.nix) exposes a tool-environment constructor, a
+fix-first formatter, and a sandboxed check adapter. The base executable and
+prepared npm archives remain separate distribution surfaces. Nixpkgs-matrixai is
+the intended downstream executable distribution surface.
+
+The default package and default app select the executable:
+
+```sh
+nix build '.'
+nix run '.' -- --help
+nix build '.#matrixai-lint'
+```
+
+Configuration keeps schema version 2. Each domain supports inherited defaults,
+legacy nonempty targets, explicit replacement targets (including an empty
+array), additive targets, exclusions, and enablement. Repository settings are
+applied before CLI replacement, extension, and exclusion operations. An explicit
+CLI domain selection or target replacement can re-enable a disabled domain; the
+skip-domain selector remains authoritative. CLI paths are project-root relative,
+including when invoked from a nested directory.
+
+```json
+{
+  "version": 2,
+  "domains": {
+    "markdown": {
+      "extendTargets": ["handbook"],
+      "excludeTargets": ["handbook/generated/**"]
+    },
+    "rust": {
+      "clippy": true,
+      "cargoArgs": ["--no-default-features", "--features", "portable-core"]
+    }
+  }
+}
+```
+
+```sh
+matrixai-lint --fix
+matrixai-lint --check
+matrixai-lint --fix --markdown docs
+matrixai-lint --extend-target markdown=handbook
+matrixai-lint --replace-target markdown=
+matrixai-lint --plan --fix --domain rust
+matrixai-lint --check --report tmp/lint-report.json
+```
+
+Plan mode inspects policy and backend availability without executing fixes or
+writing reports. The Nix executable requires every relevant selected backend;
+missing tools do not silently reduce its coverage. Check mode does not write an
+ESLint cache into maintained source. Reports record effective scope, policy
+provenance, driver/runtime identity, declared native tool identities, decisions,
+and aggregate status. Scoped Markdown runs no longer inject root documents.
+
+Rust formatting requires an explicit package edition in the Cargo manifest and
+does not recurse into unselected child modules. Clippy checks the owning package
+with locked offline dependencies and reports this scope expansion. It does not
+apply compiler-assisted fixes. Repositories can override Cargo feature arguments
+or disable Clippy while retaining formatting. Workspace-inherited editions and
+multi-package formatting are not yet supported by this adapter.
+
+Keep JS preset and plugin dependencies while local ESLint configurations import
+them. Moving executable invocation into Nix does not remove those imports. A
+later external JS-backend split can reduce core dependencies without changing
+the common domain contract; it is not required for this migration.
+
+During development, batch coherent edits and run the smallest useful fix scope
+at a checkpoint. Success completes that scope's lint gate; immediately running
+the equivalent non-mutating check is redundant outside explicit CI parity.
+
 ## Prepared npm package from Nix
 
 The flake exposes a prepared npm archive on `x86_64-linux`, the system provided
@@ -437,8 +515,9 @@ nix build '.#npm-package'
 nix build '.#npm-package-unpacked'
 ```
 
-The default package and `npm-package` outputs are the archive file itself, not a
-directory containing a tarball. `npm-package-unpacked` contains the exact
+The `npm-package` output is the archive file itself, not a directory containing
+a tarball. Downstream npm composition selects this named output, independently
+of the default executable package. `npm-package-unpacked` contains the exact
 package contents directly at its root. The archive includes compiled modules,
 declarations, runtime assets, metadata, README, and license, without bundling
 dependencies or Node.js. Ordinary npm preparation remains supported.
