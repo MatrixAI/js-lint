@@ -498,31 +498,19 @@ Docs: https://matrixai.github.io/js-lint/
 
 ### Publishing
 
-Publishing is handled automatically by the staging pipeline.
+Releases are prepared on `staging` and distributed through immutable Git version
+tags and Nix-prepared npm archives. GitHub workflows are no longer used and must
+not publish packages indirectly. Npm registry publication is not part of this
+Git-only release process.
 
-Prerelease:
+Release 1.0.2 aligns the development environment and lint backend provisioning
+with the library family. The common lint configuration covers maintained
+Markdown and MDX without selecting hidden vendored trees. Run npm scripts
+directly after environment activation; no devenv project tasks or standalone
+flake formatter are required.
 
-```sh
-# npm login
-npm version prepatch --preid alpha # premajor/preminor/prepatch
-git push --follow-tags
-```
-
-Release:
-
-```sh
-# npm login
-npm version patch # major/minor/patch
-git push --follow-tags
-```
-
-Manually:
-
-```sh
-# npm login
-npm version patch # major/minor/patch
-npm run build
-npm publish --access public
-git push
-git push --tags
-```
+Before tagging a new version, synchronize the manifest and lockfile, regenerate
+the lockfile-dependent [npm acquisition hash](nix/npm-deps-hash.nix), and build
+the prepared archive. Commit the exact release inputs on `staging`, create a new
+annotated version tag, and push the branch and tag. Never move an existing
+release tag.
