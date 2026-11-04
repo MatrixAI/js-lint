@@ -17,9 +17,7 @@ function resolveNixPatterns(
   nixPatterns: readonly string[] | undefined,
   defaultSearchPatterns: readonly string[],
 ): string[] {
-  return nixPatterns != null && nixPatterns.length > 0
-    ? [...nixPatterns]
-    : [...defaultSearchPatterns];
+  return nixPatterns != null ? [...nixPatterns] : [...defaultSearchPatterns];
 }
 
 class NixDomainPlugin extends LintDomainPluginBase {

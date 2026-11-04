@@ -1,8 +1,12 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
+import { createRequire } from 'node:module';
+import Logger from '@matrixai/logger';
 import { jest } from '@jest/globals';
 import main from '#bin/matrixai-lint.js';
+
+const require = createRequire(import.meta.url);
 
 describe('matrixai-lint CLI domain semantics', () => {
   let capturedExecCalls: Array<{
@@ -17,6 +21,11 @@ describe('matrixai-lint CLI domain semantics', () => {
     previousCwd = process.cwd();
     dataDir = await fs.promises.mkdtemp(
       path.join(globalThis.tmpDir, 'lint-test-'),
+    );
+    await fs.promises.mkdir(path.join(dataDir, 'node_modules'));
+    await fs.promises.symlink(
+      path.dirname(require.resolve('typescript/package.json')),
+      path.join(dataDir, 'node_modules/typescript'),
     );
     process.chdir(dataDir);
 
@@ -135,8 +144,10 @@ describe('matrixai-lint CLI domain semantics', () => {
       .map((arg) => arg.split(path.sep).join(path.posix.sep));
 
     expect(normalizedPrettierArgs).toEqual(
-      expect.arrayContaining(['README.md', 'AGENTS.md', 'standards/guide.md']),
+      expect.arrayContaining(['standards/guide.md']),
     );
+    expect(normalizedPrettierArgs).not.toContain('README.md');
+    expect(normalizedPrettierArgs).not.toContain('AGENTS.md');
   });
 
   test('--svg no longer triggers eslint/shell/markdown domains', async () => {
@@ -174,6 +185,136 @@ describe('matrixai-lint CLI domain semantics', () => {
 
     expect(normalizedPrettierArgs).toContain('assets/logo.svg');
     expect(normalizedPrettierArgs).not.toContain('README.md');
+  });
+
+  test('--sql no longer triggers eslint/shell/markdown domains', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'db'), {
+      recursive: true,
+    });
+    await fs.promises.mkdir(path.join(dataDir, 'configured-sql'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'db', 'schema.sql'),
+      'SELECT 1;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'configured-sql', 'ignored.sql'),
+      'SELECT 2;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'matrixai-lint-config.json'),
+      JSON.stringify(
+        {
+          version: 2,
+          domains: { sql: { targets: ['./configured-sql'] } },
+        },
+        null,
+        2,
+      ) + '\n',
+      'utf8',
+    );
+
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'sqlfluff'
+            ? 0
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await expect(
+      main(['node', 'matrixai-lint', '--sql', 'db']),
+    ).resolves.toBeUndefined();
+
+    const shellCalls = capturedExecCalls.filter((c) => c.file === 'shellcheck');
+    expect(shellCalls).toHaveLength(0);
+
+    const prettierCalls = capturedExecCalls.filter(
+      (c) =>
+        c.file === 'prettier' ||
+        c.args.some((arg) => /prettier\.cjs$/.test(arg)),
+    );
+    expect(prettierCalls).toHaveLength(0);
+
+    const sqlfluffCall = capturedExecCalls.find((c) => c.file === 'sqlfluff');
+    expect(sqlfluffCall?.args).toEqual(
+      expect.arrayContaining(['lint', 'db/schema.sql']),
+    );
+    expect(sqlfluffCall?.args).not.toContain('configured-sql/ignored.sql');
+  });
+
+  test('matrix config scopes a domain when no CLI target override is given', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'configured-sql'), {
+      recursive: true,
+    });
+    await fs.promises.mkdir(path.join(dataDir, 'other-sql'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'configured-sql', 'schema.sql'),
+      'SELECT 1;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'other-sql', 'ignored.sql'),
+      'SELECT 2;\n',
+      'utf8',
+    );
+    await fs.promises.writeFile(
+      path.join(dataDir, 'matrixai-lint-config.json'),
+      JSON.stringify(
+        {
+          version: 2,
+          domains: { sql: { targets: ['./configured-sql'] } },
+        },
+        null,
+        2,
+      ) + '\n',
+      'utf8',
+    );
+
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'sqlfluff'
+            ? 0
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await expect(
+      main(['node', 'matrixai-lint', '--domain', 'sql']),
+    ).resolves.toBeUndefined();
+
+    const sqlfluffCall = capturedExecCalls.find((c) => c.file === 'sqlfluff');
+    expect(sqlfluffCall?.args).toEqual(['lint', 'configured-sql/schema.sql']);
+    expect(sqlfluffCall?.args).not.toContain('other-sql/ignored.sql');
   });
 
   test('explicit shell request + missing shellcheck fails', async () => {
@@ -288,6 +429,20 @@ describe('matrixai-lint CLI domain semantics', () => {
     );
   });
 
+  test('--user-config remains compatible and emits an ESLint-only deprecation warning', async () => {
+    const warnMock = jest.spyOn(Logger.prototype, 'warn');
+
+    await expect(
+      main(['node', 'matrixai-lint', '--user-config', '--domain', 'sql']),
+    ).resolves.toBeUndefined();
+
+    expect(warnMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        '--user-config is deprecated and ESLint-only. Use --eslint-config <path>',
+      ),
+    );
+  });
+
   test('--explain prints per-domain decision data', async () => {
     const stderrWriteSpy = jest
       .spyOn(process.stderr, 'write')
@@ -383,6 +538,44 @@ describe('matrixai-lint CLI domain semantics', () => {
 
     const nixfmtCall = capturedExecCalls.find((c) => c.file === 'nixfmt');
     expect(nixfmtCall).toBeUndefined();
+  });
+
+  test('explicit sql request + missing sqlfluff fails', async () => {
+    await fs.promises.mkdir(path.join(dataDir, 'db'), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(dataDir, 'db', 'schema.sql'),
+      'SELECT 1;\n',
+      'utf8',
+    );
+
+    jest
+      .spyOn(childProcess, 'spawnSync')
+      .mockImplementation((file: string, args?: readonly string[]) => {
+        const commandName = args?.[0];
+        const status =
+          (file === 'which' || file === 'where') && commandName === 'sqlfluff'
+            ? 1
+            : 0;
+
+        return {
+          pid: 0,
+          output: [null, null, null],
+          stdout: null,
+          stderr: null,
+          status,
+          signal: null,
+          error: undefined,
+        } as unknown as ReturnType<typeof childProcess.spawnSync>;
+      });
+
+    await expect(
+      main(['node', 'matrixai-lint', '--domain', 'sql', '--sql', 'db']),
+    ).rejects.toBeDefined();
+
+    const sqlfluffCall = capturedExecCalls.find((c) => c.file === 'sqlfluff');
+    expect(sqlfluffCall).toBeUndefined();
   });
 
   test('unknown option handling rejects typoed flags', async () => {

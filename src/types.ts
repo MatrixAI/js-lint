@@ -1,16 +1,23 @@
 import type Logger from '@matrixai/logger';
 
+/** @inline */
 type MatrixAILintCfgSource = 'default' | 'config';
+
+type TailwindMode = 'auto' | 'enabled' | 'disabled';
 
 type RawMatrixCfg = {
   version: 2;
   root?: unknown;
-  domains?: {
-    eslint?: {
-      tsconfigPaths?: unknown;
-      forceInclude?: unknown;
-    };
-  };
+  domains?: Partial<Record<LintDomain, Record<string, unknown>>>;
+};
+
+/** @inline */
+type MatrixAILintCfgDomainScope = {
+  targets: string[];
+  enabled?: boolean;
+  replaceTargets?: string[];
+  extendTargets?: string[];
+  excludeTargets?: string[];
 };
 
 type MatrixAILintCfg = {
@@ -19,16 +26,28 @@ type MatrixAILintCfg = {
   source: MatrixAILintCfgSource;
   configFilePath: string;
   domains: {
-    eslint: {
+    eslint: MatrixAILintCfgDomainScope & {
       tsconfigPaths: string[];
       forceInclude: string[];
+      tailwind: TailwindMode;
+      tailwindEnabled: boolean;
+    };
+    shell: MatrixAILintCfgDomainScope;
+    markdown: MatrixAILintCfgDomainScope;
+    svg: MatrixAILintCfgDomainScope;
+    nix: MatrixAILintCfgDomainScope;
+    sql: MatrixAILintCfgDomainScope;
+    rust: MatrixAILintCfgDomainScope & {
+      clippy?: boolean;
+      cargoArgs?: string[];
     };
   };
 };
 
 type MatrixAILintCfgResolved = MatrixAILintCfg;
 
-type LintDomain = 'eslint' | 'shell' | 'markdown' | 'svg' | 'nix';
+type LintDomain =
+  'eslint' | 'shell' | 'markdown' | 'svg' | 'nix' | 'sql' | 'rust';
 
 type CLIOptions = {
   fix: boolean;
@@ -40,6 +59,16 @@ type CLIOptions = {
   markdown?: string[];
   svg?: string[];
   nix?: string[];
+  sql?: string[];
+  rust?: string[];
+  root?: string;
+  check?: boolean;
+  plan?: boolean;
+  strict?: boolean;
+  extendTarget?: string[];
+  replaceTarget?: string[];
+  excludeTarget?: string[];
+  report?: string;
   domain?: LintDomain[];
   skipDomain?: LintDomain[];
   listDomains?: boolean;
@@ -56,6 +85,11 @@ type LintDomainEngineContext = {
   markdownPatterns?: string[];
   svgPatterns?: string[];
   nixPatterns?: string[];
+  sqlPatterns?: string[];
+  rustPatterns?: string[];
+  rustClippy?: boolean;
+  cargoArgs?: string[];
+  strict?: boolean;
 };
 
 type LintDomainAvailabilityKind = 'required' | 'optional';
@@ -74,10 +108,7 @@ type LintDomainPluginResult = {
 };
 
 type LintDomainSelectionSource =
-  | 'default'
-  | 'domain-flag'
-  | 'target-flag'
-  | 'unselected';
+  'default' | 'domain-flag' | 'target-flag' | 'unselected';
 
 type LintDomainPlannedAction =
   | 'run'
@@ -128,7 +159,9 @@ export type {
   LintDomainRun,
   LintDomainSelectionSource,
   MatrixAILintCfg,
+  MatrixAILintCfgDomainScope,
   MatrixAILintCfgSource,
   MatrixAILintCfgResolved,
   RawMatrixCfg,
+  TailwindMode,
 };

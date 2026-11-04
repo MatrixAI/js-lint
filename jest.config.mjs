@@ -1,7 +1,7 @@
 import path from 'node:path';
 import url from 'node:url';
 import os from 'node:os';
-import tsconfigJSON from './tsconfig.json' assert { type: "json" };
+import tsconfigJSON from './tsconfig.json' with { type: "json" };
 
 const projectPath = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -31,7 +31,6 @@ const config = {
   cacheDirectory: '<rootDir>/tmp/jest',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/?(*.)+(spec|test|unit.test).+(ts|tsx|js|jsx)'],
-  // transformIgnorePatterns: ['<rootDir>/dist/'],
   transform: {
     "^.+\\.(t|j)sx?$": [
       "@swc/jest",
@@ -40,7 +39,6 @@ const config = {
           parser: {
             syntax: "typescript",
             tsx: true,
-            decorators: tsconfigJSON.compilerOptions.experimentalDecorators,
             dynamicImport: true,
           },
           target: tsconfigJSON.compilerOptions.target.toLowerCase(),
@@ -64,7 +62,7 @@ const config = {
   collectCoverage: false,
   coverageProvider: 'v8',
   coverageDirectory: '<rootDir>/tmp/coverage',
-  collectCoverageFrom: ['<rootDir>/dist/**/*.{js,mjs,cjs}'],
+  collectCoverageFrom: ['<rootDir>/dist/**/*.{js,mjs,cjs}', '!<rootDir>/dist/**/*.d.ts'],
   coverageReporters: ['text', 'cobertura'],
   globals,
   // Global setup script executed once before all test files

@@ -16,15 +16,17 @@ const platform = os.platform();
 /* eslint-disable no-console */
 async function main(argv = process.argv) {
   argv = argv.slice(2);
-  const tscArgs = [`-p`, path.join(projectPath, 'tsconfig.build.json')];
-  console.error('Running tsc:');
-  console.error(['tsc', ...tscArgs].join(' '));
-  childProcess.execFileSync('tsc', tscArgs, {
-    stdio: ['inherit', 'inherit', 'inherit'],
-    windowsHide: true,
-    encoding: 'utf-8',
-    shell: platform === 'win32' ? true : false,
-  });
+  for (const config of ['tsconfig.build.json', 'tsconfig.json']) {
+    const tscArgs = [`-p`, path.join(projectPath, config)];
+    console.error('Running tsc:');
+    console.error(['tsc', ...tscArgs].join(' '));
+    childProcess.execFileSync('tsc', tscArgs, {
+      stdio: ['inherit', 'inherit', 'inherit'],
+      windowsHide: true,
+      encoding: 'utf-8',
+      shell: platform === 'win32' ? true : false,
+    });
+  }
   const jestArgs = [...argv];
   console.error('Running jest:');
   console.error(['jest', ...jestArgs].join(' '));

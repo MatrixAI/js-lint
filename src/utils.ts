@@ -14,19 +14,6 @@ const GLOB_META_PATTERN = /[*?[\]{}()!+@]/;
 
 const EXCLUDED_DIR_NAMES = new Set(['.git', 'node_modules', 'dist']);
 
-const DEFAULT_TAILWIND_CSS_FILES = [
-  './src/**/*.css',
-  './pages/**/*.css',
-  './docs/**/*.css',
-  './blog/**/*.css',
-  './styles/**/*.css',
-  '!**/node_modules/**',
-  '!**/.*/**',
-  '!**/dist/**',
-  '!**/build/**',
-  '!**/tmp/**',
-] as const;
-
 /**
  * Convert verbosity count to logger level.
  */
@@ -397,7 +384,6 @@ function relativizeFiles(
 export {
   collectFilesByExtensions,
   commandExists,
-  DEFAULT_TAILWIND_CSS_FILES,
   relativizeFiles,
   resolveFilesFromPatterns,
   resolveSearchRootsFromPatterns,
