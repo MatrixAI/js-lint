@@ -267,18 +267,51 @@ export default matrixai;
 
 ### Tailwind CSS v4 and mixed styling
 
-The shared preset uses `eslint-plugin-tailwindcss` 4.4.0's recommended flat
-configuration. It keeps compiler-based utility ordering and contradictory-class
-diagnostics, then explicitly disables `tailwindcss/no-custom-classname`. Custom
-classes, CSS Modules, forwarded class-name values and other styling systems can
-coexist with Tailwind without allowlists or per-file suppressions. No framework
-packages or stylesheet-scanning rules are required.
+The shared preset pins `eslint-plugin-tailwindcss` 4.4.1-beta.1's recommended
+flat configuration. It keeps compiler-based utility ordering and
+contradictory-class diagnostics, then explicitly disables
+`tailwindcss/no-custom-classname`. Custom classes, CSS Modules, forwarded
+class-name values and other styling systems can coexist with Tailwind without
+allowlists or per-file suppressions. No framework packages or
+stylesheet-scanning rules are required.
+
+The beta is deliberate: it exposes `useLocalPkgWorkaround`. MatrixAI sets this
+to `false` so the plugin does not search for Tailwind relative to its worker's
+module URL in a separate tool installation. Upgrading alone is insufficient
+because upstream still defaults this workaround to `true`. No dependency patch
+or consumer install hook is used.
 
 Tailwind v4 uses a consumer-owned CSS entrypoint, not a legacy JavaScript
 Tailwind configuration. Set `settings.tailwindcss.cssConfigPath` in your native
 ESLint configuration to the stylesheet your application uses. The stylesheet
 normally imports `tailwindcss` and may define `@theme` or `@utility` directives.
 This package neither discovers nor chooses that stylesheet for you.
+
+For the separately installed CLI, put native ESLint shared settings in
+`eslint.settings.json` at the configured consumer root. This overlays the shared
+preset without importing it from the Nix store or duplicating its rules:
+
+```json
+{
+  "tailwindcss": {
+    "cssConfigPath": "src/ui/styles/tailwind.css"
+  }
+}
+```
+
+This is the native `settings` object, not a complete ESLint configuration and
+not MatrixAI orchestration configuration. Paths in this file are resolved
+against its directory, once, before the plugin receives them. The composable
+preset loads the same file from its explicit root; later native ESLint overrides
+retain their normal precedence. The CLI diagnoses a missing consumer dependency,
+unsupported major version, invalid entrypoint, and different Tailwind
+installations at the project and stylesheet boundaries instead of falling back
+to a tool-owned compiler. Run separate lint processes for independently owned
+workspace installations.
+
+Importing only theme and utilities is valid. Keep prefixes and application
+layers as designed; adding Preflight or changing to the umbrella import is not a
+lint-resolution fix.
 
 Resolve the stylesheet location against the **directory containing your ESLint
 configuration**, not the current working directory or each linted file's nearest
@@ -313,13 +346,13 @@ selection rooted as documented under
 [lint configuration](#lint-configuration-file). Use `--eslint-config` when
 running the MatrixAI CLI with this native config.
 
-Do not pass an unresolved relative `cssConfigPath`: upstream 4.4.0 resolves it
-against each linted file's nearest package, which is not the policy above. No
-CSS entrypoint is required for ordinary non-Tailwind consumers. Auto mode does
-not activate from the adapter's transitive Tailwind installation. An explicitly
-enabled Tailwind project needs its real entrypoint when linting class-bearing
-code; importing the preset or linting ordinary configuration code does not load
-a theme by itself.
+Do not pass an unresolved relative `cssConfigPath` in executable ESLint config:
+upstream resolves it against each linted file's nearest package, which is not
+the policy above. No CSS entrypoint is required for ordinary non-Tailwind
+consumers. Auto mode does not activate from the adapter's transitive Tailwind
+installation. An explicitly enabled Tailwind project needs its real entrypoint
+when linting class-bearing code; importing the preset or linting ordinary
+configuration code does not load a theme by itself.
 
 Tailwind-only consumers can opt back into strict class enforcement with a later
 ordinary ESLint override using the same source scope:

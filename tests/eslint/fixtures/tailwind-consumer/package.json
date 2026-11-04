@@ -1,0 +1,10 @@
+{
+  "name": "matrixai-tailwind-consumer-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "tailwindcss": "4.3.4",
+    "typescript": "5.9.3"
+  }
+}

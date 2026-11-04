@@ -3,11 +3,27 @@
 Version 2.0.0 introduces the ecosystem-neutral Nix lint executable, layered
 source scopes, Rust formatting and offline Clippy, and structured lint reports.
 
+## Patch update 2.0.1
+
+Version 2.0.1 supersedes the original adapter pin below with
+`eslint-plugin-tailwindcss` 4.4.1-beta.1 and explicitly disables its
+`useLocalPkgWorkaround` setting. The beta alone still enables the faulty
+worker-relative lookup by default. This combination fixes consumer-owned
+Tailwind resolution for the separately installed CLI without a dependency patch,
+install hook, or rule suppression.
+
+Nix-only consumers can select their existing CSS entrypoint through
+`eslint.settings.json` without importing or copying the shared preset. See the
+[Tailwind settings guide](README.md#tailwind-css-v4-and-mixed-styling).
+Theme-and-utilities-only imports, prefixes, and intentional omission of
+Preflight remain valid. Missing dependencies and invalid entrypoints fail
+explicitly; Tailwind v3 remains outside the v2 adapter's support contract.
+
 ## Breaking distribution changes
 
 - The default Nix package is now the executable, not an npm archive. Consumers
-  composing npm dependencies must select `npm-package` or
-  `npm-package-unpacked` explicitly. Existing named archive outputs remain.
+  composing npm dependencies must select `npm-package` or `npm-package-unpacked`
+  explicitly. Existing named archive outputs remain.
 - Typed ESLint uses the consumer project's installed TypeScript. Install a
   version supported by the bundled parser; missing or unsupported project
   compilers fail explicitly. The Nix executable does not bundle a fallback

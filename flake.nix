@@ -91,16 +91,22 @@
                 npmDependencies = lint.npmDependencies;
                 setup = "npm run prepare";
               };
+              packageTailwind = import ./nix/checks/package-tailwind.nix {
+                inherit pkgs system lint;
+                src = nixpkgs-matrixai.lib.gitignore.gitignoreSource ./.;
+              };
             in
             existing
             // {
               lint = lintCheck;
+              package-tailwind = packageTailwind;
               default = pkgs.runCommand "check-default-with-lint" { } ''
                 mkdir -p "$out/artifacts"
                 ln -s ${existing.default} "$out/artifacts/routine"
                 ln -s ${lintCheck} "$out/artifacts/lint"
+                ln -s ${packageTailwind} "$out/artifacts/package-tailwind"
                 cat > "$out/report.json" <<EOF
-                { "schemaVersion": 1, "name": "default", "kind": "aggregate", "status": "passed", "system": "${system}", "summary": "Routine tests and packaged lint passed", "artifacts": { "routine": "artifacts/routine/report.json", "lint": "artifacts/lint/report.json" } }
+                { "schemaVersion": 1, "name": "default", "kind": "aggregate", "status": "passed", "system": "${system}", "summary": "Routine tests, packaged lint and isolated Tailwind consumer passed", "artifacts": { "routine": "artifacts/routine/report.json", "lint": "artifacts/lint/report.json", "package-tailwind": "artifacts/package-tailwind/report.json" } }
                 EOF
               '';
             };

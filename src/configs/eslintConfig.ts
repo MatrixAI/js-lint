@@ -14,6 +14,7 @@ import prettierOptions from './prettier.config.js';
 import noAliasedImportsRule from '../eslint/rules/no-aliased-imports.js';
 import { resolveLintConfig } from '../config.js';
 import { configureProjectTypeScript } from '../projectTypeScript.js';
+import { loadESLintSettings } from '../eslint/settings.js';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -44,6 +45,7 @@ function createEslintConfig(resolvedLintConfig: MatrixAILintCfgResolved) {
         (entry) => ({ ...entry, files: TAILWIND_FILES }),
       )
     : [];
+  const nativeSettings = loadESLintSettings(resolvedLintConfig.root);
 
   return [
     ...compat.extends(...sharedExtensions),
@@ -53,6 +55,13 @@ function createEslintConfig(resolvedLintConfig: MatrixAILintCfgResolved) {
           {
             name: 'matrixai/tailwind-mixed-styling',
             files: TAILWIND_FILES,
+            settings: {
+              tailwindcss: {
+                // A separately installed tool does not own the consumer's
+                // Tailwind dependency. Do not resolve it from the worker URL.
+                useLocalPkgWorkaround: false,
+              },
+            },
             rules: {
               // Custom classes are intentional in mixed styling systems.
               // Consumers can opt back in with a later ESLint override.
@@ -75,6 +84,7 @@ function createEslintConfig(resolvedLintConfig: MatrixAILintCfgResolved) {
         react: {
           version: 'detect',
         },
+        ...nativeSettings,
       },
 
       languageOptions: {

@@ -1,6 +1,6 @@
 {
   "name": "@matrixai/lint",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "Roger Qiu",
   "description": "Org wide custom eslint rules",
   "license": "Apache-2.0",
@@ -45,7 +45,9 @@
     "tsx": "tsx",
     "lint": "npm run prepare && node ./dist/bin/matrixai-lint.js",
     "lintfix": "npm run prepare && node ./dist/bin/matrixai-lint.js --fix",
-    "test": "node ./scripts/test.mjs"
+    "test": "node ./scripts/test.mjs",
+    "test:package-tailwind": "node ./tests/eslint/packagedTailwind.mjs",
+    "test:prepare-tailwind": "npm ci --prefix ./tests/eslint/fixtures/tailwind-consumer --ignore-scripts --no-audit --fund=false"
   },
   "dependencies": {
     "@eslint/compat": "^1.2.5",
@@ -63,7 +65,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-tailwindcss": "4.4.0",
+    "eslint-plugin-tailwindcss": "4.4.1-beta.1",
     "globals": "^16.2.0",
     "ignore": "^5.3.2",
     "jsonc-parser": "3.3.1",

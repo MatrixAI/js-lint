@@ -149,6 +149,7 @@ describe('Tailwind v4 CSS-first integration', () => {
     expect(config.rules['tailwindcss/classnames-order'][0]).toBe(1);
     expect(config.rules['tailwindcss/no-contradicting-classname'][0]).toBe(2);
     expect(config.rules['no-console'][0]).toBe(2);
+    expect(config.settings.tailwindcss.useLocalPkgWorkaround).toBe(false);
 
     const enforcing = engine({
       overrides: [

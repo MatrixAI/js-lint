@@ -7,6 +7,11 @@ import fs from 'node:fs';
 import url from 'node:url';
 import { ESLint } from 'eslint';
 import { parse } from 'jsonc-parser';
+import { loadESLintSettings } from './settings.js';
+import {
+  resolveProjectTailwind,
+  validateTailwindEntrypoint,
+} from './projectTailwind.js';
 import { resolveLintConfig } from '../config.js';
 import { resolveFilesFromPatterns } from '../utils.js';
 import { configureProjectTypeScript } from '../projectTypeScript.js';
@@ -56,6 +61,22 @@ async function runESLint({
   const lintConfig = resolvedConfig ?? resolveLintConfig();
   const compiler = configureProjectTypeScript(lintConfig.root);
   logger.info(`Using project TypeScript ${compiler.version}: ${compiler.path}`);
+  if (
+    resolvedConfigPath === defaultConfigPath &&
+    lintConfig.domains.eslint.tailwindEnabled
+  ) {
+    const tailwind = resolveProjectTailwind(lintConfig.root);
+    const settings = loadESLintSettings(lintConfig.root);
+    const tailwindSettings = settings?.tailwindcss as
+      Record<string, unknown> | undefined;
+    validateTailwindEntrypoint(
+      lintConfig.root,
+      tailwindSettings?.cssConfigPath,
+    );
+    logger.info(
+      `Using project Tailwind CSS ${tailwind.version}: ${tailwind.path}`,
+    );
+  }
   const parserProjectOverride = {
     languageOptions: {
       parserOptions: {
@@ -149,7 +170,21 @@ async function lintAndReport(
   fix: boolean,
   logger: Logger,
 ): Promise<boolean> {
-  const results = await eslint.lintFiles(patterns);
+  let results;
+  try {
+    results = await eslint.lintFiles(patterns);
+  } catch (cause) {
+    if (
+      cause instanceof Error &&
+      /tailwindcss|tailwind|cssConfigPath/iu.test(cause.message)
+    ) {
+      throw new Error(
+        `Tailwind lint initialization failed. Install the consumer's Tailwind CSS v4 dependency and set settings.tailwindcss.cssConfigPath to its actual stylesheet using eslint.settings.json or native ESLint configuration. ${cause.message}`,
+        { cause },
+      );
+    }
+    throw cause;
+  }
 
   if (fix) {
     await ESLint.outputFixes(results);
