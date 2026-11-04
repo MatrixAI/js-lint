@@ -86,8 +86,8 @@
 - Use these canonical commands:
   - Build: `npm run build`.
   - Test: `npm test` (build and development-config typecheck before Jest).
-  - Active development: `npm run lintfix` first.
-  - Non-mutating lint verification: `npm run lint`.
+  - Active development: `matrixai-lint --fix`; success completes the lint gate.
+  - CI-only lint verification: `matrixai-lint --check`.
   - Documentation: maintained in Markdown; TypeDoc generation is not used.
   - Benchmarks: not defined in this package.
 - Keep domain tests under matching directories in [`tests`](tests), retain
@@ -105,12 +105,21 @@
 
 ## Development environment and lint
 
-- Enter the integrated devenv environment and use npm scripts directly; no
-  devenv tasks or persistent library processes are required.
-- Provision ShellCheck, nixfmt, and SQLFluff as external MatrixAI lint backends
-  in both the development shell and checks that exercise them. ESLint and
-  Prettier come from locked npm dependencies.
-- Use `npm run lintfix` for development and `npm run lint` for verification,
-  including Nix formatting. Do not add a separate flake formatter entrypoint.
+- Enter the integrated devenv environment and invoke project commands directly;
+  no devenv tasks or persistent library processes are required.
+- Use the pinned package-set `matrixai-lint` for ordinary repository linting.
+  Share its ShellCheck, nixfmt, and SQLFluff toolchain across the development
+  shell, flake formatter, and repository lint check. ESLint and Prettier come
+  from that executable's closure.
+- Use `matrixai-lint --fix` for development, including Nix formatting. A
+  successful fix run completes the lint gate; do not follow it with check mode.
+  Reserve `matrixai-lint --check` for CI. `nix fmt` uses the same fix-first
+  formatter.
+- Keep the locally built CLI as the product exposed by packages/apps and tested
+  by producer integration tests. For CLI development, run `npm run build` then
+  invoke `node ./dist/bin/matrixai-lint.js` explicitly, or use tests. Do not
+  prepend the compiled CLI directory to PATH. Optional `npm run lintfix` and
+  `npm run lint` aliases invoke the pinned executable in fix and CI check mode,
+  respectively; they do not build or select the local CLI.
 - Relevant domains must not rely on user-profile tools or skip because a backend
-  is absent. Use `npm run lintfix -- --explain` to inspect domain decisions.
+  is absent. Use `matrixai-lint --fix --explain` to inspect domain decisions.

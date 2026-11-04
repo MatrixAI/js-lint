@@ -27,7 +27,6 @@ pkgs.buildNpmPackage {
   doCheck = true;
   checkPhase = ''
     runHook preCheck
-    npm run lint
     workers="$NIX_BUILD_CORES"
     if [ "$workers" -gt 2 ]; then workers=2; fi
     npm test -- --ci --coverage --maxWorkers="$workers"
@@ -45,7 +44,7 @@ pkgs.buildNpmPackage {
       "kind": "unit-test",
       "status": "passed",
       "system": "${system}",
-      "summary": "Lint, TypeScript build, development typecheck and Jest suite passed",
+      "summary": "TypeScript build, development typecheck and Jest suite passed",
       "artifacts": {
         "junit": "artifacts/junit",
         "coverage": "artifacts/coverage"

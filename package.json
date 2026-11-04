@@ -43,8 +43,8 @@
     "build": "shx rm -rf ./dist && tsc -p ./tsconfig.build.json && shx chmod +x ./dist/bin/matrixai-lint.js",
     "postversion": "npm install --package-lock-only --ignore-scripts --silent",
     "tsx": "tsx",
-    "lint": "npm run prepare && node ./dist/bin/matrixai-lint.js",
-    "lintfix": "npm run prepare && node ./dist/bin/matrixai-lint.js --fix",
+    "lint": "matrixai-lint --check",
+    "lintfix": "matrixai-lint --fix",
     "test": "node ./scripts/test.mjs",
     "test:package-tailwind": "node ./tests/eslint/packagedTailwind.mjs",
     "test:prepare-tailwind": "npm ci --prefix ./tests/eslint/fixtures/tailwind-consumer --ignore-scripts --no-audit --fund=false"

@@ -2,6 +2,8 @@
   pkgs,
   system,
   gitignore,
+  lint,
+  cli,
 }:
 let
   src = gitignore.gitignoreSource ../..;
@@ -36,8 +38,23 @@ let
       npmScriptShell
       ;
   };
+  lintCheck = import ./lint.nix {
+    inherit
+      lint
+      src
+      npmDeps
+      npmDepsFetcherVersion
+      ;
+  };
+  package-tailwind = import ./package-tailwind.nix {
+    inherit pkgs system src;
+    lint = cli;
+  };
   default = pkgs.runCommand "check-default" { } ''
     mkdir -p "$out/artifacts"
+    ln -s ${unit-js} "$out/artifacts/unit-js"
+    ln -s ${lintCheck} "$out/artifacts/lint"
+    ln -s ${package-tailwind} "$out/artifacts/package-tailwind"
     cat > "$out/report.json" <<EOF
     {
       "schemaVersion": 1,
@@ -45,15 +62,17 @@ let
       "kind": "aggregate",
       "status": "passed",
       "system": "${system}",
-      "summary": "Routine check gate passed",
-      "artifacts": { "members": "artifacts/members.json" }
+      "summary": "Unit tests, pinned repository lint and isolated producer Tailwind consumer passed",
+      "artifacts": {
+        "unit-js": "artifacts/unit-js/report.json",
+        "lint": "artifacts/lint/report.json",
+        "package-tailwind": "artifacts/package-tailwind/report.json"
+      }
     }
-    EOF
-    cat > "$out/artifacts/members.json" <<EOF
-    { "unit-js": "${unit-js}" }
     EOF
   '';
 in
 {
-  inherit default unit-js;
+  inherit default unit-js package-tailwind;
+  lint = lintCheck;
 }

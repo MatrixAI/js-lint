@@ -231,17 +231,17 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1781074563,
-        "narHash": "sha256-md8WlXOlfnIeHeOScMTTHFyf2d6iaTwPl2apR5EQ3P4=",
+        "lastModified": 1792773339,
+        "narHash": "sha256-rZLrzrC6i+jnTAlvPZHogKDulY7WWDEv9hJeHieO7Zw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "9ae611a455b90cf061d8f332b977e387bda8e1ca",
+        "rev": "3ec636362e1816bc2f0888fa0fa2c69f1bc9e504",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "9ae611a455b90cf061d8f332b977e387bda8e1ca",
+        "rev": "3ec636362e1816bc2f0888fa0fa2c69f1bc9e504",
         "type": "github"
       }
     },
@@ -267,11 +267,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1790116541,
-        "narHash": "sha256-OsSsT1Kypw7p7QmahcJZ/oT8+PV2izkYiTLluLWmDGE=",
+        "lastModified": 1793815330,
+        "narHash": "sha256-HXKDdZpBeLxxQE8G85r/9Bf5C69zLOe1ezUKjQLOrmA=",
         "owner": "MatrixAI",
         "repo": "nixpkgs-matrixai",
-        "rev": "4bd35ae281236bd43bf355cc93cf94b16d621db6",
+        "rev": "6d0771d41de1385eb1315e65608a077bd0b16e82",
         "type": "github"
       },
       "original": {

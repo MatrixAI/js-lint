@@ -146,16 +146,21 @@ its own effective scope:
 Use `matrixai-lint --explain` to print the per-domain decision details and see
 which scope was selected at runtime.
 
-#### Repo-local npm scripts in this repository
+#### Repository linting and CLI development
 
-The scripts in this repository's [`package.json`](package.json) are wrappers for
-developing this package itself; they are not the generic package defaults.
+This repository consumes the pinned package-set executable for routine linting,
+like a downstream project. Run `matrixai-lint --fix` directly during
+development; it applies fixes and verifies the result, so no check run is needed
+afterward. `nix fmt` uses the same toolchain. Reserve `matrixai-lint --check`
+for CI. Optional npm convenience aliases are available: `npm run lintfix` runs
+`matrixai-lint --fix`, and `npm run lint` runs `matrixai-lint --check` for CI.
+These aliases neither build nor invoke the locally compiled CLI.
 
-- [`npm run lint`](package.json) and [`npm run lintfix`](package.json) compile
-  the package before invoking its CLI without target flags.
-- These scripts use the generic domain scopes described above, including the
-  TypeScript-derived ESLint scope. Pass explicit domain targets when a narrower
-  run is needed.
+The locally built CLI remains the product exposed by this flake's packages and
+apps. To develop that CLI, run `npm run build` and explicitly invoke
+`node ./dist/bin/matrixai-lint.js`, or use the tests. Building the package does
+not replace the routine lint executable on PATH. Both invocations use the domain
+scopes described above unless explicit targets are supplied.
 
 #### Targeted workflows
 
@@ -536,7 +541,7 @@ the common domain contract; it is not required for this migration.
 
 During development, batch coherent edits and run the smallest useful fix scope
 at a checkpoint. Success completes that scope's lint gate; immediately running
-the equivalent non-mutating check is redundant outside explicit CI parity.
+the equivalent non-mutating check is redundant. Reserve check mode for CI.
 
 ## Prepared npm package from Nix
 
@@ -569,16 +574,15 @@ this does not mean the package has no runtime dependencies. See the
 The committed [flake](flake.nix) defines the integrated flake-parts/devenv
 shell; [`.envrc`](.envrc) watches the flake and lockfile and activates it
 through direnv. Run `direnv allow` after reviewing the configuration. The shell
-provides Node 24 and domain tools, adds compiled/package executables to PATH,
-and serializes npm installation. It does not load credentials. Run commands
-directly once this environment is active; no additional `direnv exec` wrapper is
-needed.
+provides Node 24, the pinned lint executable and its domain tools, adds project
+dependency executables to PATH, and serializes npm installation. It does not
+load credentials. Run commands directly once this environment is active; no
+additional `direnv exec` wrapper is needed.
 
 Golden commands:
 
 - `npm run build`
-- `npm run lint`
-- `npm run lintfix`
+- `matrixai-lint --fix` (fixes and verifies; no subsequent check)
 - `npm test` (build, development-config typecheck, then Jest)
 
 Tests mirror the exported domains in corresponding test directories, use
@@ -593,16 +597,17 @@ nix build '.#checks.x86_64-linux.unit-js'
 ```
 
 Substitute the supported host system when appropriate. The default gate
-aggregates the unit suite. Each output contains a machine-readable `report.json`
-and an `artifacts` directory; the unit check preserves JUnit and coverage.
-Benchmark checks are not defined because this package has no benchmark command.
-See the [check adapters](nix/checks/default.nix).
+aggregates the unit suite, pinned repository lint, and isolated packaged-CLI
+Tailwind regression. Each output contains a machine-readable `report.json` and
+an `artifacts` directory; the unit check preserves JUnit and coverage. Benchmark
+checks are not defined because this package has no benchmark command. See the
+[check adapters](nix/checks/default.nix).
 
-Notes:
-
-- `npm run lint` and `npm run lintfix` invoke `npm run prepare` first so the
-  compiled CLI in `dist/bin/matrixai-lint.js` stays up to date while keeping
-  TypeScript incremental rebuilds fast.
+The development shell, formatter, and repository lint check consume the same
+pinned package-set executable. Package outputs, apps, npm archives, and the
+packaged Tailwind regression instead use the CLI built from this checkout. The
+unit suite invokes compiled library code and does not duplicate the repository
+lint gate.
 
 For the authoritative contributor guidance see [AGENTS.md](AGENTS.md).
 
@@ -617,9 +622,9 @@ Git-only release process.
 
 Release 1.0.2 aligns the development environment and lint backend provisioning
 with the library family. The common lint configuration covers maintained
-Markdown and MDX without selecting hidden vendored trees. Run npm scripts
-directly after environment activation; no devenv project tasks or standalone
-flake formatter are required.
+Markdown and MDX without selecting hidden vendored trees. Run npm scripts for
+build and test directly after environment activation; linting now uses
+`matrixai-lint --fix` directly or the shared `nix fmt` entrypoint.
 
 Before tagging a new version, synchronize the manifest and lockfile, regenerate
 the lockfile-dependent [npm acquisition hash](nix/npm-deps-hash.nix), and build
