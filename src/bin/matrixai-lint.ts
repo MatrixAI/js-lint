@@ -17,8 +17,8 @@ import {
 } from '../domains.js';
 import { resolveLintConfig } from '../config.js';
 import { resolveExecutionPolicy } from '../policy.js';
-import { projectTypeScriptProvenance } from '../projectTypeScript.js';
-import * as eslintUtils from '../eslint/utils.js';
+import { nativeTypeScriptBackend } from '../eslint/NativeTypeScriptBackend.js';
+import ESLintScope from '../eslint/ESLintScope.js';
 import * as utils from '../utils.js';
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -268,14 +268,14 @@ async function main(argv = process.argv) {
         chosenConfig = absolutePath;
       }
     } else if (useUserConfig) {
-      chosenConfig = eslintUtils.findUserESLintConfig();
+      chosenConfig = new ESLintScope().findUserESLintConfig();
       if (chosenConfig === undefined) {
         logger.warn(
           '--user-config given but no local ESLint config was found. Falling back to built-in config.',
         );
       }
     } else {
-      chosenConfig = eslintUtils.findUserESLintConfig();
+      chosenConfig = new ESLintScope().findUserESLintConfig();
     }
 
     const context = {
@@ -335,7 +335,7 @@ async function main(argv = process.argv) {
               ) as { version: string }
             ).version,
             nodeVersion: process.version,
-            projectTypeScript: projectTypeScriptProvenance(),
+            projectTypeScript: nativeTypeScriptBackend.getProvenance(),
             toolchain: process.env.MATRIXAI_LINT_TOOLCHAIN ?? null,
             name: 'lint',
             kind: 'static',

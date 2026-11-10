@@ -6,7 +6,8 @@ import type {
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
-import { commandExists, resolveFilesFromPatterns } from '../utils.js';
+import { commandExists } from '../commands.js';
+import FileDiscovery from '../FileDiscovery.js';
 import { DEFAULT_RUST_SEARCH_PATTERNS } from '../constants.js';
 
 class RustDomainPlugin extends LintDomainPluginBase {
@@ -18,7 +19,7 @@ class RustDomainPlugin extends LintDomainPluginBase {
     rustPatterns,
     rustClippy,
   }: LintDomainEngineContext): LintDomainDetection {
-    const files = resolveFilesFromPatterns(
+    const files = new FileDiscovery().resolveFilesFromPatterns(
       rustPatterns ?? DEFAULT_RUST_SEARCH_PATTERNS,
       ['.rs'],
     );

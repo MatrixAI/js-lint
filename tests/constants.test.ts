@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import {
   DEFAULT_ESLINT_SEARCH_ROOTS,
   DEFAULT_SHELLCHECK_SEARCH_ROOTS,

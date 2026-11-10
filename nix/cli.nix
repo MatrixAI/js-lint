@@ -20,15 +20,16 @@ let
     npmDepsFetcherVersion = 2;
     nativeBuildInputs = [ makeWrapper ];
     npmBuildScript = "build";
-    # Required peer compilers must come from the consumer, not this closure.
+    # The native backend uses its pinned classic API compatibility dependency,
+    # never the consumer's TypeScript installation.
     npmPruneFlags = [ "--omit=peer" ];
     postInstall = ''
-      # npm retains our development compiler because it also satisfies runtime
-      # parser peers. The CLI resolves those peers from the consumer instead.
+      # Keep both the native compiler and the adapter's classic API dependency.
       lintPackageOut="$out/lib/node_modules/${package.name}"
-      rm -rf "$lintPackageOut/node_modules/typescript"
       rm -f "$lintPackageOut/node_modules/.bin/tsc" "$lintPackageOut/node_modules/.bin/tsserver"
-      test -z "$(find "$lintPackageOut/node_modules" -path '*/node_modules/typescript' -print -quit)"
+      test -f "$lintPackageOut/node_modules/typescript/lib/typescript.js"
+      test -f "$lintPackageOut/node_modules/@typescript/native/dist/api/sync/api.js"
+      ${nodejs_24}/bin/node "$lintPackageOut/node_modules/@typescript/native/bin/tsc" --version
       wrapProgram "$out/bin/matrixai-lint" \
         --add-flags --strict \
         --prefix PATH : ${lib.makeBinPath [ which ]}

@@ -9,13 +9,16 @@ import childProcess from 'node:child_process';
 import { createRequire } from 'node:module';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
 import { resolvePrettierConfigArgs } from '../prettier.js';
-import { resolveFilesFromPatterns } from '../utils.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const platform = os.platform();
 const SVG_FILE_EXTENSIONS = ['.svg'] as const;
 
 function collectSvgFilesFromScope(patterns: readonly string[]): string[] {
-  return resolveFilesFromPatterns(patterns, SVG_FILE_EXTENSIONS);
+  return new FileDiscovery().resolveFilesFromPatterns(
+    patterns,
+    SVG_FILE_EXTENSIONS,
+  );
 }
 
 function resolveSvgPatterns(

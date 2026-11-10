@@ -1,7 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import { buildPatterns } from '#eslint/utils.js';
-import { resolveFilesFromPatterns } from '#utils.js';
+import { describe, expect, test } from 'vitest';
+import ESLintScope from '#eslint/ESLintScope.js';
+import FileDiscovery from '#FileDiscovery.js';
 
 describe('eslint target derivation', () => {
   test('guarded file discovery follows directory symlinks without cycling', async () => {
@@ -26,11 +27,9 @@ describe('eslint target derivation', () => {
       );
       await fs.promises.symlink(sourceDir, path.join(nestedDir, 'loop'), 'dir');
 
-      const matchedFiles = resolveFilesFromPatterns(
-        ['./src/**/*.ts'],
-        ['.ts'],
-        tmpRoot,
-      ).map((p) => p.split(path.sep).join(path.posix.sep));
+      const matchedFiles = new FileDiscovery()
+        .resolveFilesFromPatterns(['./src/**/*.ts'], ['.ts'], tmpRoot)
+        .map((p) => p.split(path.sep).join(path.posix.sep));
 
       expect(matchedFiles).toEqual(['src/index.ts', 'src/nested/nested.ts']);
     } finally {
@@ -65,11 +64,9 @@ describe('eslint target derivation', () => {
         'dir',
       );
 
-      const matchedFiles = resolveFilesFromPatterns(
-        ['./src/**/*.ts'],
-        ['.ts'],
-        tmpRoot,
-      ).map((p) => p.split(path.sep).join(path.posix.sep));
+      const matchedFiles = new FileDiscovery()
+        .resolveFilesFromPatterns(['./src/**/*.ts'], ['.ts'], tmpRoot)
+        .map((p) => p.split(path.sep).join(path.posix.sep));
 
       expect(matchedFiles).toEqual([]);
     } finally {
@@ -100,11 +97,13 @@ describe('eslint target derivation', () => {
         'dir',
       );
 
-      const matchedFiles = resolveFilesFromPatterns(
-        ['./src/external-src/**/*.ts'],
-        ['.ts'],
-        tmpRoot,
-      ).map((p) => p.split(path.sep).join(path.posix.sep));
+      const matchedFiles = new FileDiscovery()
+        .resolveFilesFromPatterns(
+          ['./src/external-src/**/*.ts'],
+          ['.ts'],
+          tmpRoot,
+        )
+        .map((p) => p.split(path.sep).join(path.posix.sep));
 
       expect(matchedFiles).toEqual(['src/external-src/external.ts']);
     } finally {
@@ -134,11 +133,9 @@ describe('eslint target derivation', () => {
         'utf8',
       );
 
-      const matchedFiles = resolveFilesFromPatterns(
-        ['./**/*.ts'],
-        ['.ts'],
-        tmpRoot,
-      ).map((p) => p.split(path.sep).join(path.posix.sep));
+      const matchedFiles = new FileDiscovery()
+        .resolveFilesFromPatterns(['./**/*.ts'], ['.ts'], tmpRoot)
+        .map((p) => p.split(path.sep).join(path.posix.sep));
 
       expect(matchedFiles).toEqual(['src/index.ts']);
     } finally {
@@ -189,11 +186,9 @@ describe('eslint target derivation', () => {
         'dir',
       );
 
-      const matchedFiles = resolveFilesFromPatterns(
-        ['./**/*.ts'],
-        ['.ts'],
-        matrixRoot,
-      ).map((p) => p.split(path.sep).join(path.posix.sep));
+      const matchedFiles = new FileDiscovery()
+        .resolveFilesFromPatterns(['./**/*.ts'], ['.ts'], matrixRoot)
+        .map((p) => p.split(path.sep).join(path.posix.sep));
 
       expect(matchedFiles).toEqual(['src/matrix.ts']);
       expect(matchedFiles.some((file) => file.includes('tmp/zeta.house'))).toBe(
@@ -230,7 +225,7 @@ describe('eslint target derivation', () => {
         'utf8',
       );
 
-      const patterns = buildPatterns(
+      const patterns = new ESLintScope().buildPatterns(
         [pkgOneTsconfig, pkgTwoTsconfig],
         [],
         tmpRoot,
@@ -289,7 +284,7 @@ describe('eslint target derivation', () => {
         'utf8',
       );
 
-      const patterns = buildPatterns(
+      const patterns = new ESLintScope().buildPatterns(
         [pkgOneTsconfig, pkgTwoTsconfig],
         ['pkg-one/scripts'],
         tmpRoot,

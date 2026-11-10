@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { describe, expect, test } from 'vitest';
 import Logger, { LogLevel } from '@matrixai/logger';
 import { parseLintConfig } from '#config.js';
 import { createBuiltInDomainRegistry, evaluateLintDomains } from '#domains.js';

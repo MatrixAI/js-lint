@@ -2,6 +2,7 @@ import type { CLIOptions } from '#types.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import childProcess from 'node:child_process';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { resolveLintConfig } from '#config.js';
 import { resolveExecutionPolicy } from '#policy.js';
 import { resolveDomainSelection } from '#domains.js';

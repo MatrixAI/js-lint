@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { describe, expect, test } from 'vitest';
 import { parseLintConfig, resolveLintConfig } from '#config.js';
 
 describe('lint config schema', () => {

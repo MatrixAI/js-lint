@@ -29,7 +29,7 @@ pkgs.buildNpmPackage {
     runHook preCheck
     workers="$NIX_BUILD_CORES"
     if [ "$workers" -gt 2 ]; then workers=2; fi
-    npm test -- --ci --coverage --maxWorkers="$workers"
+    npm test -- --coverage --maxWorkers="$workers" --no-file-parallelism
     runHook postCheck
   '';
   installPhase = ''
@@ -44,7 +44,7 @@ pkgs.buildNpmPackage {
       "kind": "unit-test",
       "status": "passed",
       "system": "${system}",
-      "summary": "TypeScript build, development typecheck and Jest suite passed",
+      "summary": "TypeScript build, development typecheck and Vitest suite passed",
       "artifacts": {
         "junit": "artifacts/junit",
         "coverage": "artifacts/coverage"

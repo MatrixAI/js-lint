@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import childProcess from 'node:child_process';
-import { jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import Logger from '@matrixai/logger';
 import RustDomainPlugin from '#rust/RustDomainPlugin.js';
 
@@ -33,13 +33,13 @@ describe('Rust backend', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     process.chdir(previous);
     fs.rmSync(root, { recursive: true, force: true });
   });
 
   test('fixes selected files without traversing child modules and checks Cargo offline without compiler autofixes', () => {
-    const exec = jest
+    const exec = vi
       .spyOn(childProcess, 'execFileSync')
       .mockReturnValue(Buffer.from(''));
     expect(
@@ -69,7 +69,7 @@ describe('Rust backend', () => {
   });
 
   test('check mode is non-mutating and explicit policy can disable compiler-backed analysis', () => {
-    const exec = jest
+    const exec = vi
       .spyOn(childProcess, 'execFileSync')
       .mockReturnValue(Buffer.from(''));
     expect(
@@ -83,8 +83,7 @@ describe('Rust backend', () => {
   });
 
   test('residual compiler diagnostics fail the fix workflow', () => {
-    jest
-      .spyOn(childProcess, 'execFileSync')
+    vi.spyOn(childProcess, 'execFileSync')
       .mockReturnValueOnce(Buffer.from(''))
       .mockImplementationOnce(() => {
         throw new Error('unfixed diagnostic');

@@ -10,13 +10,13 @@ import { createRequire } from 'node:module';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
 import { DEFAULT_MARKDOWN_SEARCH_ROOTS } from '../constants.js';
 import { resolvePrettierConfigArgs } from '../prettier.js';
-import { resolveFilesFromPatterns } from '../utils.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const platform = os.platform();
 const MARKDOWN_FILE_EXTENSIONS = ['.md', '.mdx'] as const;
 
 function collectMarkdownFilesFromScope(patterns: readonly string[]): string[] {
-  const matchedRelativeFiles = resolveFilesFromPatterns(
+  const matchedRelativeFiles = new FileDiscovery().resolveFilesFromPatterns(
     patterns,
     MARKDOWN_FILE_EXTENSIONS,
   );

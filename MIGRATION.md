@@ -3,6 +3,20 @@
 Version 2.0.0 introduces the ecosystem-neutral Nix lint executable, layered
 source scopes, Rust formatting and offline Clippy, and structured lint reports.
 
+## Unreleased native TypeScript update
+
+Typed linting now uses the bundled TypeScript 7.1 native backend for all
+projects instead of selecting a consumer compiler. The upstream experimental
+adapter still needs TypeScript 6 as an internal API compatibility library.
+TypeScript 7 removes some older compiler options, and external content mappers
+require an explicit trust opt-in. See the
+[TypeScript compiler guide](README.md#typescript-compiler-selection) and
+[content mapper guide](README.md#content-mappers-and-generated-types).
+
+The repository build and typecheck use the same native compiler, and its test
+suite uses Vitest instead of Jest and SWC. The historical v2.0.0 notes below
+describe that release rather than the unreleased behavior.
+
 ## Patch update 2.0.1
 
 Version 2.0.1 supersedes the original adapter pin below with
@@ -128,7 +142,7 @@ limitation.
 
 The repository now follows the reference library's flake-parts/devenv/direnv
 structure, TypeScript toolchain and build-before-test workflow. The test command
-typechecks both build and development configurations before Jest. Domain tests
+typechecks both build and development configurations before Vitest. Domain tests
 live under corresponding directories, and standalone Nix checks invoke the same
 canonical npm command and preserve JUnit/coverage evidence. No lifecycle or
 benchmark implementation from another package is imported.

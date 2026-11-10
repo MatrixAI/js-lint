@@ -1,8 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
+import { describe, expect, test, vi } from 'vitest';
 import Logger, { LogLevel } from '@matrixai/logger';
-import { jest } from '@jest/globals';
 import {
   createBuiltInDomainRegistry,
   evaluateLintDomains,
@@ -88,7 +88,7 @@ describe('svg domain', () => {
     );
 
     const previousCwd = process.cwd();
-    const execFileSyncMock = jest
+    const execFileSyncMock = vi
       .spyOn(childProcess, 'execFileSync')
       .mockImplementation(
         (_file: string, _args?: readonly string[] | undefined) =>

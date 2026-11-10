@@ -14,8 +14,8 @@ import {
   DEFAULT_SQLFLUFF_SEARCH_PATTERNS,
   DEFAULT_RUST_SEARCH_PATTERNS,
 } from './constants.js';
-import { buildPatterns } from './eslint/utils.js';
-import { resolveFilesFromPatterns } from './utils.js';
+import ESLintScope from './eslint/ESLintScope.js';
+import FileDiscovery from './FileDiscovery.js';
 
 const DEFAULT_TARGETS: Record<LintDomain, readonly string[]> = {
   eslint: DEFAULT_ESLINT_SEARCH_ROOTS,
@@ -104,7 +104,7 @@ function resolveExecutionPolicy(
       domain === 'eslint' &&
       config.domains.eslint.tsconfigPaths.length > 0
     ) {
-      patterns = buildPatterns(
+      patterns = new ESLintScope().buildPatterns(
         config.domains.eslint.tsconfigPaths,
         config.domains.eslint.forceInclude,
         process.cwd(),
@@ -148,14 +148,16 @@ function resolveExecutionPolicy(
         ? EXTENSIONS.eslint.filter((extension) => extension !== '.json')
         : EXTENSIONS[domain];
     const files = enabled
-      ? resolveFilesFromPatterns(patterns, extensions).filter(
-          (file) =>
-            !excluded.some(
-              (pattern) =>
-                minimatch(file, pattern, { dot: true }) ||
-                minimatch(file, `${pattern}/**`, { dot: true }),
-            ),
-        )
+      ? new FileDiscovery()
+          .resolveFilesFromPatterns(patterns, extensions)
+          .filter(
+            (file) =>
+              !excluded.some(
+                (pattern) =>
+                  minimatch(file, pattern, { dot: true }) ||
+                  minimatch(file, `${pattern}/**`, { dot: true }),
+              ),
+          )
       : [];
     result[domain] = {
       enabled,

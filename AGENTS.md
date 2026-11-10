@@ -85,13 +85,13 @@
   package's `#*` alias.
 - Use these canonical commands:
   - Build: `npm run build`.
-  - Test: `npm test` (build and development-config typecheck before Jest).
+  - Test: `npm test` (build and development-config typecheck before Vitest).
   - Active development: `matrixai-lint --fix`; success completes the lint gate.
   - CI-only lint verification: `matrixai-lint --check`.
   - Documentation: maintained in Markdown; TypeDoc generation is not used.
   - Benchmarks: not defined in this package.
-- Keep domain tests under matching directories in [`tests`](tests), retain
-  Jest/SWC ESM transforms and setup hooks, and emit JUnit/coverage under `tmp`.
+- Keep domain tests under matching directories in [`tests`](tests), use Vitest
+  with setup hooks, and emit JUnit/coverage under `tmp`.
 - Keep each tool's native consumer rule configuration separate from the
   orchestration/scope configuration.
 - Tailwind integration targets v4 CSS-first configuration. Mixed styling systems

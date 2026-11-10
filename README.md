@@ -252,6 +252,50 @@ while a non-fix run uses `sqlfluff lint`.
 `matrixai-lint` ships an ESLint Flat Config array and types for TypeScript
 projects configured as NodeNext.
 
+#### TypeScript compiler selection
+
+Typed ESLint uses the bundled TypeScript 7.1 native compiler for every project;
+it does not select or execute the project's installed compiler. The pinned
+experimental typescript-eslint adapter also requires TypeScript 6.0 as an
+internal JavaScript API compatibility library. It is not a second lint backend.
+The CLI logs the native compiler and reports both dependencies under
+`projectTypeScript` in the JSON report.
+
+The experimental adapter currently requires a version-specific integration with
+an upstream private module to select configured projects and enable trusted
+content mappers. The adapter is pinned; changing its version requires validating
+that integration again.
+
+Older TypeScript source can be linted with the native compiler, but its type
+semantics and defaults are not necessarily identical to an older project
+compiler. TypeScript 7 removed options including `target: "ES5"`,
+`moduleResolution: "node"`, and `baseUrl`; lint reports these rather than
+silently using different configuration. Update the project configuration or
+select a compatible lint-specific configuration with
+`domains.eslint.tsconfigPaths`. Lint does not replace the project's typecheck.
+
+#### Content mappers and generated types
+
+TypeScript 7.1 content mappers execute external programs and are disabled by
+default. To allow trusted project mappers to supply types during linting, run:
+
+```sh
+MATRIXAI_LINT_TRUST_CONTENT_MAPPERS=1 matrixai-lint --fix
+```
+
+This allows mapper packages to execute arbitrary code with the invoking user's
+permissions. Enable it only for trusted projects and dependencies; lint is not a
+sandbox. Installing packages and loading custom ESLint configurations can also
+execute code.
+
+Without trust, a mapper declaration alone does not block linting. If a mapped
+import cannot be resolved, lint reports the missing type instead of silently
+treating that import as `any`. Mapper configuration errors are also reported.
+This guard does not prove that all mapper failures or generated types have been
+detected. Source files transformed by a mapper are rejected when their contents
+do not match the original file, because fix ranges may otherwise be unsafe. This
+check does not establish fix-range safety for every possible transformation.
+
 #### Default import
 
 ```js
@@ -583,11 +627,11 @@ Golden commands:
 
 - `npm run build`
 - `matrixai-lint --fix` (fixes and verifies; no subsequent check)
-- `npm test` (build, development-config typecheck, then Jest)
+- `npm test` (build, development-config typecheck, then Vitest)
 
 Tests mirror the exported domains in corresponding test directories, use
-compiled package imports and retain the Jest/SWC ESM setup hooks. JUnit and
-coverage artifacts are written under `tmp/junit` and `tmp/coverage`.
+compiled package imports and Vitest setup hooks. JUnit and coverage artifacts
+are written under `tmp/junit` and `tmp/coverage`.
 
 Canonical Nix checks are independent of direnv/devenv activation:
 

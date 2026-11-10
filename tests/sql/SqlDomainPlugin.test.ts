@@ -1,8 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
+import { describe, expect, test, vi } from 'vitest';
 import Logger, { LogLevel } from '@matrixai/logger';
-import { jest } from '@jest/globals';
 import SqlDomainPlugin from '#sql/SqlDomainPlugin.js';
 import {
   createBuiltInDomainRegistry,
@@ -14,7 +14,7 @@ const testLogger = new Logger('matrixai-lint-test', LogLevel.INFO, []);
 
 describe('sql domain', () => {
   test('fix mode fails when the internal residual lint pass finds an unfixed violation', () => {
-    const exec = jest
+    const exec = vi
       .spyOn(childProcess, 'execFileSync')
       .mockReturnValueOnce(Buffer.from(''))
       .mockImplementationOnce(() => {
@@ -46,7 +46,7 @@ describe('sql domain', () => {
     );
 
     const previousCwd = process.cwd();
-    const spawnSyncMock = jest
+    const spawnSyncMock = vi
       .spyOn(childProcess, 'spawnSync')
       .mockImplementation((file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
@@ -133,13 +133,13 @@ describe('sql domain', () => {
     );
 
     const previousCwd = process.cwd();
-    const execFileSyncMock = jest
+    const execFileSyncMock = vi
       .spyOn(childProcess, 'execFileSync')
       .mockImplementation(
         (_file: string, _args?: readonly string[] | undefined) =>
           Buffer.from(''),
       );
-    const spawnSyncMock = jest
+    const spawnSyncMock = vi
       .spyOn(childProcess, 'spawnSync')
       .mockImplementation((file: string, args?: readonly string[]) => {
         const commandName = args?.[0];

@@ -2,10 +2,12 @@ import type { Linter } from 'eslint';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { ESLint } from 'eslint';
 import tailwindcss from 'eslint-plugin-tailwindcss';
 import { parseLintConfig } from '#config.js';
 import { createEslintConfig } from '#configs/eslint.js';
+import { clearNativeProjectService } from '#eslint/nativeTypeScriptAdapter.js';
 
 describe('Tailwind v4 CSS-first integration', () => {
   let root: string;
@@ -46,6 +48,7 @@ describe('Tailwind v4 CSS-first integration', () => {
   });
 
   afterEach(async () => {
+    clearNativeProjectService();
     await fs.promises.rm(root, { recursive: true, force: true });
   });
 
@@ -92,7 +95,9 @@ describe('Tailwind v4 CSS-first integration', () => {
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, code);
     const [result] = await eslint.lintText(code, { filePath });
-    expect(result.fatalErrorCount).toBe(0);
+    expect(result.messages.filter((message) => message.fatal)).toStrictEqual(
+      [],
+    );
     return result;
   }
 

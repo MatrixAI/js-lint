@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { resolveDomainSelection } from '#domains.js';
 
 describe('domain selection', () => {

@@ -1,4 +1,5 @@
 import type { LintDomainPlugin } from '#domains.js';
+import { describe, expect, test } from 'vitest';
 import Logger, { LogLevel } from '@matrixai/logger';
 import {
   createLintDomainRegistry,

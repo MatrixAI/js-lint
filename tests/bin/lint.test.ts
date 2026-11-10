@@ -2,9 +2,10 @@ import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
 import { createRequire } from 'node:module';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import Logger from '@matrixai/logger';
-import { jest } from '@jest/globals';
 import main from '#bin/matrixai-lint.js';
+import { clearNativeProjectService } from '#eslint/nativeTypeScriptAdapter.js';
 
 const require = createRequire(import.meta.url);
 
@@ -58,26 +59,23 @@ describe('matrixai-lint CLI domain semantics', () => {
       'utf8',
     );
 
-    jest
-      .spyOn(childProcess, 'execFileSync')
-      .mockImplementation(
-        (file: string, args?: readonly string[] | undefined) => {
-          capturedExecCalls.push({ file, args: [...(args ?? [])] });
-          return Buffer.from('');
-        },
-      );
+    vi.spyOn(childProcess, 'execFileSync').mockImplementation(
+      (file: string, args?: readonly string[] | undefined) => {
+        capturedExecCalls.push({ file, args: [...(args ?? [])] });
+        return Buffer.from('');
+      },
+    );
 
-    jest
-      .spyOn(process, 'exit')
-      .mockImplementation(
-        (code?: number | string | null | undefined): never => {
-          throw new Error(`process.exit:${String(code ?? 0)}`);
-        },
-      );
+    vi.spyOn(process, 'exit').mockImplementation(
+      (code?: number | string | null | undefined): never => {
+        throw new Error(`process.exit:${String(code ?? 0)}`);
+      },
+    );
   });
 
   afterEach(async () => {
-    jest.restoreAllMocks();
+    clearNativeProjectService();
+    vi.restoreAllMocks();
     process.chdir(previousCwd);
     await fs.promises.rm(dataDir, { recursive: true, force: true });
   });
@@ -217,9 +215,8 @@ describe('matrixai-lint CLI domain semantics', () => {
       'utf8',
     );
 
-    jest
-      .spyOn(childProcess, 'spawnSync')
-      .mockImplementation((file: string, args?: readonly string[]) => {
+    vi.spyOn(childProcess, 'spawnSync').mockImplementation(
+      (file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const status =
           (file === 'which' || file === 'where') && commandName === 'sqlfluff'
@@ -235,7 +232,8 @@ describe('matrixai-lint CLI domain semantics', () => {
           signal: null,
           error: undefined,
         } as unknown as ReturnType<typeof childProcess.spawnSync>;
-      });
+      },
+    );
 
     await expect(
       main(['node', 'matrixai-lint', '--sql', 'db']),
@@ -288,9 +286,8 @@ describe('matrixai-lint CLI domain semantics', () => {
       'utf8',
     );
 
-    jest
-      .spyOn(childProcess, 'spawnSync')
-      .mockImplementation((file: string, args?: readonly string[]) => {
+    vi.spyOn(childProcess, 'spawnSync').mockImplementation(
+      (file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const status =
           (file === 'which' || file === 'where') && commandName === 'sqlfluff'
@@ -306,7 +303,8 @@ describe('matrixai-lint CLI domain semantics', () => {
           signal: null,
           error: undefined,
         } as unknown as ReturnType<typeof childProcess.spawnSync>;
-      });
+      },
+    );
 
     await expect(
       main(['node', 'matrixai-lint', '--domain', 'sql']),
@@ -318,9 +316,8 @@ describe('matrixai-lint CLI domain semantics', () => {
   });
 
   test('explicit shell request + missing shellcheck fails', async () => {
-    jest
-      .spyOn(childProcess, 'spawnSync')
-      .mockImplementation((file: string, args?: readonly string[]) => {
+    vi.spyOn(childProcess, 'spawnSync').mockImplementation(
+      (file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const status =
           (file === 'which' || file === 'where') && commandName === 'shellcheck'
@@ -336,7 +333,8 @@ describe('matrixai-lint CLI domain semantics', () => {
           signal: null,
           error: undefined,
         } as unknown as ReturnType<typeof childProcess.spawnSync>;
-      });
+      },
+    );
 
     await expect(
       main([
@@ -368,9 +366,8 @@ describe('matrixai-lint CLI domain semantics', () => {
       'utf8',
     );
 
-    jest
-      .spyOn(childProcess, 'spawnSync')
-      .mockImplementation((file: string, args?: readonly string[]) => {
+    vi.spyOn(childProcess, 'spawnSync').mockImplementation(
+      (file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const status =
           (file === 'which' || file === 'where') && commandName === 'shellcheck'
@@ -386,7 +383,8 @@ describe('matrixai-lint CLI domain semantics', () => {
           signal: null,
           error: undefined,
         } as unknown as ReturnType<typeof childProcess.spawnSync>;
-      });
+      },
+    );
 
     await main(['node', 'matrixai-lint']);
 
@@ -417,7 +415,7 @@ describe('matrixai-lint CLI domain semantics', () => {
   });
 
   test('--list-domains exits early without lint execution', async () => {
-    const stderrWriteSpy = jest
+    const stderrWriteSpy = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
 
@@ -430,7 +428,7 @@ describe('matrixai-lint CLI domain semantics', () => {
   });
 
   test('--user-config remains compatible and emits an ESLint-only deprecation warning', async () => {
-    const warnMock = jest.spyOn(Logger.prototype, 'warn');
+    const warnMock = vi.spyOn(Logger.prototype, 'warn');
 
     await expect(
       main(['node', 'matrixai-lint', '--user-config', '--domain', 'sql']),
@@ -444,7 +442,7 @@ describe('matrixai-lint CLI domain semantics', () => {
   });
 
   test('--explain prints per-domain decision data', async () => {
-    const stderrWriteSpy = jest
+    const stderrWriteSpy = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
 
@@ -466,9 +464,8 @@ describe('matrixai-lint CLI domain semantics', () => {
   });
 
   test('canonical lint script flags are accepted by main', async () => {
-    jest
-      .spyOn(childProcess, 'spawnSync')
-      .mockImplementation((file: string, args?: readonly string[]) => {
+    vi.spyOn(childProcess, 'spawnSync').mockImplementation(
+      (file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const isShellcheckProbe =
           (file === 'which' || file === 'where') &&
@@ -483,7 +480,8 @@ describe('matrixai-lint CLI domain semantics', () => {
           signal: null,
           error: undefined,
         } as unknown as ReturnType<typeof childProcess.spawnSync>;
-      });
+      },
+    );
 
     await expect(
       main([
@@ -512,9 +510,8 @@ describe('matrixai-lint CLI domain semantics', () => {
       'utf8',
     );
 
-    jest
-      .spyOn(childProcess, 'spawnSync')
-      .mockImplementation((file: string, args?: readonly string[]) => {
+    vi.spyOn(childProcess, 'spawnSync').mockImplementation(
+      (file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const status =
           (file === 'which' || file === 'where') && commandName === 'nixfmt'
@@ -530,7 +527,8 @@ describe('matrixai-lint CLI domain semantics', () => {
           signal: null,
           error: undefined,
         } as unknown as ReturnType<typeof childProcess.spawnSync>;
-      });
+      },
+    );
 
     await expect(
       main(['node', 'matrixai-lint', '--domain', 'nix', '--nix', 'flake.nix']),
@@ -550,9 +548,8 @@ describe('matrixai-lint CLI domain semantics', () => {
       'utf8',
     );
 
-    jest
-      .spyOn(childProcess, 'spawnSync')
-      .mockImplementation((file: string, args?: readonly string[]) => {
+    vi.spyOn(childProcess, 'spawnSync').mockImplementation(
+      (file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
         const status =
           (file === 'which' || file === 'where') && commandName === 'sqlfluff'
@@ -568,7 +565,8 @@ describe('matrixai-lint CLI domain semantics', () => {
           signal: null,
           error: undefined,
         } as unknown as ReturnType<typeof childProcess.spawnSync>;
-      });
+      },
+    );
 
     await expect(
       main(['node', 'matrixai-lint', '--domain', 'sql', '--sql', 'db']),

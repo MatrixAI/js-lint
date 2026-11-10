@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import eslintConfigDefault from '#configs/eslint.js';
 import { config } from '#index.js';
 

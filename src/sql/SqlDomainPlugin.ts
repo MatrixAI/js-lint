@@ -7,7 +7,8 @@ import os from 'node:os';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
-import { commandExists, resolveFilesFromPatterns } from '../utils.js';
+import { commandExists } from '../commands.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const platform = os.platform();
 
@@ -36,7 +37,7 @@ class SqlDomainPlugin extends LintDomainPluginBase {
       sqlPatterns,
       this.defaultSearchPatterns,
     );
-    const matchedFiles = resolveFilesFromPatterns(
+    const matchedFiles = new FileDiscovery().resolveFilesFromPatterns(
       patterns,
       SQL_FILE_EXTENSIONS,
     );

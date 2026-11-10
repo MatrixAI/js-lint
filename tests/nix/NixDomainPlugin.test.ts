@@ -1,8 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import childProcess from 'node:child_process';
+import { describe, expect, test, vi } from 'vitest';
 import Logger, { LogLevel } from '@matrixai/logger';
-import { jest } from '@jest/globals';
 import {
   createBuiltInDomainRegistry,
   evaluateLintDomains,
@@ -18,7 +18,7 @@ describe('nix domain', () => {
     );
 
     const previousCwd = process.cwd();
-    const spawnSyncMock = jest
+    const spawnSyncMock = vi
       .spyOn(childProcess, 'spawnSync')
       .mockImplementation((file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
@@ -105,13 +105,13 @@ describe('nix domain', () => {
     );
 
     const previousCwd = process.cwd();
-    const execFileSyncMock = jest
+    const execFileSyncMock = vi
       .spyOn(childProcess, 'execFileSync')
       .mockImplementation(
         (_file: string, _args?: readonly string[] | undefined) =>
           Buffer.from(''),
       );
-    const spawnSyncMock = jest
+    const spawnSyncMock = vi
       .spyOn(childProcess, 'spawnSync')
       .mockImplementation((file: string, args?: readonly string[]) => {
         const commandName = args?.[0];
