@@ -25,6 +25,7 @@ describe('lint config schema', () => {
         tsconfigPath,
       ]);
       expect(resolved.domains.eslint.forceInclude).toStrictEqual([]);
+      expect(resolved.domains.eslint.contentMappers).toBeUndefined();
       expect(resolved.domains.eslint.targets).toStrictEqual([]);
       expect(resolved.domains.eslint.tailwind).toBe('auto');
       expect(resolved.domains.eslint.tailwindEnabled).toBe(false);
@@ -35,6 +36,34 @@ describe('lint config schema', () => {
       expect(resolved.domains.sql.targets).toStrictEqual([]);
     } finally {
       await fs.promises.rm(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('validates the content mapper opt-in', () => {
+    const repoRoot = path.join(tmpDir, 'content-mapper-config');
+    const configFilePath = path.join(repoRoot, 'matrixai-lint-config.json');
+    for (const value of [true, false]) {
+      const config = parseLintConfig({
+        rawConfig: {
+          version: 2,
+          domains: { eslint: { contentMappers: value } },
+        },
+        repoRoot,
+        configFilePath,
+      });
+      expect(config.domains.eslint.contentMappers).toBe(value);
+    }
+    for (const value of [null, 1, 'true', {}, []]) {
+      expect(() =>
+        parseLintConfig({
+          rawConfig: {
+            version: 2,
+            domains: { eslint: { contentMappers: value } },
+          },
+          repoRoot,
+          configFilePath,
+        }),
+      ).toThrow('ESLint contentMappers must be a boolean.');
     }
   });
 

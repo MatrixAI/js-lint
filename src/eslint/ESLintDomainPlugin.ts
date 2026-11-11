@@ -97,6 +97,7 @@ class ESLintDomainPlugin extends LintDomainPluginBase {
     chosenConfig,
     isConfigValid,
     eslintPatterns,
+    disableContentMappers,
   }: LintDomainEngineContext): Promise<LintDomainPluginResult> {
     if (!isConfigValid) {
       logger.error('Skipping ESLint due to invalid --eslint-config path.');
@@ -115,6 +116,7 @@ class ESLintDomainPlugin extends LintDomainPluginBase {
         fix,
         configPath: chosenConfig,
         explicitGlobs: explicitPatterns,
+        disableContentMappers,
       });
 
       return { hadFailure: hadLintingErrors };

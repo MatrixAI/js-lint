@@ -53,9 +53,19 @@ describe('project TypeScript boundary', () => {
       cwd: root,
       encoding: 'utf8',
       timeout: 30000,
-      env: { ...process.env, MATRIXAI_LINT_TRUST_CONTENT_MAPPERS: '' },
     });
   }
+
+  test('prints the installed version before discovering a project', () => {
+    fs.writeFileSync(path.join(root, 'matrixai-lint-config.json'), '{ invalid');
+    const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+    for (const flag of ['--version', '-V']) {
+      const result = runLint(flag);
+      expect(result.status).toBe(0);
+      expect(result.stdout.trim()).toBe(version);
+      expect(result.stderr).toBe('');
+    }
+  });
 
   test('uses the native backend without requiring a project compiler', () => {
     const result = spawnSync(
@@ -255,13 +265,13 @@ describe('project TypeScript boundary', () => {
     );
     fs.mkdirSync(path.join(root, 'src'));
     const schema = path.join(root, 'src/user.schema.jsonc');
-    const writeSchema = (type: string) => {
+    const writeSchema = (type: string, required = true) => {
       fs.writeFileSync(
         schema,
         JSON.stringify({
           type: 'object',
           properties: { name: { type } },
-          required: ['name'],
+          required: required ? ['name'] : [],
         }),
       );
     };
@@ -269,7 +279,7 @@ describe('project TypeScript boundary', () => {
     fs.writeFileSync(
       path.join(root, 'src/example.ts'),
       [
-        "import schema from './user.schema.jsonc';",
+        "import schema from '#schema';",
         '',
         'async function isUser(value: unknown): Promise<boolean> {',
         '  return await schema.is(value);',
@@ -277,7 +287,7 @@ describe('project TypeScript boundary', () => {
         '',
         'function formatName(value: unknown): string {',
         '  if (schema.is(value)) {',
-        '    return `${value.name}`;',
+        "    return value.name != null ? `${value.name}` : 'missing';",
         '  }',
         "  return 'invalid';",
         '}',
@@ -292,6 +302,7 @@ describe('project TypeScript boundary', () => {
         module: 'NodeNext',
         moduleResolution: 'NodeNext',
         strict: true,
+        paths: { '#schema': ['./src/user.schema.jsonc'] },
       },
       include: ['src'],
       contentMappers: [{ package: 'dotschema', extensions: ['.schema.jsonc'] }],
@@ -304,20 +315,25 @@ describe('project TypeScript boundary', () => {
       path.join(root, 'tsconfig.lint.json'),
       JSON.stringify({ extends: './tsconfig.json', include: ['src'] }),
     );
-    fs.writeFileSync(
-      path.join(root, 'matrixai-lint-config.json'),
-      JSON.stringify({
-        version: 2,
-        domains: { eslint: { tsconfigPaths: ['./tsconfig.lint.json'] } },
-      }),
-    );
+    const writeLintConfig = (contentMappers?: boolean) => {
+      fs.writeFileSync(
+        path.join(root, 'matrixai-lint-config.json'),
+        JSON.stringify({
+          version: 2,
+          domains: {
+            eslint: { tsconfigPaths: ['./tsconfig.lint.json'], contentMappers },
+          },
+        }),
+      );
+    };
+    writeLintConfig();
     const configUrl = pathToFileURL(
       path.resolve('dist/configs/eslint.js'),
     ).href;
     fs.writeFileSync(
       path.join(root, 'eslint.config.mjs'),
       `import { createConfig } from ${JSON.stringify(configUrl)};
-export default [...createConfig(), { rules: { '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: false, allowAny: true }] } }];
+export default [...createConfig(), { rules: { '@matrixai/no-aliased-imports': 'off', '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: false, allowAny: true }], '@typescript-eslint/no-unnecessary-condition': 'error' } }];
 `,
     );
     const args = [
@@ -330,7 +346,7 @@ export default [...createConfig(), { rules: { '@typescript-eslint/restrict-templ
     const untrusted = runLint(...args);
     expect(untrusted.status).not.toBe(0);
     expect(untrusted.stdout + untrusted.stderr).toContain(
-      'MATRIXAI_LINT_TRUST_CONTENT_MAPPERS=1',
+      'domains.eslint.contentMappers',
     );
     fs.writeFileSync(
       path.join(root, 'src/consumer.ts'),
@@ -339,15 +355,15 @@ export default [...createConfig(), { rules: { '@typescript-eslint/restrict-templ
     const transitive = runLint('--check', '--eslint', 'src/consumer.ts');
     expect(transitive.status).not.toBe(0);
     expect(transitive.stdout + transitive.stderr).toContain(
-      'MATRIXAI_LINT_TRUST_CONTENT_MAPPERS=1',
+      'domains.eslint.contentMappers',
     );
-    const trusted = () =>
-      spawnSync(process.execPath, [cliPath, ...args], {
-        cwd: root,
-        encoding: 'utf8',
-        timeout: 30000,
-        env: { ...process.env, MATRIXAI_LINT_TRUST_CONTENT_MAPPERS: '1' },
-      });
+    writeLintConfig(false);
+    const configuredOff = runLint(...args);
+    expect(configuredOff.stdout + configuredOff.stderr).toContain(
+      'Mapped import has no type declarations',
+    );
+    writeLintConfig(true);
+    const trusted = () => runLint(...args);
     const stringResult = trusted();
     expect(stringResult.stdout + stringResult.stderr).toContain(
       '@typescript-eslint/await-thenable',
@@ -355,20 +371,35 @@ export default [...createConfig(), { rules: { '@typescript-eslint/restrict-templ
     expect(stringResult.stdout + stringResult.stderr).not.toContain(
       '@typescript-eslint/restrict-template-expressions',
     );
+    expect(stringResult.stdout + stringResult.stderr).toContain(
+      '@typescript-eslint/no-unnecessary-condition',
+    );
+    const reportPath = path.join(root, 'report.json');
+    runLint(...args, '--report', reportPath);
+    expect(
+      JSON.parse(fs.readFileSync(reportPath, 'utf8')).contentMapperPolicy,
+    ).toEqual({ enabled: true, source: 'config' });
+    const disabled = runLint(...args, '--disable-content-mappers', '--explain');
+    expect(disabled.status).not.toBe(0);
+    expect(disabled.stdout + disabled.stderr).toContain(
+      'Mapped import has no type declarations',
+    );
+    expect(disabled.stdout + disabled.stderr).toContain(
+      '"enabled":false,"source":"cli"',
+    );
+    writeSchema('string', false);
+    const optionalResult = trusted();
+    expect(optionalResult.stdout + optionalResult.stderr).not.toContain(
+      '@typescript-eslint/no-unnecessary-condition',
+    );
+    expect(optionalResult.stdout + optionalResult.stderr).toContain(
+      '@typescript-eslint/await-thenable',
+    );
     fs.writeFileSync(
       path.join(root, 'src/fix.ts'),
       'const greeting="hello";\n\nexport {greeting};\n',
     );
-    const fixed = spawnSync(
-      process.execPath,
-      [cliPath, '--fix', '--eslint', 'src/fix.ts'],
-      {
-        cwd: root,
-        encoding: 'utf8',
-        timeout: 30000,
-        env: { ...process.env, MATRIXAI_LINT_TRUST_CONTENT_MAPPERS: '1' },
-      },
-    );
+    const fixed = runLint('--fix', '--eslint', 'src/fix.ts');
     expect(fixed.stdout + fixed.stderr).toContain('Linting passed');
     expect(fixed.status).toBe(0);
     expect(fs.readFileSync(path.join(root, 'src/fix.ts'), 'utf8')).toBe(
@@ -387,7 +418,7 @@ export default [...createConfig(), { rules: { '@typescript-eslint/restrict-templ
     const missing = trusted();
     expect(missing.status).not.toBe(0);
     expect(missing.stdout + missing.stderr).toContain('missing-mapper');
-  }, 60000);
+  }, 120000);
 
   test('does not execute an untrusted unused content mapper', () => {
     const markerDir = path.join(root, 'node_modules/marker-mapper');
@@ -562,6 +593,45 @@ export default [...createConfig(), { rules: { '@typescript-eslint/restrict-templ
          nativeTypeScriptBackend.configure(${JSON.stringify(other)});`,
       ],
       { cwd: root, encoding: 'utf8' },
+    );
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+  });
+
+  test('mapper override survives reconfiguration and is released per root', () => {
+    const other = path.join(root, 'other');
+    fs.mkdirSync(other);
+    for (const directory of [root, other]) {
+      fs.writeFileSync(
+        path.join(directory, 'matrixai-lint-config.json'),
+        JSON.stringify({
+          version: 2,
+          domains: { eslint: { contentMappers: true } },
+        }),
+      );
+    }
+    const result = spawnSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '-e',
+        `import assert from 'node:assert/strict';
+       import { nativeTypeScriptBackend as backend } from ${JSON.stringify(resolverUrl)};
+       const first = ${JSON.stringify(root)};
+       const second = ${JSON.stringify(other)};
+       backend.disableContentMappers(first);
+       backend.configure(first);
+       backend.configure(first);
+       backend.configure(second);
+       assert.equal(backend.getProjectService(first).options.trustContentMappers, false);
+       assert.equal(backend.getProjectService(second).options.trustContentMappers, true);
+       backend.closeProject(first);
+       backend.restoreContentMappers(first);
+       backend.configure(first);
+       assert.equal(backend.getProjectService(first).options.trustContentMappers, true);
+       backend.clear();`,
+      ],
+      { cwd: root, encoding: 'utf8', timeout: 10000 },
     );
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);

@@ -93,14 +93,39 @@ class NativeProjectService {
               String(diagnostic.text),
             )?.[1];
             if (specifier == null) return false;
-            return extensions.some((extension) =>
-              specifier.endsWith(extension),
+            const candidates = [specifier];
+            for (const [pattern, targets] of Object.entries(
+              config.options.paths ?? {},
+            )) {
+              const [prefix, suffix] = pattern.split('*');
+              let wildcard = '';
+              if (suffix === undefined) {
+                if (specifier !== prefix) continue;
+              } else {
+                if (
+                  !specifier.startsWith(prefix) ||
+                  !specifier.endsWith(suffix) ||
+                  specifier.length < prefix.length + suffix.length
+                ) {
+                  continue;
+                }
+                wildcard = specifier.slice(
+                  prefix.length,
+                  specifier.length - suffix.length,
+                );
+              }
+              candidates.push(
+                ...targets.map((target) => target.replace('*', wildcard)),
+              );
+            }
+            return candidates.some((candidate) =>
+              extensions.some((extension) => candidate.endsWith(extension)),
             );
           });
         if (missing != null) {
           const trustHint = this.options.trustContentMappers
             ? 'Check the content mapper and its dependencies.'
-            : 'To execute trusted project mappers, set MATRIXAI_LINT_TRUST_CONTENT_MAPPERS=1.';
+            : 'For trusted projects, set domains.eslint.contentMappers to true in matrixai-lint-config.json and omit --disable-content-mappers.';
           throw new Error(
             `Mapped import has no type declarations: ${missing.text} ${trustHint}`,
           );

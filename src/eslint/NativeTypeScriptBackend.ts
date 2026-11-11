@@ -13,6 +13,22 @@ type NativeTypeScriptProvenance = {
   compatibility: { path: string; version: string };
 };
 
+type ContentMapperPolicy = {
+  enabled: boolean;
+  source: 'cli' | 'config' | 'default';
+};
+
+function resolveContentMapperPolicy(
+  configured: boolean | undefined,
+  forceDisabled: boolean,
+): ContentMapperPolicy {
+  if (forceDisabled) return { enabled: false, source: 'cli' };
+  if (configured !== undefined) {
+    return { enabled: configured, source: 'config' };
+  }
+  return { enabled: false, source: 'default' };
+}
+
 /** Owns the process-wide adapter hook and the native services for project roots. */
 class NativeTypeScriptBackend {
   protected readonly optionsByRoot = new Map<
@@ -20,7 +36,24 @@ class NativeTypeScriptBackend {
     NativeProjectServiceOptions
   >();
   protected readonly servicesByRoot = new Map<string, NativeProjectService>();
+  protected readonly mapperDisablesByRoot = new Map<string, number>();
   protected provenance?: NativeTypeScriptProvenance;
+
+  /** Hold the override across preset reconfiguration until the run finishes. */
+  public disableContentMappers(root: string): void {
+    const key = path.resolve(root);
+    this.mapperDisablesByRoot.set(
+      key,
+      (this.mapperDisablesByRoot.get(key) ?? 0) + 1,
+    );
+  }
+
+  public restoreContentMappers(root: string): void {
+    const key = path.resolve(root);
+    const count = this.mapperDisablesByRoot.get(key) ?? 0;
+    if (count <= 1) this.mapperDisablesByRoot.delete(key);
+    else this.mapperDisablesByRoot.set(key, count - 1);
+  }
 
   public configure(
     root = process.cwd(),
@@ -30,8 +63,10 @@ class NativeTypeScriptBackend {
     const options: NativeProjectServiceOptions = {
       root: path.resolve(config.root),
       tsconfigPaths: [...config.domains.eslint.tsconfigPaths],
-      trustContentMappers:
-        process.env.MATRIXAI_LINT_TRUST_CONTENT_MAPPERS === '1',
+      trustContentMappers: resolveContentMapperPolicy(
+        config.domains.eslint.contentMappers,
+        this.mapperDisablesByRoot.has(path.resolve(config.root)),
+      ).enabled,
     };
     const previous = this.optionsByRoot.get(options.root);
     if (
@@ -150,5 +185,9 @@ const globals = globalThis as typeof globalThis & {
 const nativeTypeScriptBackend = (globals[stateKey] ??=
   new NativeTypeScriptBackend());
 
-export type { NativeTypeScriptProvenance };
-export { NativeTypeScriptBackend, nativeTypeScriptBackend };
+export type { NativeTypeScriptProvenance, ContentMapperPolicy };
+export {
+  NativeTypeScriptBackend,
+  nativeTypeScriptBackend,
+  resolveContentMapperPolicy,
+};

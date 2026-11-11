@@ -17,7 +17,10 @@ import {
 } from '../domains.js';
 import { resolveLintConfig } from '../config.js';
 import { resolveExecutionPolicy } from '../policy.js';
-import { nativeTypeScriptBackend } from '../eslint/NativeTypeScriptBackend.js';
+import {
+  nativeTypeScriptBackend,
+  resolveContentMapperPolicy,
+} from '../eslint/NativeTypeScriptBackend.js';
 import ESLintScope from '../eslint/ESLintScope.js';
 import * as utils from '../utils.js';
 
@@ -35,6 +38,14 @@ function createProgram(): Command {
   const program = new Command();
   program
     .name('matrixai-lint')
+    .version(
+      (
+        JSON.parse(
+          fs.readFileSync(path.resolve(dirname, '../../package.json'), 'utf8'),
+        ) as { version: string }
+      ).version,
+      '-V, --version',
+    )
     .description(
       'Lint source files, scripts, and markdown with configured rules.',
     )
@@ -75,6 +86,10 @@ function createProgram(): Command {
     )
     .option('--list-domains', 'List available lint domains and exit')
     .option('--explain', 'Print per-domain selection and execution decisions')
+    .option(
+      '--disable-content-mappers',
+      'Disable TypeScript content mapper execution',
+    )
     .option(
       '--user-config',
       'Deprecated ESLint-only alias; use --eslint-config <path>',
@@ -220,6 +235,10 @@ async function main(argv = process.argv) {
     const listDomainsOnly = Boolean(options.listDomains);
     const explain = Boolean(options.explain);
     const lintConfig = resolveLintConfig();
+    const contentMapperPolicy = resolveContentMapperPolicy(
+      lintConfig.domains.eslint.contentMappers,
+      options.disableContentMappers === true,
+    );
 
     const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
       resolveDomainSelection(options);
@@ -284,6 +303,7 @@ async function main(argv = process.argv) {
       chosenConfig,
       isConfigValid,
       strict: options.strict,
+      disableContentMappers: options.disableContentMappers,
       eslintPatterns: policy.eslint.files,
       markdownPatterns: policy.markdown.files,
       svgPatterns: policy.svg.files,
@@ -305,6 +325,9 @@ async function main(argv = process.argv) {
 
     if (explain || options.plan) {
       logger.info(`Effective policy: ${JSON.stringify(policy)}`);
+      logger.info(
+        `Content mapper policy: ${JSON.stringify(contentMapperPolicy)}`,
+      );
       printExplain(logger, decisions);
     }
     if (options.plan) return;
@@ -343,6 +366,7 @@ async function main(argv = process.argv) {
             mode: fix ? 'fix' : 'check',
             root: process.cwd(),
             policy,
+            contentMapperPolicy,
             decisions,
             summary: hadFailure
               ? 'Lint violations or backend failures remain.'

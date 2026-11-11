@@ -29,6 +29,7 @@ type MatrixAILintCfg = {
     eslint: MatrixAILintCfgDomainScope & {
       tsconfigPaths: string[];
       forceInclude: string[];
+      contentMappers?: boolean;
       tailwind: TailwindMode;
       tailwindEnabled: boolean;
     };
@@ -73,6 +74,7 @@ type CLIOptions = {
   skipDomain?: LintDomain[];
   listDomains?: boolean;
   explain?: boolean;
+  disableContentMappers?: boolean;
 };
 
 type LintDomainEngineContext = {
@@ -90,6 +92,7 @@ type LintDomainEngineContext = {
   rustClippy?: boolean;
   cargoArgs?: string[];
   strict?: boolean;
+  disableContentMappers?: boolean;
 };
 
 type LintDomainAvailabilityKind = 'required' | 'optional';

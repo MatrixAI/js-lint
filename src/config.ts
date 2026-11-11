@@ -251,6 +251,12 @@ function normalizeLintConfig({
   const rawSqlDomain = getRawDomain(rawDomains, 'sql');
   const rawRustDomain = getRawDomain(rawDomains, 'rust');
   if (
+    rawEslintDomain.contentMappers !== undefined &&
+    typeof rawEslintDomain.contentMappers !== 'boolean'
+  ) {
+    throw new Error('ESLint contentMappers must be a boolean.');
+  }
+  if (
     rawRustDomain.clippy !== undefined &&
     typeof rawRustDomain.clippy !== 'boolean'
   ) {
@@ -322,6 +328,7 @@ function normalizeLintConfig({
         targets: eslintTargets,
         tsconfigPaths,
         forceInclude,
+        contentMappers: rawEslintDomain.contentMappers as boolean | undefined,
         tailwind,
         tailwindEnabled,
       },

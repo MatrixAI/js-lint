@@ -39,22 +39,27 @@ class ESLintRunner {
     configPath,
     explicitGlobs,
     resolvedConfig,
+    disableContentMappers = false,
   }: {
     fix: boolean;
     configPath?: string;
     explicitGlobs?: string[];
     resolvedConfig?: MatrixAILintCfgResolved;
+    disableContentMappers?: boolean;
   }): Promise<boolean> {
     const logger = this.logger;
     const dirname = path.dirname(url.fileURLToPath(import.meta.url));
     const defaultConfigPath = path.resolve(dirname, '../configs/eslint.js');
     const resolvedConfigPath = configPath || defaultConfigPath;
     const lintConfig = resolvedConfig ?? resolveLintConfig();
-    const compiler = nativeTypeScriptBackend.configure(
-      lintConfig.root,
-      lintConfig,
-    );
+    if (disableContentMappers) {
+      nativeTypeScriptBackend.disableContentMappers(lintConfig.root);
+    }
     try {
+      const compiler = nativeTypeScriptBackend.configure(
+        lintConfig.root,
+        lintConfig,
+      );
       logger.info(
         `Using native TypeScript ${compiler.native.version}: ${compiler.native.path}`,
       );
@@ -163,7 +168,13 @@ class ESLintRunner {
 
       return await this.lintAndReport(eslint, resolvedPatterns, fix);
     } finally {
-      nativeTypeScriptBackend.closeProject(lintConfig.root);
+      try {
+        nativeTypeScriptBackend.closeProject(lintConfig.root);
+      } finally {
+        if (disableContentMappers) {
+          nativeTypeScriptBackend.restoreContentMappers(lintConfig.root);
+        }
+      }
     }
   }
 

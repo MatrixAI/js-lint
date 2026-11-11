@@ -1,5 +1,13 @@
 # Migration notes
 
+## Content mapper configuration
+
+The former mapper opt-in has been removed. Trusted projects must set
+`domains.eslint.contentMappers` to `true` in their lint configuration. Use
+`--disable-content-mappers` to override that setting. See the
+[content mapper guide](README.md#content-mappers-and-generated-types) for the
+security implications and an example.
+
 ## Version 3.0.0: native TypeScript
 
 Typed linting now uses the bundled TypeScript 7.1 native backend for all

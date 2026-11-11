@@ -57,6 +57,10 @@ matrixai-lint --fix
 | `--list-domains`         | Print available domains and short descriptions, then exit 0                         |
 | `--explain`              | Print per-domain decision details before execution                                  |
 | `-v, --verbose`          | Increase log verbosity (repeat for more detail)                                     |
+| `-V, --version`          | Print the installed lint version                                                    |
+
+Use `--disable-content-mappers` to disable TypeScript content mapper execution
+even when it is enabled by the project.
 
 Domain selection behavior:
 
@@ -277,24 +281,39 @@ select a compatible lint-specific configuration with
 #### Content mappers and generated types
 
 TypeScript 7.1 content mappers execute external programs and are disabled by
-default. To allow trusted project mappers to supply types during linting, run:
+default. To enable a trusted project's configured mappers, add this to its
+`matrixai-lint-config.json`:
 
-```sh
-MATRIXAI_LINT_TRUST_CONTENT_MAPPERS=1 matrixai-lint --fix
+```json
+{
+  "version": 2,
+  "domains": {
+    "eslint": { "contentMappers": true }
+  }
+}
 ```
 
 This allows mapper packages to execute arbitrary code with the invoking user's
-permissions. Enable it only for trusted projects and dependencies; lint is not a
-sandbox. Installing packages and loading custom ESLint configurations can also
-execute code.
+permissions. The checked-in setting expresses project intent, not trust: an
+untrusted checkout can change its own configuration. Use
+`matrixai-lint --disable-content-mappers` to override the setting and prevent
+mapper execution. Lint is not a sandbox: installing packages and loading custom
+ESLint configurations can also execute code. Inspect or isolate untrusted
+projects before running lint.
 
-Without trust, a mapper declaration alone does not block linting. If a mapped
-import cannot be resolved, lint reports the missing type instead of silently
-treating that import as `any`. Mapper configuration errors are also reported.
-This guard does not prove that all mapper failures or generated types have been
-detected. Source files transformed by a mapper are rejected when their contents
-do not match the original file, because fix ranges may otherwise be unsafe. This
-check does not establish fix-range safety for every possible transformation.
+The command-line disable takes precedence over the project setting. An absent
+setting or `false` disables mappers. `--explain` and the JSON report show the
+effective mapper policy. Trusted projects using the former opt-in must migrate
+to the setting above.
+
+Without opt-in, a mapper declaration alone does not block linting. Lint reports
+unresolved mapped imports detected by the native compiler, including configured
+path aliases, rather than silently treating those imports as `any`. Mapper
+configuration errors are also reported. This guard does not prove that all
+mapper failures or generated types have been detected. Source files transformed
+by a mapper are rejected when their contents do not match the original file,
+because fix ranges may otherwise be unsafe. This check does not establish
+fix-range safety for every possible transformation.
 
 #### Default import
 
@@ -442,6 +461,7 @@ This config uses a versioned schema and must explicitly declare `"version": 2`:
         "./packages/core/tsconfig.json"
       ],
       "forceInclude": ["scripts", "src/overrides"],
+      "contentMappers": false,
       "tailwind": "auto"
     },
     "shell": { "targets": ["./scripts"] },
@@ -453,14 +473,15 @@ This config uses a versioned schema and must explicitly declare `"version": 2`:
 }
 ```
 
-| Field                          | Type       | Description                                                                                |
-| ------------------------------ | ---------- | ------------------------------------------------------------------------------------------ |
-| `version`                      | `2`        | Required schema version marker                                                             |
-| `root`                         | `string`   | Optional lint root (defaults to `.`); domain targets and tsconfig paths are relative to it |
-| `domains.<domain>.targets`     | `string[]` | Optional files, directories, or globs defining that domain's scope                         |
-| `domains.eslint.tsconfigPaths` | `string[]` | One or more paths to `tsconfig.json` files                                                 |
-| `domains.eslint.forceInclude`  | `string[]` | Paths to include despite tsconfig excludes; each must be included by at least one tsconfig |
-| `domains.eslint.tailwind`      | `string`   | Tailwind lint mode: `auto` (default), `enabled`, or `disabled`                             |
+| Field                           | Type       | Description                                                                                |
+| ------------------------------- | ---------- | ------------------------------------------------------------------------------------------ |
+| `version`                       | `2`        | Required schema version marker                                                             |
+| `root`                          | `string`   | Optional lint root (defaults to `.`); domain targets and tsconfig paths are relative to it |
+| `domains.<domain>.targets`      | `string[]` | Optional files, directories, or globs defining that domain's scope                         |
+| `domains.eslint.tsconfigPaths`  | `string[]` | One or more paths to `tsconfig.json` files                                                 |
+| `domains.eslint.forceInclude`   | `string[]` | Paths to include despite tsconfig excludes; each must be included by at least one tsconfig |
+| `domains.eslint.contentMappers` | `boolean`  | Enable execution of trusted TypeScript content mappers; defaults to `false`                |
+| `domains.eslint.tailwind`       | `string`   | Tailwind lint mode: `auto` (default), `enabled`, or `disabled`                             |
 
 Tailwind linting defaults to `auto`. It is enabled when the configured root's
 `package.json` directly declares `tailwindcss` or an `@tailwindcss/*` package,
