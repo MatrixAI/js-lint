@@ -104,7 +104,9 @@ async function evaluateLintDomains({
         plannedAction = 'skip-not-relevant';
       } else if (!detection.available) {
         const shouldFail =
-          detection.availabilityKind === 'required' || explicitlyRequested;
+          context.strict === true ||
+          detection.availabilityKind === 'required' ||
+          explicitlyRequested;
         plannedAction = shouldFail ? 'fail-unavailable' : 'skip-unavailable';
       } else {
         plannedAction = 'run';

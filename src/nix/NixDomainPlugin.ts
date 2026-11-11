@@ -7,7 +7,8 @@ import os from 'node:os';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
-import { commandExists, resolveFilesFromPatterns } from '../utils.js';
+import { commandExists } from '../commands.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const platform = os.platform();
 
@@ -17,9 +18,7 @@ function resolveNixPatterns(
   nixPatterns: readonly string[] | undefined,
   defaultSearchPatterns: readonly string[],
 ): string[] {
-  return nixPatterns != null && nixPatterns.length > 0
-    ? [...nixPatterns]
-    : [...defaultSearchPatterns];
+  return nixPatterns != null ? [...nixPatterns] : [...defaultSearchPatterns];
 }
 
 class NixDomainPlugin extends LintDomainPluginBase {
@@ -38,7 +37,7 @@ class NixDomainPlugin extends LintDomainPluginBase {
       nixPatterns,
       this.defaultSearchPatterns,
     );
-    const matchedFiles = resolveFilesFromPatterns(
+    const matchedFiles = new FileDiscovery().resolveFilesFromPatterns(
       patterns,
       NIX_FILE_EXTENSIONS,
     );

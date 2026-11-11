@@ -1,0 +1,158 @@
+# Migration notes
+
+## Version 3.0.1: content mapper configuration
+
+The former mapper opt-in has been removed. Trusted projects must set
+`domains.eslint.contentMappers` to `true` in their lint configuration. Use
+`--disable-content-mappers` to override that setting. See the
+[content mapper guide](README.md#content-mappers-and-generated-types) for the
+security implications and an example.
+
+## Version 3.0.0: native TypeScript
+
+Typed linting now uses the bundled TypeScript 7.1 native backend for all
+projects instead of selecting a consumer compiler. The upstream experimental
+adapter still needs TypeScript 6 as an internal API compatibility library.
+TypeScript 7 removes some older compiler options, and external content mappers
+require an explicit trust opt-in. See the
+[TypeScript compiler guide](README.md#typescript-compiler-selection) and
+[content mapper guide](README.md#content-mappers-and-generated-types).
+
+The repository build and typecheck use the same native compiler, and its test
+suite uses Vitest instead of Jest and SWC. The historical v2.0.0 notes below
+describe that release rather than the v3 behavior.
+
+## Historical migration to v2.0.0
+
+Version 2.0.0 introduced the ecosystem-neutral Nix lint executable, layered
+source scopes, Rust formatting and offline Clippy, and structured lint reports.
+
+## Patch update 2.0.1
+
+Version 2.0.1 supersedes the original adapter pin below with
+`eslint-plugin-tailwindcss` 4.4.1-beta.1 and explicitly disables its
+`useLocalPkgWorkaround` setting. The beta alone still enables the faulty
+worker-relative lookup by default. This combination fixes consumer-owned
+Tailwind resolution for the separately installed CLI without a dependency patch,
+install hook, or rule suppression.
+
+Nix-only consumers can select their existing CSS entrypoint through
+`eslint.settings.json` without importing or copying the shared preset. See the
+[Tailwind settings guide](README.md#tailwind-css-v4-and-mixed-styling).
+Theme-and-utilities-only imports, prefixes, and intentional omission of
+Preflight remain valid. Missing dependencies and invalid entrypoints fail
+explicitly; Tailwind v3 remains outside the v2 adapter's support contract.
+
+## Breaking distribution changes
+
+- The default Nix package is now the executable, not an npm archive. Consumers
+  composing npm dependencies must select `npm-package` or `npm-package-unpacked`
+  explicitly. Existing named archive outputs remain.
+- Typed ESLint uses the consumer project's installed TypeScript. Install a
+  version supported by the bundled parser; missing or unsupported project
+  compilers fail explicitly. The Nix executable does not bundle a fallback
+  compiler. Non-JavaScript repositories do not require TypeScript.
+- The Nix executable fails when a relevant backend is unavailable. Compose the
+  project's native tools through `withTools` instead of relying on ambient
+  user-profile executables.
+- Explicit domain targets no longer silently expand to default roots. Default
+  Markdown discovery still includes root documentation, but explicit Markdown
+  scopes do not add unrelated root documents.
+
+Lint execution does not launch a standalone TypeScript compiler. Building this
+package, its existing producer npm wrappers, and development-shell preparation
+are separate operations that can compile TypeScript.
+
+## Release evidence
+
+Before the version-only release update, 108 tests in 17 suites passed, the Nix
+executable and hermetic lint check built, the prepared archive built with the
+shared dependency cache, and full js-container lint passed using project
+TypeScript. ObjLog executed the Rust adapter without npm or TypeScript and
+propagated existing Clippy diagnostics. These results are not a claim that
+ObjLog's Rust sources are lint-clean.
+
+Tests and builds were not rerun for the release metadata update, as requested.
+Distribution remains Git-only; this release does not publish to npm.
+
+## Compatibility
+
+- Node.js 24 or newer is required. The integrated development and Nix-check
+  environment uses Node 24.
+- Tailwind linting now uses stable `eslint-plugin-tailwindcss` 4.4.0. Upstream
+  supports ESLint 9 or 10 and requires Node 20.19 or newer; this package retains
+  ESLint 9 and applies its stricter Node 24 baseline.
+- The adapter requires Tailwind CSS v4. Tailwind v3 consumers must upgrade or
+  remain on the preceding MatrixAI lint release. There is no dual-adapter
+  compatibility layer.
+- The adapter's recommended configuration is its `configs.recommended` export,
+  not the former `flat/recommended` export. MatrixAI composes that flat preset
+  directly rather than passing it through legacy configuration conversion.
+- The adapter declares Tailwind as a peer. The resolved npm lockfile installs
+  Tailwind 4.3.3 transitively, without adding a consumer-facing direct Tailwind
+  dependency declaration to this lint repository. Consumer applications still
+  own their Tailwind installation and build pipeline.
+- The new canonical-classname rule is available with Tailwind 4.3 or newer;
+  upstream skips canonicalization suggestions on earlier supported v4 versions.
+
+## Consumer configuration
+
+Keep the actual CSS-first entrypoint in native ESLint settings, not in
+`matrixai-lint-config.json`. Set `settings.tailwindcss.cssConfigPath` to an
+absolute filesystem path derived from the configuration module's directory. The
+[consumer example](README.md#tailwind-css-v4-and-mixed-styling) uses a relative
+URL anchored to `import.meta.url`, so nested packages and different working
+directories do not change its meaning. A legacy `tailwind.config.js` is not a
+substitute for the CSS entrypoint.
+
+Use `createConfig({ root })` when preset discovery must also be independent of
+the working directory. Existing default imports remain available for callers
+whose working directory is already the intended lint root.
+
+Remove obsolete v3 adapter settings such as `config`, `cssFiles`,
+`cssFilesRefreshRate` and `removeDuplicates`. Upstream renamed `callees` and
+`tags` to `functions`, and `classRegex` to `attributes`; migrate custom settings
+to their v4 equivalents when needed.
+
+## Mixed styling and removable workarounds
+
+`tailwindcss/no-custom-classname` is explicitly off after the recommended
+configuration. Other useful recommended checks, including ordering and
+contradiction detection, remain enabled. Unrelated MatrixAI rules are not
+relaxed.
+
+After adoption, downstream projects can remove:
+
+- Temporary replacement adapters, duplicate plugin imports and manual plugin
+  re-registration introduced solely to work around the v3 shared preset.
+- Overrides that disable `no-custom-classname` solely to permit custom classes,
+  framework styles or CSS Module composition.
+- Per-file suppressions, class allowlists and variable-name exceptions added
+  solely to appease Tailwind-only class enforcement.
+
+Keep the site's real CSS entrypoint setting, native rule customizations that
+remain intentional, and application-specific build configuration. Do not remove
+unrelated suppressions without checking their diagnostic origin. Tailwind-only
+projects can explicitly re-enable class enforcement through a later scoped
+ESLint override.
+
+## Forwarded-value investigation
+
+Regression fixtures run both the shared preset and the unwrapped upstream
+adapter. With 4.4.0, a plain forwarded identifier and a template-literal
+interpolation pass strict upstream enforcement. Inside `clsx`, however, a
+forwarded identifier is reported as the literal unknown class `className`. This
+reproduces the issue without MatrixAI configuration and distinguishes it from
+the default mixed-styling policy. The shared default accepts all these forms,
+including differently named forwarded values. No variable-name exception is
+added. Consumers opting back into strict enforcement inherit this upstream
+limitation.
+
+## Development and testing
+
+The repository now follows the reference library's flake-parts/devenv/direnv
+structure, TypeScript toolchain and build-before-test workflow. The test command
+typechecks both build and development configurations before Vitest. Domain tests
+live under corresponding directories, and standalone Nix checks invoke the same
+canonical npm command and preserve JUnit/coverage evidence. No lifecycle or
+benchmark implementation from another package is imported.

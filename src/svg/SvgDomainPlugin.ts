@@ -8,22 +8,24 @@ import process from 'node:process';
 import childProcess from 'node:child_process';
 import { createRequire } from 'node:module';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
-import { resolveFilesFromPatterns } from '../utils.js';
+import { resolvePrettierConfigArgs } from '../prettier.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const platform = os.platform();
 const SVG_FILE_EXTENSIONS = ['.svg'] as const;
 
 function collectSvgFilesFromScope(patterns: readonly string[]): string[] {
-  return resolveFilesFromPatterns(patterns, SVG_FILE_EXTENSIONS);
+  return new FileDiscovery().resolveFilesFromPatterns(
+    patterns,
+    SVG_FILE_EXTENSIONS,
+  );
 }
 
 function resolveSvgPatterns(
   svgPatterns: readonly string[] | undefined,
   defaultSearchRoots: readonly string[],
 ): string[] {
-  return svgPatterns != null && svgPatterns.length > 0
-    ? [...svgPatterns]
-    : [...defaultSearchRoots];
+  return svgPatterns != null ? [...svgPatterns] : [...defaultSearchRoots];
 }
 
 class SvgDomainPlugin extends LintDomainPluginBase {
@@ -53,21 +55,21 @@ class SvgDomainPlugin extends LintDomainPluginBase {
     };
   }
 
-  public run(
+  public async run(
     { fix, logger }: LintDomainEngineContext,
     detection: LintDomainDetection,
-  ): LintDomainPluginResult {
+  ): Promise<LintDomainPluginResult> {
     const svgFiles = detection.matchedFiles ?? [];
     if (svgFiles.length === 0) {
       return { hadFailure: false };
     }
 
-    const prettierArgs = [
-      '--config',
+    const prettierConfigArgs = await resolvePrettierConfigArgs(
+      svgFiles,
       this.prettierConfigPath,
-      '--config-precedence',
-      'cli-override',
-      '--no-editorconfig',
+    );
+    const prettierArgs = [
+      ...prettierConfigArgs,
       '--parser',
       'html',
       fix ? '--write' : '--check',

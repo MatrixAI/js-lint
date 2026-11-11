@@ -7,7 +7,8 @@ import os from 'node:os';
 import process from 'node:process';
 import childProcess from 'node:child_process';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
-import { commandExists, resolveFilesFromPatterns } from '../utils.js';
+import { commandExists } from '../commands.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const platform = os.platform();
 
@@ -17,9 +18,7 @@ function resolveShellPatterns(
   shellPatterns: readonly string[] | undefined,
   defaultSearchRoots: readonly string[],
 ): string[] {
-  return shellPatterns != null && shellPatterns.length > 0
-    ? [...shellPatterns]
-    : [...defaultSearchRoots];
+  return shellPatterns != null ? [...shellPatterns] : [...defaultSearchRoots];
 }
 
 class ShellDomainPlugin extends LintDomainPluginBase {
@@ -38,7 +37,7 @@ class ShellDomainPlugin extends LintDomainPluginBase {
       shellPatterns,
       this.defaultSearchRoots,
     );
-    const matchedFiles = resolveFilesFromPatterns(
+    const matchedFiles = new FileDiscovery().resolveFilesFromPatterns(
       patterns,
       SHELL_FILE_EXTENSIONS,
     );

@@ -15,10 +15,14 @@ import {
   evaluateLintDomains,
   runLintDomainDecisions,
 } from '../domains.js';
-import * as eslintUtils from '../eslint/utils.js';
+import { resolveLintConfig } from '../config.js';
+import { resolveExecutionPolicy } from '../policy.js';
+import {
+  nativeTypeScriptBackend,
+  resolveContentMapperPolicy,
+} from '../eslint/NativeTypeScriptBackend.js';
+import ESLintScope from '../eslint/ESLintScope.js';
 import * as utils from '../utils.js';
-
-const program = new Command();
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const builtinPrettierCfg = path.resolve(
@@ -26,44 +30,122 @@ const builtinPrettierCfg = path.resolve(
   '../configs/prettier.config.js',
 );
 
-program
-  .name('matrixai-lint')
-  .description(
-    'Lint source files, scripts, and markdown with configured rules.',
-  )
-  .addOption(
-    new Option('-v, --verbose', 'Increase log verbosity')
-      .argParser((_: string, previous: number = 0) => previous + 1)
-      .default(0),
-  )
-  .option('-f, --fix', 'Automatically fix problems')
-  .option('--list-domains', 'List available lint domains and exit')
-  .option('--explain', 'Print per-domain selection and execution decisions')
-  .option(
-    '--user-config',
-    'Use user-provided ESLint config instead of built-in one',
-  )
-  .option('--eslint-config <path>', 'Path to explicit ESLint config file')
-  .option('--eslint <target...>', 'ESLint targets (files, roots, or globs)')
-  .option('--markdown <target...>', 'Markdown targets (files, roots, or globs)')
-  .option('--svg <target...>', 'SVG targets (files, roots, or globs)')
-  .option('--nix <target...>', 'Nix targets (files, roots, or globs)')
-  .option(
-    '--shell <target...>',
-    'Shell targets (files, roots, or globs) used to derive shellcheck search roots',
-  )
-  .addOption(
-    new Option(
-      '--domain <id...>',
-      `Run only selected domains (${LINT_DOMAINS.join(', ')})`,
-    ).choices(LINT_DOMAINS),
-  )
-  .addOption(
-    new Option(
-      '--skip-domain <id...>',
-      `Skip selected domains (${LINT_DOMAINS.join(', ')})`,
-    ).choices(LINT_DOMAINS),
-  );
+function collectOption(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
+function createProgram(): Command {
+  const program = new Command();
+  program
+    .name('matrixai-lint')
+    .version(
+      (
+        JSON.parse(
+          fs.readFileSync(path.resolve(dirname, '../../package.json'), 'utf8'),
+        ) as { version: string }
+      ).version,
+      '-V, --version',
+    )
+    .description(
+      'Lint source files, scripts, and markdown with configured rules.',
+    )
+    .addOption(
+      new Option('-v, --verbose', 'Increase log verbosity')
+        .argParser((_: string, previous: number = 0) => previous + 1)
+        .default(0),
+    )
+    .option('-f, --fix', 'Automatically fix problems')
+    .option('--check', 'Check without modifying source (the CLI default)')
+    .option('--root <path>', 'Explicit project root')
+    .option('--strict', 'Fail when any relevant backend is unavailable')
+    .option(
+      '--plan',
+      'Print the effective policy and execution plan without running backends',
+    )
+    .option(
+      '--report <path>',
+      'Write a JSON execution report outside maintained source',
+    )
+    .option(
+      '--extend-target <domain=target>',
+      'Extend a domain without narrowing domain selection',
+      collectOption,
+      [],
+    )
+    .option(
+      '--replace-target <domain=target>',
+      'Replace domain targets; domain= explicitly clears them',
+      collectOption,
+      [],
+    )
+    .option(
+      '--exclude-target <domain=target>',
+      'Exclude domain targets',
+      collectOption,
+      [],
+    )
+    .option('--list-domains', 'List available lint domains and exit')
+    .option('--explain', 'Print per-domain selection and execution decisions')
+    .option(
+      '--disable-content-mappers',
+      'Disable TypeScript content mapper execution',
+    )
+    .option(
+      '--user-config',
+      'Deprecated ESLint-only alias; use --eslint-config <path>',
+    )
+    .option('--eslint-config <path>', 'Path to explicit ESLint config file')
+    .option('--eslint <target...>', 'ESLint targets (files, roots, or globs)')
+    .option(
+      '--markdown <target...>',
+      'Markdown targets (files, roots, or globs)',
+    )
+    .option('--svg <target...>', 'SVG targets (files, roots, or globs)')
+    .option('--nix <target...>', 'Nix targets (files, roots, or globs)')
+    .option('--sql <target...>', 'SQL targets (files, roots, or globs)')
+    .option(
+      '--rust <target...>',
+      'Rust file targets; Clippy expands to the Cargo package',
+    )
+    .option(
+      '--shell <target...>',
+      'Shell targets (files, roots, or globs) used to derive shellcheck search roots',
+    )
+    .addOption(
+      new Option(
+        '--domain <id...>',
+        `Run only selected domains (${LINT_DOMAINS.join(', ')})`,
+      ).choices(LINT_DOMAINS),
+    )
+    .addOption(
+      new Option(
+        '--skip-domain <id...>',
+        `Skip selected domains (${LINT_DOMAINS.join(', ')})`,
+      ).choices(LINT_DOMAINS),
+    );
+  return program;
+}
+
+function findProjectRoot(start: string): string {
+  let current = path.resolve(start);
+  while (true) {
+    if (
+      [
+        'matrixai-lint-config.json',
+        'flake.nix',
+        'Cargo.toml',
+        'package.json',
+        'tsconfig.json',
+        '.git',
+      ].some((name) => fs.existsSync(path.join(current, name)))
+    ) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) return path.resolve(start);
+    current = parent;
+  }
+}
 
 function describeAvailability(decision: LintDomainDecision): string {
   if (decision.detection == null) {
@@ -129,115 +211,182 @@ function printExplain(
 }
 
 async function main(argv = process.argv) {
+  const program = createProgram();
   await program.parseAsync(argv);
   const options = program.opts<CLIOptions>();
-  const logger = new Logger('matrixai-lint', undefined, [new StreamHandler()]);
-  logger.setLevel(utils.verboseToLogLevel(options.verbose));
+  if (options.fix && options.check) {
+    throw new Error('--fix and --check are mutually exclusive.');
+  }
+  const previousCwd = process.cwd();
+  process.chdir(
+    options.root === undefined
+      ? findProjectRoot(previousCwd)
+      : path.resolve(options.root),
+  );
+  try {
+    const logger = new Logger('matrixai-lint', undefined, [
+      new StreamHandler(),
+    ]);
+    logger.setLevel(utils.verboseToLogLevel(options.verbose));
 
-  const fix = Boolean(options.fix);
-  const useUserConfig = Boolean(options.userConfig);
-  const explicitConfigPath: string | undefined = options.eslintConfig;
-  const listDomainsOnly = Boolean(options.listDomains);
-  const explain = Boolean(options.explain);
-
-  const eslintPatterns: string[] | undefined = options.eslint;
-  const markdownPatterns: string[] | undefined = options.markdown;
-  const svgPatterns: string[] | undefined = options.svg;
-  const nixPatterns: string[] | undefined = options.nix;
-  const shellPatterns: string[] | undefined = options.shell;
-  const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
-    resolveDomainSelection(options);
-
-  const domainRegistry = createBuiltInDomainRegistry({
-    prettierConfigPath: builtinPrettierCfg,
-  });
-
-  if (listDomainsOnly) {
-    printDomainList(
-      logger,
-      listLintDomains({
-        registry: domainRegistry,
-        executionOrder: LINT_DOMAINS,
-      }),
+    const fix = Boolean(options.fix);
+    const useUserConfig = Boolean(options.userConfig);
+    const explicitConfigPath: string | undefined = options.eslintConfig;
+    const listDomainsOnly = Boolean(options.listDomains);
+    const explain = Boolean(options.explain);
+    const lintConfig = resolveLintConfig();
+    const contentMapperPolicy = resolveContentMapperPolicy(
+      lintConfig.domains.eslint.contentMappers,
+      options.disableContentMappers === true,
     );
-    return;
-  }
 
-  let hadFailure = false;
-
-  // Resolve which config file to use
-  let chosenConfig: string | undefined;
-  let isConfigValid = true;
-
-  if (explicitConfigPath !== undefined) {
-    const absolutePath = path.resolve(explicitConfigPath);
-
-    if (!fs.existsSync(absolutePath)) {
-      logger.error(
-        `--eslint-config points to "${explicitConfigPath}", but that file does not exist.`,
-      );
-      hadFailure = true;
-      isConfigValid = false;
-    } else {
-      chosenConfig = absolutePath;
+    const { selectedDomains, explicitlyRequestedDomains, selectionSources } =
+      resolveDomainSelection(options);
+    const policy = resolveExecutionPolicy(lintConfig, options, selectedDomains);
+    for (const domain of LINT_DOMAINS) {
+      if (!policy[domain].enabled) selectedDomains.delete(domain);
     }
-  } else if (useUserConfig) {
-    chosenConfig = eslintUtils.findUserESLintConfig();
-    if (chosenConfig === undefined) {
+
+    const domainRegistry = createBuiltInDomainRegistry({
+      prettierConfigPath: builtinPrettierCfg,
+    });
+
+    if (listDomainsOnly) {
+      printDomainList(
+        logger,
+        listLintDomains({
+          registry: domainRegistry,
+          executionOrder: LINT_DOMAINS,
+        }),
+      );
+      return;
+    }
+
+    let hadFailure = false;
+
+    // Resolve which config file to use
+    let chosenConfig: string | undefined;
+    let isConfigValid = true;
+
+    if (useUserConfig) {
       logger.warn(
-        '--user-config given but no local ESLint config was found. Falling back to built-in config.',
+        '--user-config is deprecated and ESLint-only. Use --eslint-config <path>; keep lint scope in matrixai-lint-config.json.',
       );
     }
-  }
 
-  const decisions = await evaluateLintDomains({
-    registry: domainRegistry,
-    selectedDomains,
-    explicitlyRequestedDomains,
-    selectionSources,
-    executionOrder: LINT_DOMAINS,
-    context: {
+    if (explicitConfigPath !== undefined) {
+      const absolutePath = path.resolve(explicitConfigPath);
+
+      if (!fs.existsSync(absolutePath)) {
+        logger.error(
+          `--eslint-config points to "${explicitConfigPath}", but that file does not exist.`,
+        );
+        hadFailure = true;
+        isConfigValid = false;
+      } else {
+        chosenConfig = absolutePath;
+      }
+    } else if (useUserConfig) {
+      chosenConfig = new ESLintScope().findUserESLintConfig();
+      if (chosenConfig === undefined) {
+        logger.warn(
+          '--user-config given but no local ESLint config was found. Falling back to built-in config.',
+        );
+      }
+    } else {
+      chosenConfig = new ESLintScope().findUserESLintConfig();
+    }
+
+    const context = {
       fix,
       logger,
       chosenConfig,
       isConfigValid,
-      eslintPatterns,
-      markdownPatterns,
-      svgPatterns,
-      nixPatterns,
-      shellPatterns,
-    },
-  });
+      strict: options.strict,
+      disableContentMappers: options.disableContentMappers,
+      eslintPatterns: policy.eslint.files,
+      markdownPatterns: policy.markdown.files,
+      svgPatterns: policy.svg.files,
+      nixPatterns: policy.nix.files,
+      sqlPatterns: policy.sql.files,
+      shellPatterns: policy.shell.files,
+      rustPatterns: policy.rust.files,
+      rustClippy: lintConfig.domains.rust.clippy,
+      cargoArgs: lintConfig.domains.rust.cargoArgs,
+    };
+    const decisions = await evaluateLintDomains({
+      registry: domainRegistry,
+      selectedDomains,
+      explicitlyRequestedDomains,
+      selectionSources,
+      executionOrder: LINT_DOMAINS,
+      context,
+    });
 
-  if (explain) {
-    printExplain(logger, decisions);
-  }
+    if (explain || options.plan) {
+      logger.info(`Effective policy: ${JSON.stringify(policy)}`);
+      logger.info(
+        `Content mapper policy: ${JSON.stringify(contentMapperPolicy)}`,
+      );
+      printExplain(logger, decisions);
+    }
+    if (options.plan) return;
 
-  const hadDomainFailure = await runLintDomainDecisions({
-    registry: domainRegistry,
-    decisions,
-    context: {
-      fix,
-      logger,
-      chosenConfig,
-      isConfigValid,
-      eslintPatterns,
-      markdownPatterns,
-      svgPatterns,
-      nixPatterns,
-      shellPatterns,
-    },
-  });
+    const hadDomainFailure = await runLintDomainDecisions({
+      registry: domainRegistry,
+      decisions,
+      context,
+    });
 
-  if (hadDomainFailure) {
-    hadFailure = true;
-  }
+    if (hadDomainFailure) {
+      hadFailure = true;
+    }
+    if (options.report !== undefined) {
+      const destination = path.resolve(options.report);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.writeFileSync(
+        destination,
+        JSON.stringify(
+          {
+            schemaVersion: 1,
+            driverVersion: (
+              JSON.parse(
+                fs.readFileSync(
+                  path.resolve(dirname, '../../package.json'),
+                  'utf8',
+                ),
+              ) as { version: string }
+            ).version,
+            nodeVersion: process.version,
+            projectTypeScript: nativeTypeScriptBackend.getProvenance(),
+            toolchain: process.env.MATRIXAI_LINT_TOOLCHAIN ?? null,
+            name: 'lint',
+            kind: 'static',
+            status: hadFailure ? 'failed' : 'passed',
+            mode: fix ? 'fix' : 'check',
+            root: process.cwd(),
+            policy,
+            contentMapperPolicy,
+            decisions,
+            summary: hadFailure
+              ? 'Lint violations or backend failures remain.'
+              : 'Selected lint scope passed.',
+            artifacts: {},
+          },
+          null,
+          2,
+        ) + '\n',
+      );
+    }
 
-  if (hadFailure) {
-    logger.error('[matrixai-lint] ✖ Linting failed.');
-    process.exit(1);
-  } else {
-    logger.info('[matrixai-lint] ✔ Linting passed.');
+    if (hadFailure) {
+      logger.error('[matrixai-lint] ✖ Linting failed.');
+      process.exit(1);
+    } else {
+      logger.info('[matrixai-lint] ✔ Linting passed.');
+    }
+  } finally {
+    process.chdir(previousCwd);
   }
 }
 

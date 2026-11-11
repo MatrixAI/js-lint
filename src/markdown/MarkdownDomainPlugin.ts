@@ -6,29 +6,20 @@ import type {
 import os from 'node:os';
 import process from 'node:process';
 import childProcess from 'node:child_process';
-import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
-import {
-  DEFAULT_MARKDOWN_ROOT_FILES,
-  DEFAULT_MARKDOWN_SEARCH_ROOTS,
-} from '../constants.js';
-import { resolveFilesFromPatterns } from '../utils.js';
+import { DEFAULT_MARKDOWN_SEARCH_ROOTS } from '../constants.js';
+import { resolvePrettierConfigArgs } from '../prettier.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const platform = os.platform();
 const MARKDOWN_FILE_EXTENSIONS = ['.md', '.mdx'] as const;
 
 function collectMarkdownFilesFromScope(patterns: readonly string[]): string[] {
-  const matchedRelativeFiles = resolveFilesFromPatterns(
+  const matchedRelativeFiles = new FileDiscovery().resolveFilesFromPatterns(
     patterns,
     MARKDOWN_FILE_EXTENSIONS,
   );
-
-  for (const rootFile of [...DEFAULT_MARKDOWN_ROOT_FILES].reverse()) {
-    if (!matchedRelativeFiles.includes(rootFile) && fs.existsSync(rootFile)) {
-      matchedRelativeFiles.unshift(rootFile);
-    }
-  }
 
   return matchedRelativeFiles;
 }
@@ -36,7 +27,7 @@ function collectMarkdownFilesFromScope(patterns: readonly string[]): string[] {
 function resolveMarkdownPatterns(
   markdownPatterns: readonly string[] | undefined,
 ): string[] {
-  return markdownPatterns != null && markdownPatterns.length > 0
+  return markdownPatterns != null
     ? [...markdownPatterns]
     : [...DEFAULT_MARKDOWN_SEARCH_ROOTS];
 }
@@ -68,21 +59,21 @@ class MarkdownDomainPlugin extends LintDomainPluginBase {
     };
   }
 
-  public run(
+  public async run(
     { fix, logger }: LintDomainEngineContext,
     detection: LintDomainDetection,
-  ): LintDomainPluginResult {
+  ): Promise<LintDomainPluginResult> {
     const markdownFiles = detection.matchedFiles ?? [];
     if (markdownFiles.length === 0) {
       return { hadFailure: false };
     }
 
-    const prettierArgs = [
-      '--config',
+    const prettierConfigArgs = await resolvePrettierConfigArgs(
+      markdownFiles,
       this.prettierConfigPath,
-      '--config-precedence',
-      'cli-override',
-      '--no-editorconfig',
+    );
+    const prettierArgs = [
+      ...prettierConfigArgs,
       fix ? '--write' : '--check',
       ...markdownFiles,
     ];

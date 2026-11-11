@@ -16,9 +16,10 @@
     "moduleResolution": "NodeNext",
     "module": "NodeNext",
     "target": "ES2022",
-    "baseUrl": "./src",
+    "lib": ["ES2022", "ESNext.Disposable"],
+    "types": ["node"],
     "paths": {
-      "#*": ["*"]
+      "#*": ["./src/*"]
     },
     "skipLibCheck": true,
     "noEmit": true

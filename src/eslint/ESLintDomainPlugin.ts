@@ -3,14 +3,12 @@ import type {
   LintDomainEngineContext,
   LintDomainPluginResult,
 } from '../types.js';
-import { buildPatterns, runESLint } from './utils.js';
+import ESLintScope from './ESLintScope.js';
+import ESLintRunner from './ESLintRunner.js';
 import LintDomainPluginBase from '../LintDomainPluginBase.js';
 import { resolveLintConfig } from '../config.js';
 import { DEFAULT_ESLINT_SEARCH_ROOTS } from '../constants.js';
-import {
-  resolveFilesFromPatterns,
-  resolveSearchRootsFromPatterns,
-} from '../utils.js';
+import FileDiscovery from '../FileDiscovery.js';
 
 const ESLINT_FILE_EXTENSIONS = [
   '.js',
@@ -38,7 +36,7 @@ function resolveESLintDetectionPatterns(
     return [...DEFAULT_ESLINT_SEARCH_ROOTS];
   }
 
-  const { files } = buildPatterns(
+  const { files } = new ESLintScope().buildPatterns(
     tsconfigPaths,
     forceInclude,
     process.cwd(),
@@ -59,8 +57,10 @@ class ESLintDomainPlugin extends LintDomainPluginBase {
   public detect({
     eslintPatterns,
   }: LintDomainEngineContext): LintDomainDetection {
-    if (eslintPatterns != null && eslintPatterns.length > 0) {
-      const searchRoots = resolveSearchRootsFromPatterns(eslintPatterns);
+    if (eslintPatterns != null) {
+      const searchRoots = new FileDiscovery().resolveSearchRootsFromPatterns(
+        eslintPatterns,
+      );
 
       return {
         relevant: searchRoots.length > 0,
@@ -74,7 +74,7 @@ class ESLintDomainPlugin extends LintDomainPluginBase {
     }
 
     const detectionPatterns = resolveESLintDetectionPatterns(eslintPatterns);
-    const matchedFiles = resolveFilesFromPatterns(
+    const matchedFiles = new FileDiscovery().resolveFilesFromPatterns(
       detectionPatterns,
       ESLINT_FILE_EXTENSIONS,
     );
@@ -97,6 +97,7 @@ class ESLintDomainPlugin extends LintDomainPluginBase {
     chosenConfig,
     isConfigValid,
     eslintPatterns,
+    disableContentMappers,
   }: LintDomainEngineContext): Promise<LintDomainPluginResult> {
     if (!isConfigValid) {
       logger.error('Skipping ESLint due to invalid --eslint-config path.');
@@ -106,13 +107,16 @@ class ESLintDomainPlugin extends LintDomainPluginBase {
     try {
       const explicitPatterns =
         eslintPatterns != null && eslintPatterns.length > 0
-          ? resolveFilesFromPatterns(eslintPatterns, ESLINT_FILE_EXTENSIONS)
+          ? new FileDiscovery().resolveFilesFromPatterns(
+              eslintPatterns,
+              ESLINT_FILE_EXTENSIONS,
+            )
           : undefined;
-      const hadLintingErrors = await runESLint({
+      const hadLintingErrors = await new ESLintRunner(logger).run({
         fix,
-        logger,
         configPath: chosenConfig,
         explicitGlobs: explicitPatterns,
+        disableContentMappers,
       });
 
       return { hadFailure: hadLintingErrors };

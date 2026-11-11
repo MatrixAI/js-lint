@@ -16,27 +16,32 @@ const platform = os.platform();
 /* eslint-disable no-console */
 async function main(argv = process.argv) {
   argv = argv.slice(2);
-  const tscArgs = [`-p`, path.join(projectPath, 'tsconfig.build.json')];
-  console.error('Running tsc:');
-  console.error(['tsc', ...tscArgs].join(' '));
-  childProcess.execFileSync('tsc', tscArgs, {
+  for (const config of ['tsconfig.build.json', 'tsconfig.json']) {
+    const tscArgs = [
+      path.join(projectPath, 'node_modules/@typescript/native/bin/tsc'),
+      '-p',
+      path.join(projectPath, config),
+    ];
+    console.error('Running tsc:');
+    console.error([process.execPath, ...tscArgs].join(' '));
+    childProcess.execFileSync(process.execPath, tscArgs, {
+      stdio: ['inherit', 'inherit', 'inherit'],
+      windowsHide: true,
+      encoding: 'utf-8',
+      shell: platform === 'win32' ? true : false,
+    });
+  }
+  const vitestArgs = [
+    path.join(projectPath, 'node_modules/vitest/vitest.mjs'),
+    'run',
+    ...argv,
+  ];
+  console.error('Running Vitest:');
+  console.error([process.execPath, ...vitestArgs].join(' '));
+  childProcess.execFileSync(process.execPath, vitestArgs, {
     stdio: ['inherit', 'inherit', 'inherit'],
     windowsHide: true,
     encoding: 'utf-8',
-    shell: platform === 'win32' ? true : false,
-  });
-  const jestArgs = [...argv];
-  console.error('Running jest:');
-  console.error(['jest', ...jestArgs].join(' '));
-  childProcess.execFileSync('jest', jestArgs, {
-    env: {
-      ...process.env,
-      NODE_OPTIONS: '--experimental-vm-modules',
-    },
-    stdio: ['inherit', 'inherit', 'inherit'],
-    windowsHide: true,
-    encoding: 'utf-8',
-    shell: platform === 'win32' ? true : false,
   });
 }
 /* eslint-enable no-console */
