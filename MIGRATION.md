@@ -1,6 +1,6 @@
 # Migration notes
 
-## Content mapper configuration
+## Version 3.0.1: content mapper configuration
 
 The former mapper opt-in has been removed. Trusted projects must set
 `domains.eslint.contentMappers` to `true` in their lint configuration. Use
