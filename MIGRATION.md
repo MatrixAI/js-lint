@@ -1,9 +1,6 @@
-# Migration to v2.0.0
+# Migration notes
 
-Version 2.0.0 introduces the ecosystem-neutral Nix lint executable, layered
-source scopes, Rust formatting and offline Clippy, and structured lint reports.
-
-## Unreleased native TypeScript update
+## Version 3.0.0: native TypeScript
 
 Typed linting now uses the bundled TypeScript 7.1 native backend for all
 projects instead of selecting a consumer compiler. The upstream experimental
@@ -15,7 +12,12 @@ require an explicit trust opt-in. See the
 
 The repository build and typecheck use the same native compiler, and its test
 suite uses Vitest instead of Jest and SWC. The historical v2.0.0 notes below
-describe that release rather than the unreleased behavior.
+describe that release rather than the v3 behavior.
+
+## Historical migration to v2.0.0
+
+Version 2.0.0 introduced the ecosystem-neutral Nix lint executable, layered
+source scopes, Rust formatting and offline Clippy, and structured lint reports.
 
 ## Patch update 2.0.1
 

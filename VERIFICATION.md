@@ -1,5 +1,19 @@
 # Verification evidence
 
+## Version 3.0.0: native TypeScript
+
+Before the version update, 132 Vitest tests, fix-first repository lint, and the
+default Nix check aggregate passed. The aggregate includes unit tests with JUnit
+and coverage artifacts, the pinned lint check, and the separately installed
+Tailwind consumer check. A separately installed npm archive passed CLI fix and
+check runs and Node and TypeScript export resolution.
+
+A separate Nix CLI fixture without a project TypeScript installation verified
+autofix, explicit lint-project selection, untrusted mapper rejection, and
+trusted dotschema diagnostics that change when the schema type changes. These
+scenarios do not prove all mapper failures or transformed-source fix ranges are
+safe. The experimental adapter relies on a pinned private upstream module.
+
 ## Patch release 2.0.1: separately installed Tailwind v4 tooling
 
 The regression uses a real independent consumer dependency tree locked to
